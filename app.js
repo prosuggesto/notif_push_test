@@ -99,12 +99,15 @@ async function handleLogin(e) {
         } else {
             showMessage('login-message', 'Connexion validée !', 'success');
             
+            // Get UUID from data if n8n returns it (recommended)
+            const uuid = data.uuid || 'user-' + Date.now(); 
+            
             // Identify user in OneSignal
             if (window.OneSignal) {
-                OneSignal.login(password); // Using password as ID for login demo if no UUID
+                OneSignal.login(uuid);
             }
 
-            sessionStorage.setItem('user', JSON.stringify({ name: 'Utilisateur', password: password }));
+            sessionStorage.setItem('user', JSON.stringify({ name: 'Utilisateur', uuid: uuid }));
             setTimeout(() => { showDashboard('Utilisateur'); }, 800);
         }
     } catch (err) {
