@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Suggesto">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="icon.png">
     
     <meta name="description" content="Plateforme de gestion de leads Suggesto.">
@@ -20,7 +21,6 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        console.log("Current Origin:", window.location.origin);
         await OneSignal.init({
           appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
           allowLocalhostAsSecureOrigin: true,
@@ -29,10 +29,10 @@
           },
         });
         
-        // Force the prompt after a 2sec delay if not already accepted
+        // Force the prompt for v16
         setTimeout(() => {
           if (!OneSignal.Notifications.permission) {
-            OneSignal.SlidingPrompt.push({force: true});
+            OneSignal.slidedown.prompt({force: true});
           }
         }, 2000);
       });
