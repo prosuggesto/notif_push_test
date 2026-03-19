@@ -29,12 +29,20 @@
           },
         });
         
-        // Force the prompt for v16
+        // Force the prompt for v16 using a more robust method
         setTimeout(() => {
-          if (!OneSignal.Notifications.permission) {
-            OneSignal.slidedown.prompt({force: true});
+          try {
+            if (!OneSignal.Notifications.permission) {
+              if (typeof OneSignal.slidedown !== 'undefined') {
+                OneSignal.slidedown.prompt({force: true});
+              } else {
+                OneSignal.Notifications.requestPermission();
+              }
+            }
+          } catch (e) {
+            console.warn("OneSignal prompt failed:", e);
           }
-        }, 2000);
+        }, 3000);
       });
     </script>
 </head>
