@@ -15,7 +15,18 @@
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
         });
+        
+        // Force the prompt after a 2sec delay if not already accepted
+        setTimeout(() => {
+          if (!OneSignal.Notifications.permission) {
+            OneSignal.SlidingPrompt.push({force: true});
+          }
+        }, 2000);
       });
     </script>
 </head>
