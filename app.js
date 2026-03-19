@@ -99,15 +99,16 @@ async function handleLogin(e) {
         } else {
             showMessage('login-message', 'Connexion validée !', 'success');
             
-            // Get UUID from data if n8n returns it (recommended)
-            const uuid = data.uuid || 'user-' + Date.now(); 
+            // On récupère le userid renvoyé par le webhook n8n
+            const userId = data.userid || data.uuid; 
             
-            // Identify user in OneSignal
-            if (window.OneSignal) {
-                OneSignal.login(uuid);
+            // Identify user in OneSignal if we have an ID
+            if (window.OneSignal && userId) {
+                console.log("Identifying OneSignal user with ID:", userId);
+                OneSignal.login(userId);
             }
 
-            sessionStorage.setItem('user', JSON.stringify({ name: 'Utilisateur', uuid: uuid }));
+            sessionStorage.setItem('user', JSON.stringify({ name: 'Utilisateur', uuid: userId }));
             setTimeout(() => { showDashboard('Utilisateur'); }, 800);
         }
     } catch (err) {
