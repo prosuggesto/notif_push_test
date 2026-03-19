@@ -98,6 +98,12 @@ async function handleLogin(e) {
             showMessage('login-message', data.phrase || 'Connexion refusée.', 'error');
         } else {
             showMessage('login-message', 'Connexion validée !', 'success');
+            
+            // Identify user in OneSignal
+            if (window.OneSignal) {
+                OneSignal.login(password); // Using password as ID for login demo if no UUID
+            }
+
             sessionStorage.setItem('user', JSON.stringify({ name: 'Utilisateur', password: password }));
             setTimeout(() => { showDashboard('Utilisateur'); }, 800);
         }
@@ -149,6 +155,12 @@ async function handleSignup(e) {
             showMessage('signup-message', data.phrase || 'Inscription refusée.', 'error');
         } else {
             showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
+            
+            // Identify user in OneSignal
+            if (window.OneSignal) {
+                OneSignal.login(uuid);
+            }
+
             sessionStorage.setItem('user', JSON.stringify({ name: name, uuid: uuid }));
             setTimeout(() => { showDashboard(name); }, 800);
         }
