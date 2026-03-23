@@ -1,6 +1,6 @@
 {
-  "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/fetars", "destination": "/index.html" },
+    { "source": "/entreprise", "destination": "/index.html" }
   ]
 }
