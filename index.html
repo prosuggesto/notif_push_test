@@ -222,6 +222,32 @@
 
         <!-- Home View: Nightclubs -->
         <main id="home-view" class="main-view active">
+            <div class="search-filter-container">
+                <div class="search-bar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="club-search" placeholder="Rechercher une boîte..." oninput="filterClubs()">
+                </div>
+                <div class="filters-row">
+                    <select id="filter-city" onchange="filterClubs()">
+                        <option value="">Toutes les villes</option>
+                    </select>
+                    <select id="filter-region" onchange="filterClubs()">
+                        <option value="">Toutes les régions</option>
+                    </select>
+                    <select id="filter-country" onchange="filterClubs()">
+                        <option value="">Tous les pays</option>
+                    </select>
+                </div>
+            </div>
+
+            <section id="favorites-section" style="display: none; margin-bottom: 40px;">
+                <h3 class="section-title">Mes Boîtes Préférées</h3>
+                <div class="favorites-slider" id="favorites-container">
+                    <!-- Favorite cards injected here -->
+                </div>
+            </section>
+
+            <h3 class="section-title">Toutes les Boîtes</h3>
             <div class="clubs-grid" id="clubs-container">
                 <!-- Cards injected here via app.js -->
             </div>
@@ -288,7 +314,32 @@
                         </div>
                         <div class="p-stat">
                             <span class="p-stat-val" id="profile-count-points">0</span>
-                            <span class="p-stat-label">Points</span>
+                            <span class="p-stat-label">Points Total</span>
+                        </div>
+                    </div>
+
+                    <div class="points-explanation">
+                        <div class="exp-box">
+                            <h5>💎 Gagner des points</h5>
+                            <ul>
+                                <li>Scanne à l'entrée et entre ton code unique.</li>
+                                <li>Évalue l'ambiance de la boîte via l'app.</li>
+                            </ul>
+                        </div>
+                        <div class="exp-box">
+                            <h5>🎁 Dépenser mes points</h5>
+                            <ul>
+                                <li>Scanne le QR au bar pour voir tes récompenses.</li>
+                                <li>Donne ton code au barman et commande ton cadeau !</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="club-points-list">
+                        <h4>Détail par établissement</h4>
+                        <div id="per-club-points" class="club-points-container">
+                            <!-- Injected via JS -->
+                            <p class="text-dim">Aucun point cumulé pour le moment.</p>
                         </div>
                     </div>
                 </div>

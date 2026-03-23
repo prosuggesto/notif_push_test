@@ -234,6 +234,9 @@ function handleLogout() {
 
 // ===== CHECK SESSION ON LOAD =====
 window.addEventListener('DOMContentLoaded', () => {
+    // Initialize filters data
+    initFilters();
+
     // Populate club selector for QR Boîtes View
     const selector = document.getElementById('club-selector');
     if (selector) {
@@ -273,7 +276,10 @@ const nightclubs = [
         theme: 'Années 80 Full Red',
         nightDesc: 'Soirée spéciale revival avec DJ Guest de Londres. Spectacle pyrotechnique à minuit.',
         generalDesc: 'La plus grande boîte de nuit de la région avec 3 salles, 5 bars et un carré VIP exclusif.',
-        instagram: '@macumba_officiel'
+        instagram: '@macumba_officiel',
+        city: 'Genève',
+        region: 'Grand Genève',
+        country: 'Suisse'
     },
     {
         id: 'club-2',
@@ -289,7 +295,10 @@ const nightclubs = [
         theme: 'Deep Into Detroit',
         nightDesc: 'Pas d\'événements prévus ce soir. Ouverture demain 23h.',
         generalDesc: 'Club intimiste spécialisé dans la musique électronique underground et techno mélodique.',
-        instagram: '@atrium_club'
+        instagram: '@atrium_club',
+        city: 'Lyon',
+        region: 'Rhône-Alpes',
+        country: 'France'
     },
     {
         id: 'club-3',
@@ -305,9 +314,14 @@ const nightclubs = [
         theme: 'Gala de Printemps',
         nightDesc: 'Dress code élégant exigé. Champagne offert aux groupes de 5 femmes avant minuit.',
         generalDesc: 'Lieu historique de la nuit parisienne, réputé pour son acoustique et ses soirées mondaines.',
-        instagram: '@palace_paris'
+        instagram: '@palace_paris',
+        city: 'Paris',
+        region: 'Île-de-France',
+        country: 'France'
     }
 ];
+
+let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
 
 function toggleMenu() {
     const menu = document.getElementById('side-menu');
@@ -352,17 +366,45 @@ function renderProfile() {
     document.getElementById('profile-name').textContent = user.name;
     document.getElementById('profile-city').textContent = user.city || 'Ville non renseignée';
     document.getElementById('display-user-code').textContent = user.code || '------';
+
+    // Mock points per club for demonstration
+    const clubPointsContainer = document.getElementById('per-club-points');
+    clubPointsContainer.innerHTML = '';
+    
+    // In a real app, this would come from the user's data in the backend
+    const mockPoints = [
+        { name: 'Le Macumba', points: 150 },
+        { name: 'Le Palace', points: 45 }
+    ];
+
+    if (mockPoints.length === 0) {
+        clubPointsContainer.innerHTML = '<p class="text-dim">Aucun point cumulé pour le moment.</p>';
+    } else {
+        mockPoints.forEach(cp => {
+            clubPointsContainer.innerHTML += `
+                <div class="club-point-item">
+                    <span>${cp.name}</span>
+                    <strong>${cp.points} pts</strong>
+                </div>
+            `;
+        });
+    }
 }
 
-function renderClubs() {
+function renderClubs(filteredList = null) {
+    const list = filteredList || nightclubs;
     const container = document.getElementById('clubs-container');
     container.innerHTML = '';
     
-    nightclubs.forEach(club => {
+    list.forEach(club => {
+        const isFav = favorites.includes(club.id);
         const statusText = club.status === 'open' ? 'Ouvert' : 'Fermé';
         
         container.innerHTML += `
             <div class="club-card" onclick="openClubModal('${club.id}')">
+                <button class="btn-fav ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${club.id}')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                </button>
                 <img src="${club.image}" class="club-img" alt="${club.name}">
                 <div class="club-info">
                     <div class="club-header">
@@ -381,16 +423,100 @@ function renderClubs() {
                             ${club.vibe}
                         </div>
                     </div>
+                    <div class="club-location">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        ${club.city}, ${club.country}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    renderFavorites();
+}
+
+function renderFavorites() {
+    const section = document.getElementById('favorites-section');
+    const container = document.getElementById('favorites-container');
+    
+    if (favorites.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    container.innerHTML = '';
+    
+    favorites.forEach(id => {
+        const club = nightclubs.find(c => c.id === id);
+        if (!club) return;
+        
+        container.innerHTML += `
+            <div class="fav-mini-card" onclick="openClubModal('${club.id}')">
+                <img src="${club.image}" alt="${club.name}">
+                <div class="fav-mini-info">
+                    <h4>${club.name}</h4>
+                    <span>${club.vibe}</span>
                 </div>
             </div>
         `;
     });
 }
 
+function toggleFavorite(clubId) {
+    if (favorites.includes(clubId)) {
+        favorites = favorites.filter(id => id !== clubId);
+    } else {
+        favorites.push(clubId);
+    }
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    filterClubs(); // Re-render everything
+}
+
+function filterClubs() {
+    const search = document.getElementById('club-search').value.toLowerCase();
+    const city = document.getElementById('filter-city').value;
+    const region = document.getElementById('filter-region').value;
+    const country = document.getElementById('filter-country').value;
+    
+    const filtered = nightclubs.filter(c => {
+        const matchesSearch = c.name.toLowerCase().includes(search) || c.generalDesc.toLowerCase().includes(search);
+        const matchesCity = !city || c.city === city;
+        const matchesRegion = !region || c.region === region;
+        const matchesCountry = !country || c.country === country;
+        return matchesSearch && matchesCity && matchesRegion && matchesCountry;
+    });
+    
+    renderClubs(filtered);
+}
+
+function initFilters() {
+    const cities = [...new Set(nightclubs.map(c => c.city))];
+    const regions = [...new Set(nightclubs.map(c => c.region))];
+    const countries = [...new Set(nightclubs.map(c => c.country))];
+    
+    const populate = (id, items) => {
+        const el = document.getElementById(id);
+        items.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.textContent = item;
+            el.appendChild(opt);
+        });
+    };
+    
+    populate('filter-city', cities);
+    populate('filter-region', regions);
+    populate('filter-country', countries);
+}
+
 function openClubModal(clubId) {
     const club = nightclubs.find(c => c.id === clubId);
     if (!club) return;
     
+    const thresholds = JSON.parse(localStorage.getItem('notificationThresholds')) || {};
+    const currentThreshold = thresholds[clubId] || 50;
+
     document.getElementById('modal-club-name').textContent = club.name;
     
     const body = document.querySelector('#club-modal .modal-body');
@@ -445,13 +571,30 @@ function openClubModal(clubId) {
                 <p class="text-small">${club.nightDesc}</p>
             </div>
             
-            <div class="modal-footer-code">
-                <p>Scannez le QR de l'établissement avec votre caméra native pour valider votre entrée.</p>
+            <div class="affluence-threshold">
+                <div class="threshold-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span>Seuil d'alerte d'affluence</span>
+                </div>
+                <div class="threshold-input-group">
+                    <p>M'envoyer une notification quand l'affluence dépasse :</p>
+                    <div class="t-wrapper">
+                        <input type="number" id="threshold-${club.id}" value="${currentThreshold}" min="1" max="5000" onchange="saveThreshold('${club.id}', this.value)">
+                        <span>personnes</span>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
     document.getElementById('club-modal').classList.add('active');
+}
+
+function saveThreshold(clubId, value) {
+    const thresholds = JSON.parse(localStorage.getItem('notificationThresholds')) || {};
+    thresholds[clubId] = parseInt(value);
+    localStorage.setItem('notificationThresholds', JSON.stringify(thresholds));
+    console.log(`Threshold for ${clubId} set to ${value}`);
 }
 
 function closeModal(event, modalId) {
