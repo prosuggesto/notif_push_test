@@ -26,7 +26,6 @@
         const search = new URLSearchParams(window.location.search);
         let view = search.get('v') || (path.includes('entreprise') ? 'entreprise' : 'fetars');
         
-        // Visual URL cleanup/sync
         if (view === 'entreprise' && !path.includes('entreprise')) {
             window.history.replaceState(null, '', '/entreprise');
         } else if (view === 'fetars' && (path === '/' || !path.includes('fetars'))) {
@@ -34,19 +33,6 @@
         }
 
         document.body.className = 'view-' + view;
-        document.addEventListener('DOMContentLoaded', () => {
-          const fetarsEl = document.getElementById('fetars-view');
-          const entrepriseEl = document.getElementById('entreprise-view');
-          
-          if (view === 'entreprise') {
-            if (fetarsEl) fetarsEl.style.display = 'none';
-            if (entrepriseEl) entrepriseEl.style.display = 'block';
-          } else {
-            if (fetarsEl) fetarsEl.style.display = 'block';
-            if (entrepriseEl) entrepriseEl.style.display = 'none';
-          }
-          document.body.classList.remove('view-loading');
-        });
       }
       routeSpace();
       

@@ -1,3 +1,34 @@
+let currentBusiness = JSON.parse(localStorage.getItem('businessUser')) || null;
+
+// Initialize View on Load
+document.addEventListener('DOMContentLoaded', () => {
+    const isBusinessView = document.body.classList.contains('view-entreprise');
+    const fetarsEl = document.getElementById('fetars-view');
+    const entrepriseEl = document.getElementById('entreprise-view');
+    
+    console.log('App Init - isBusinessView:', isBusinessView);
+
+    if (isBusinessView) {
+        if (fetarsEl) fetarsEl.style.display = 'none';
+        if (entrepriseEl) entrepriseEl.style.display = 'block';
+        
+        if (currentBusiness) {
+            showBusinessDashboard();
+        } else {
+            document.getElementById('business-auth-screen').style.display = 'flex';
+        }
+    } else {
+        if (fetarsEl) fetarsEl.style.display = 'block';
+        if (entrepriseEl) entrepriseEl.style.display = 'none';
+        
+        // Original client init logic could be here if needed
+        handleNativeScan();
+    }
+    
+    // Remove loading state
+    document.body.classList.remove('view-loading');
+});
+
 // ===== TAB SWITCHING =====
 function switchTab(tab) {
     const loginForm = document.getElementById('login-form');
@@ -146,6 +177,474 @@ function selectGenderOption(value) {
 window.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-select-wrapper')) {
         document.querySelectorAll('.custom-select-wrapper').forEach(d => d.classList.remove('active'));
+    }
+});
+
+// ===== BUSINESS LOGIC =====
+function switchBizTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('business-login-form').classList.toggle('active', isLogin);
+    document.getElementById('business-signup-form').classList.toggle('active', !isLogin);
+    
+    const tabs = document.querySelectorAll('#business-auth-screen .tab-btn');
+    tabs[0].classList.toggle('active', isLogin);
+    tabs[1].classList.toggle('active', !isLogin);
+    
+    document.getElementById('biz-tab-indicator').style.transform = isLogin ? 'translateX(0)' : 'translateX(100%)';
+}
+
+function switchBizSection(sectionId) {
+    document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`biz-section-${sectionId}`).classList.add('active');
+    
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(sectionId));
+    });
+}
+
+function handleBusinessLogout() {
+    localStorage.removeItem('businessUser');
+    location.reload();
+}
+
+async function handleBusinessSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById('biz-signup-name').value;
+    const password = document.getElementById('biz-signup-password').value;
+    const btn = document.getElementById('biz-signup-btn');
+    const msg = document.getElementById('biz-signup-message');
+
+    btn.disabled = true;
+    btn.textContent = 'Création...';
+
+    try {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: 'business_signup',
+                clubName: name, 
+                password: password,
+                role: 'owner'
+            })
+        });
+
+        if (response.ok) {
+            msg.textContent = 'Inscription réussie ! Vous pouvez vous connecter.';
+            msg.style.color = 'var(--success)';
+            setTimeout(() => switchBizTab('login'), 2000);
+        } else {
+            throw new Error('Erreur lors de l\'inscription');
+        }
+    } catch (error) {
+        msg.textContent = 'Erreur: ' + error.message;
+        msg.style.color = 'var(--danger)';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Créer mon espace';
+    }
+}
+
+async function handleBusinessLogin(e) {
+    e.preventDefault();
+    const name = document.getElementById('biz-login-name').value;
+    const password = document.getElementById('biz-login-password').value;
+    const btn = document.getElementById('biz-login-btn');
+    const msg = document.getElementById('biz-login-message');
+
+    btn.disabled = true;
+    btn.textContent = 'Connexion...';
+
+    try {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                action: 'business_login',
+                clubName: name, 
+                password: password 
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentBusiness = { name: name, ...data };
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+            showBusinessDashboard();
+        } else {
+            throw new Error('Identifiants incorrects');
+        }
+    } catch (error) {
+        msg.textContent = 'Erreur: ' + error.message;
+        msg.style.color = 'var(--danger)';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Se connecter';
+    }
+}
+
+let bizTemplates = currentBusiness?.templates || [];
+let bizSchedule = currentBusiness?.schedule || {};
+let calendarDate = new Date();
+let selectedDates = new Set();
+
+let bizRewards = currentBusiness?.rewards || [];
+let lastFoundClient = null;
+
+function showBusinessDashboard() {
+    document.getElementById('business-auth-screen').style.display = 'none';
+    document.getElementById('business-dashboard-screen').style.display = 'flex';
+    document.getElementById('biz-club-name').textContent = currentBusiness.name;
+    loadBusinessData();
+    renderCalendar();
+    renderTemplateList();
+    renderRewardsList();
+    updateStatsUI();
+}
+
+// ----- Rewards Logic -----
+function handleCreateReward(e) {
+    e.preventDefault();
+    const name = document.getElementById('rew-name').value;
+    const points = parseInt(document.getElementById('rew-points').value);
+    
+    const newRew = {
+        id: 'rew_' + Date.now(),
+        name: name,
+        points: points
+    };
+    
+    bizRewards.push(newRew);
+    currentBusiness.rewards = bizRewards;
+    
+    renderRewardsList();
+    e.target.reset();
+    saveBusinessData();
+}
+
+function renderRewardsList() {
+    const list = document.getElementById('biz-rewards-list');
+    list.innerHTML = bizRewards.length ? '' : '<p style="font-size:12px; color:var(--text-dim);">Aucune récompense créée.</p>';
+    
+    bizRewards.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'template-item';
+        item.innerHTML = `<h5>${r.name}</h5><p>${r.points} Points requis</p>`;
+        list.appendChild(item);
+    });
+}
+
+// ----- Redemption Logic -----
+async function searchClientForReward() {
+    const code = document.getElementById('biz-client-code-search').value;
+    if (!code) return;
+
+    const resultDiv = document.getElementById('biz-client-result');
+    const nameEl = document.getElementById('res-client-name');
+    const pointsEl = document.getElementById('res-client-points');
+    const rewardsEl = document.getElementById('biz-available-rewards');
+
+    try {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'search_client',
+                clientCode: code
+            })
+        });
+
+        if (response.ok) {
+            const client = await response.json();
+            lastFoundClient = client;
+            
+            nameEl.textContent = client.name;
+            pointsEl.textContent = `${client.points} Points`;
+            resultDiv.style.display = 'block';
+            
+            renderAvailableRewardsForClient(client.points);
+        } else {
+            alert('Client non trouvé');
+            resultDiv.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+    }
+}
+
+function renderAvailableRewardsForClient(points) {
+    const list = document.getElementById('biz-available-rewards');
+    list.innerHTML = '';
+    
+    if (bizRewards.length === 0) {
+        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim);">Aucune récompense configurée par le club.</p>';
+        return;
+    }
+
+    bizRewards.forEach(r => {
+        const canAfford = points >= r.points;
+        const item = document.createElement('div');
+        item.className = 'reward-redeem-item';
+        item.innerHTML = `
+            <div class="reward-info">
+                <h5>${r.name}</h5>
+                <span>${r.points} pts</span>
+            </div>
+            <button class="btn-redeem" ${canAfford ? '' : 'disabled'} onclick="redeemReward('${r.id}')">
+                ${canAfford ? 'Donner' : 'Points insuffisants'}
+            </button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+async function redeemReward(rewardId) {
+    const reward = bizRewards.find(r => r.id === rewardId);
+    if (!reward || !lastFoundClient) return;
+
+    if (!confirm(`Confirmer la distribution de "${reward.name}" à ${lastFoundClient.name} ?`)) return;
+
+    try {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'redeem_reward',
+                clientCode: lastFoundClient.code,
+                clubName: currentBusiness.name,
+                rewardId: reward.id,
+                pointsToDeduct: reward.points
+            })
+        });
+
+        if (response.ok) {
+            alert('Récompense attribuée !');
+            searchClientForReward(); // Refresh client view
+        } else {
+            alert('Erreur lors de la distribution');
+        }
+    } catch (error) {
+        console.error('Redeem error:', error);
+    }
+}
+
+function updateStatsUI() {
+    // Mock data for now, would ideally fetch from n8n
+    document.getElementById('stats-total-scans').textContent = '1,280';
+    document.getElementById('stats-rewards-given').textContent = '450';
+    document.getElementById('stats-avg-attendance').textContent = '680';
+}
+
+// ----- Calendar Logic -----
+function renderCalendar() {
+    const grid = document.getElementById('biz-calendar-grid');
+    const monthLabel = document.getElementById('calendar-month-year');
+    
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Adjust for Monday start (0=Sun, 1=Mon... 6=Sat)
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset === -1) startOffset = 6;
+    
+    monthLabel.textContent = firstDay.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    grid.innerHTML = '';
+    
+    // Fill empty slots
+    for (let i = 0; i < startOffset; i++) {
+        const d = document.createElement('div');
+        d.className = 'calendar-day not-current';
+        grid.appendChild(d);
+    }
+    
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const d = document.createElement('div');
+        d.className = 'calendar-day';
+        if (selectedDates.has(dateStr)) d.classList.add('selected');
+        
+        const scheduleItem = bizSchedule[dateStr];
+        if (scheduleItem) {
+            if (scheduleItem === 'closed') {
+                d.classList.add('closed');
+                d.innerHTML = `<span>${day}</span><span class="closed-indicator">Fermé</span>`;
+            } else {
+                const template = bizTemplates.find(t => t.id === scheduleItem);
+                d.classList.add('has-event');
+                d.innerHTML = `<span>${day}</span><span class="event-label">${template ? template.name : 'Soirée'}</span>`;
+            }
+        } else {
+            d.textContent = day;
+        }
+        
+        d.onclick = () => toggleDateSelection(dateStr);
+        grid.appendChild(d);
+    }
+}
+
+function changeMonth(dir) {
+    calendarDate.setMonth(calendarDate.getMonth() + dir);
+    renderCalendar();
+}
+
+function toggleDateSelection(dateStr) {
+    if (selectedDates.has(dateStr)) {
+        selectedDates.delete(dateStr);
+    } else {
+        selectedDates.add(dateStr);
+    }
+    
+    const actions = document.getElementById('biz-calendar-actions');
+    const count = document.getElementById('selected-days-count');
+    
+    actions.style.display = selectedDates.size > 0 ? 'block' : 'none';
+    count.textContent = `${selectedDates.size} jour(s) sélectionné(s)`;
+    
+    renderCalendar();
+}
+
+function renderTemplateList() {
+    const list = document.getElementById('biz-template-list');
+    const select = document.getElementById('biz-apply-template');
+    
+    list.innerHTML = bizTemplates.length ? '' : '<p style="font-size:12px; color:var(--text-dim);">Aucun template créé.</p>';
+    
+    // Reset select options (keep static ones)
+    const options = select.querySelectorAll('option');
+    options.forEach((opt, index) => { if(index > 1) opt.remove(); });
+
+    bizTemplates.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'template-item';
+        item.innerHTML = `<h5>${t.name}</h5><p>${t.theme || 'Sans thème'}</p>`;
+        list.appendChild(item);
+        
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        select.appendChild(opt);
+    });
+}
+
+// ----- Template CRUD -----
+function openNewTemplateModal() {
+    document.getElementById('biz-template-modal').classList.add('active');
+}
+
+async function handleCreateTemplate(e) {
+    e.preventDefault();
+    const name = document.getElementById('tpl-name').value;
+    const theme = document.getElementById('tpl-theme').value;
+    
+    const newTpl = {
+        id: 'tpl_' + Date.now(),
+        name: name,
+        theme: theme
+    };
+    
+    bizTemplates.push(newTpl);
+    currentBusiness.templates = bizTemplates;
+    
+    renderTemplateList();
+    closeModal(null, 'biz-template-modal');
+    e.target.reset();
+    
+    await saveBusinessData();
+}
+
+async function applyTemplateToSelection() {
+    const templateId = document.getElementById('biz-apply-template').value;
+    if (!templateId) return;
+    
+    selectedDates.forEach(dateStr => {
+        bizSchedule[dateStr] = templateId;
+    });
+    
+    currentBusiness.schedule = bizSchedule;
+    selectedDates.clear();
+    
+    document.getElementById('biz-calendar-actions').style.display = 'none';
+    renderCalendar();
+    
+    await saveBusinessData();
+}
+
+async function saveBusinessData() {
+    localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+    
+    try {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update_business_data',
+                clubName: currentBusiness.name,
+                templates: bizTemplates,
+                schedule: bizSchedule
+            })
+        });
+    } catch (error) {
+        console.error('Persistence error:', error);
+    }
+}
+
+async function handleSaveAnnonces(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-annonces');
+    const originalText = btn.textContent;
+    
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+
+    const data = {
+        action: 'update_club_annonces',
+        clubName: currentBusiness.name,
+        image: document.getElementById('biz-club-image').value,
+        insta: document.getElementById('biz-club-insta').value,
+        description: document.getElementById('biz-club-desc').value,
+        partyName: document.getElementById('biz-party-name').value,
+        partyTheme: document.getElementById('biz-party-theme').value
+    };
+
+    try {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            currentBusiness.annonces = data;
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+            alert('Annonces enregistrées avec succès !');
+        } else {
+            throw new Error('Erreur lors de la sauvegarde');
+        }
+    } catch (error) {
+        alert('Erreur: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+function loadBusinessData() {
+    if (!currentBusiness.annonces) return;
+    const a = currentBusiness.annonces;
+    document.getElementById('biz-club-image').value = a.image || '';
+    document.getElementById('biz-club-insta').value = a.insta || '';
+    document.getElementById('biz-club-desc').value = a.description || '';
+    document.getElementById('biz-party-name').value = a.partyName || '';
+    document.getElementById('biz-party-theme').value = a.partyTheme || '';
+}
+
+// Check business session on load
+window.addEventListener('load', () => {
+    if (isBusinessView && currentBusiness) {
+        showBusinessDashboard();
     }
 });
 
