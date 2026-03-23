@@ -544,7 +544,10 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     width: 90%;
-    max-width: 400px;
+    max-width: 420px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
     transform: translateY(20px) scale(0.95);
     transition: all 0.3s cubic;
     box-shadow: 0 20px 40px rgba(0,0,0,0.5);
@@ -579,7 +582,9 @@ body {
     color: var(--text);
 }
 .modal-body {
-    padding: 24px;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
 }
 .club-desc {
     font-size: 14px;
@@ -969,7 +974,7 @@ body {
     font-weight: 600;
 }
 .modal-content-inner {
-    padding: 24px;
+    padding: 24px 24px 40px 24px;
 }
 .detail-section {
     margin-bottom: 20px;
