@@ -337,7 +337,7 @@ function openClubModal(clubId) {
         height: 180,
         colorDark : "#000000",
         colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
+        correctLevel : QRCode.CorrectLevel.L
     });
     
     qrBarre = new QRCode(qrBoxBarre, {
@@ -346,7 +346,7 @@ function openClubModal(clubId) {
         height: 180,
         colorDark : "#000000",
         colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
+        correctLevel : QRCode.CorrectLevel.L
     });
 }
 
@@ -451,74 +451,83 @@ function restartScanning() {
     }
 }
 
+let pendingPayload = null;
+let pendingData = null;
+
 async function onScanSuccess(decodedText, decodedResult) {
     if (isProcessing) return;
     
-    // 1. Vérifie si c'est un de nos QR (JSON avec type & userId)
     let data = null;
     try {
         data = JSON.parse(decodedText);
     } catch(e) {
-        // Ignore silencieusement s'il scanne un autre QR (ex: menu de resto)
         return; 
     }
 
     if (!data || !data.type || !data.userId) {
-        // Ignore si c'est du JSON mais pas le bon format
         return;
     }
 
-    // 2. C'est un bon QR : On bloque les autres scans et on traite
     isProcessing = true;
     
-    // Met en pause la caméra immédiatement
     try {
         if (html5QrCode && html5QrCode.isScanning) {
             html5QrCode.pause(true); 
         }
     } catch(e) { console.warn(e); }
     
-    // Petit flash visuel
     const readerEl = document.getElementById('qr-reader');
     readerEl.style.transition = "opacity 0.1s";
     readerEl.style.opacity = "0.5";
     setTimeout(() => { readerEl.style.opacity = "1"; }, 100);
     
-    try {
-        document.getElementById('scan-status').textContent = "Validation auto en cours...";
-        document.getElementById('restart-scan-btn').style.display = 'inline-block';
-        
-        let isBarre = (data.type === 'barre');
-        let payload = {
-            name: "entree_barre",
-            value: "entree_barre.01",
-            scan_type: data.type,
-            user_id: data.userId,
-            user_name: data.userName,
-            club_name: data.clubName
-        };
-        
-        // 3. Envoi automatique des infos !
-        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(e => console.error('Webhook error', e));
-        
-        if (isBarre) {
-            document.getElementById('result-user-name').textContent = data.userName;
-            document.getElementById('result-drinks').textContent = Math.floor(Math.random() * 5) + 1;
-            document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
-            document.getElementById('scan-result-modal').classList.add('active');
-            document.getElementById('scan-status').textContent = "Validation réussie, bilan affiché.";
-        } else {
-            document.getElementById('scan-status').textContent = `Validation auto réussie pour ${data.userName} (+1)`;
-        }
-        
-    } catch(e) {
-        document.getElementById('scan-status').textContent = "Erreur réseau. Réessayez.";
-        document.getElementById('restart-scan-btn').style.display = 'inline-block';
+    pendingPayload = {
+        name: "entree_barre",
+        value: "entree_barre.01",
+        scan_type: data.type,
+        user_id: data.userId,
+        user_name: data.userName,
+        club_name: data.clubName
+    };
+    pendingData = data;
+    
+    document.getElementById('scan-status').innerHTML = `
+        <div style="margin-top: 8px;"><strong>QR ${data.type === 'barre' ? 'Bar' : 'Entrée'}</strong> détecté pour <strong>${data.userName}</strong></div>
+        <div style="margin-top: 16px; display: flex; gap: 10px; justify-content: center;">
+            <button class="btn-primary" style="background-color: var(--success); width: auto; padding: 10px 20px;" onclick="sendWebhook()">Valider</button>
+            <button class="btn-secondary" style="background-color: rgba(255,255,255,0.1); color: white; border: 1px solid var(--border); border-radius: 8px; width: auto; padding: 10px 20px; cursor: pointer;" onclick="restartScanning()">Annuler</button>
+        </div>
+    `;
+    document.getElementById('restart-scan-btn').style.display = 'none';
+}
+
+async function sendWebhook() {
+    if (!pendingPayload) return;
+    
+    document.getElementById('scan-status').innerHTML = "Envoi au serveur en cours...";
+    
+    await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pendingPayload)
+    }).catch(e => console.error('Webhook error', e));
+    
+    let isBarre = (pendingData.type === 'barre');
+    
+    if (isBarre) {
+        document.getElementById('result-user-name').textContent = pendingData.userName;
+        document.getElementById('result-drinks').textContent = Math.floor(Math.random() * 5) + 1;
+        document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
+        document.getElementById('scan-result-modal').classList.add('active');
+        document.getElementById('scan-status').textContent = "Validation réussie, bilan affiché.";
+    } else {
+        document.getElementById('scan-status').textContent = `Entrée validée et envoyée pour ${pendingData.userName} (+1)`;
     }
+    
+    document.getElementById('restart-scan-btn').style.display = 'inline-block';
+    
+    pendingPayload = null;
+    pendingData = null;
 }
 
 function onScanFailure(error) {
