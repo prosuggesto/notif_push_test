@@ -357,9 +357,9 @@ function generateClubQRs() {
     
     const club = nightclubs.find(c => c.id === clubId);
     
-    // Forcer l'URL de production GitHub Pages pour éviter que l'appareil photo ne lance une recherche Google
+    // Forcer l'URL de production (Vercel) pour éviter que l'appareil photo ne lance une recherche Google
     // si l'application est ouverte localement (file://).
-    const baseUrl = 'https://prosuggesto.github.io/notif_push_test/';
+    const baseUrl = 'https://notif-push-test.vercel.app/';
     const urlEntree = `${baseUrl}?action=scan&clubId=${club.id}&type=entree`;
     const urlBarre = `${baseUrl}?action=scan&clubId=${club.id}&type=barre`;
     
