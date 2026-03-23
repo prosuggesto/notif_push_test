@@ -364,44 +364,88 @@ function switchQRTab(tab) {
 }
 
 // ===== SCANNER LOGIC =====
-let html5QrcodeScanner = null;
+let html5QrCode = null;
+let currentFacingMode = "environment";
+let isProcessing = false;
 
 function startScanner() {
     if (!document.getElementById('qr-reader')) return;
     
-    document.getElementById('scan-status').textContent = "Prêt à scanner...";
+    document.getElementById('scan-status').textContent = "Démarrage de la caméra...";
     document.getElementById('restart-scan-btn').style.display = 'none';
+    isProcessing = false;
     
-    if (html5QrcodeScanner) {
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+    }
+    
+    if (html5QrCode.isScanning) {
         return;
     }
     
-    try {
-        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-    } catch(e) {
-        console.error("Scanner init error", e);
-    }
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    
+    html5QrCode.start(
+        { facingMode: currentFacingMode },
+        config,
+        onScanSuccess,
+        onScanFailure
+    ).then(() => {
+        document.getElementById('scan-status').textContent = "Prêt à scanner !";
+        document.getElementById('flip-camera-btn').style.display = 'inline-flex';
+    }).catch(err => {
+        console.error("Scanner init error", err);
+        document.getElementById('scan-status').textContent = "Erreur d'accès à la caméra.";
+    });
 }
 
 function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(e => console.error(e));
-        html5QrcodeScanner = null;
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('flip-camera-btn').style.display = 'none';
+        }).catch(err => console.error(err));
+    }
+}
+
+function flipCamera() {
+    currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            startScanner();
+        }).catch(err => {
+            console.error("Failed to stop and flip camera", err);
+        });
+    }
+}
+
+function restartScanning() {
+    isProcessing = false;
+    document.getElementById('restart-scan-btn').style.display = 'none';
+    document.getElementById('scan-status').textContent = "Prêt à scanner !";
+    
+    try {
+        html5QrCode.resume();
+    } catch(e) {
+        startScanner();
     }
 }
 
 async function onScanSuccess(decodedText, decodedResult) {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    try {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.pause(true);
+        }
+    } catch(e) { console.warn(e); }
+    
     try {
         const data = JSON.parse(decodedText);
         if (data.type && data.userId) {
             
             document.getElementById('scan-status').textContent = "QR Code détecté, envoi en cours...";
             document.getElementById('restart-scan-btn').style.display = 'inline-block';
-            
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.pause(true);
-            }
             
             const payload = {
                 name: "entree_barre",
@@ -427,12 +471,16 @@ async function onScanSuccess(decodedText, decodedResult) {
             } else {
                 document.getElementById('scan-status').textContent = `Entrée validée pour ${data.userName} à ${data.clubName}. (+1)`;
             }
+        } else {
+            document.getElementById('scan-status').textContent = "QR Code mal formaté.";
+            document.getElementById('restart-scan-btn').style.display = 'inline-block';
         }
     } catch(e) {
-        document.getElementById('scan-status').textContent = "QR Code invalide ou illisible.";
+        document.getElementById('scan-status').textContent = "QR Code invalide ou non reconnu.";
+        document.getElementById('restart-scan-btn').style.display = 'inline-block';
     }
 }
 
 function onScanFailure(error) {
-    // optional: console.warn(error);
+    // Ignore error, it happens every frame a QR isn't found
 }
