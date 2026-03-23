@@ -17,6 +17,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -129,86 +131,134 @@
         </div>
     </div>
 
+    <!-- ==================== SIDE MENU ==================== -->
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <h3>Menu</h3>
+            <button class="btn-close-menu" onclick="toggleMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="menu-links">
+            <button class="menu-link active" onclick="switchMainView('home')" id="link-home">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                Accueil Boîtes
+            </button>
+            <button class="menu-link" onclick="switchMainView('scan')" id="link-scan">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
+                Scanner un QR
+            </button>
+        </div>
+        <div class="menu-footer">
+            <button class="btn-logout" onclick="handleLogout()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Déconnexion
+            </button>
+        </div>
+    </div>
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
     <!-- ==================== DASHBOARD SCREEN ==================== -->
     <div id="dashboard-screen" class="screen">
         <header class="dash-header">
             <div class="dash-header-left">
-                <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-                    <rect width="40" height="40" rx="12" fill="url(#logo-grad2)"/>
-                    <path d="M12 20C12 15.58 15.58 12 20 12C24.42 12 28 15.58 28 20C28 24.42 24.42 28 20 28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                    <circle cx="20" cy="20" r="3" fill="white"/>
-                    <defs>
-                        <linearGradient id="logo-grad2" x1="0" y1="0" x2="40" y2="40">
-                            <stop stop-color="#6366f1"/>
-                            <stop offset="1" stop-color="#8b5cf6"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <h2>Dashboard</h2>
+                <button class="btn-burger" onclick="toggleMenu()">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="logo-title">
+                    <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                        <rect width="40" height="40" rx="12" fill="url(#logo-grad2)"/>
+                        <path d="M12 20C12 15.58 15.58 12 20 12C24.42 12 28 15.58 28 20C28 24.42 24.42 28 20 28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        <circle cx="20" cy="20" r="3" fill="white"/>
+                        <defs>
+                            <linearGradient id="logo-grad2" x1="0" y1="0" x2="40" y2="40">
+                                <stop stop-color="#6366f1"/>
+                                <stop offset="1" stop-color="#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <h2 id="header-title">Boîtes Partenaires</h2>
+                </div>
             </div>
             <div class="dash-header-right">
                 <span id="user-display" class="user-badge"></span>
-                <button class="btn-logout" onclick="handleLogout()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    Déconnexion
-                </button>
             </div>
         </header>
 
-        <main class="dash-main">
-            <div class="columns-container">
-                <!-- Column 1 -->
-                <div class="lead-column">
-                    <div class="column-header col-rdv">
-                        <div class="column-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        </div>
-                        <h3>Leads post 1er RDV</h3>
-                        <span class="column-count" id="count-rdv">0</span>
-                    </div>
-                    <div class="column-body" id="col-rdv">
-                        <div class="empty-state">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            <p>Aucun lead pour le moment</p>
-                        </div>
-                    </div>
-                </div>
+        <!-- Home View: Nightclubs -->
+        <main id="home-view" class="main-view active">
+            <div class="clubs-grid" id="clubs-container">
+                <!-- Cards injected here via app.js -->
+            </div>
+        </main>
 
-                <!-- Column 2 -->
-                <div class="lead-column">
-                    <div class="column-header col-converti">
-                        <div class="column-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        </div>
-                        <h3>Leads convertis</h3>
-                        <span class="column-count" id="count-converti">0</span>
-                    </div>
-                    <div class="column-body" id="col-converti">
-                        <div class="empty-state">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p>Aucun lead converti</p>
-                        </div>
-                    </div>
+        <!-- Scan View: QR Scanner -->
+        <main id="scan-view" class="main-view">
+            <div class="scanner-container">
+                <div class="scanner-header">
+                    <h3>Scanner un client</h3>
+                    <p>Scannez le QR Code Entrée ou Bar</p>
                 </div>
+                <div id="qr-reader" class="qr-reader"></div>
+                <div id="scan-status" class="scan-status"></div>
+                <!-- Restart scan button hidden by default -->
+                <button id="restart-scan-btn" class="btn-primary mt-4" style="display:none;" onclick="startScanner()">Scanner à nouveau</button>
+            </div>
+        </main>
+    </div>
 
-                <!-- Column 3 -->
-                <div class="lead-column">
-                    <div class="column-header col-non-converti">
-                        <div class="column-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                        </div>
-                        <h3>Leads non convertis</h3>
-                        <span class="column-count" id="count-non-converti">0</span>
+    <!-- ==================== CLUB MODAL ==================== -->
+    <div id="club-modal" class="modal-overlay" onclick="closeModal(event, 'club-modal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-club-name">Boîte de nuit</h3>
+                <button class="btn-close" onclick="closeModal(null, 'club-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-club-desc" class="club-desc"></p>
+                
+                <div class="qr-tabs">
+                    <button class="qr-tab-btn active" id="tab-entree" onclick="switchQRTab('entree')">QR Entrée</button>
+                    <button class="qr-tab-btn" id="tab-barre" onclick="switchQRTab('barre')">QR Bar</button>
+                </div>
+                
+                <div class="qr-content active" id="qr-entree-content">
+                    <p class="qr-hint">Présentez ce QR Code à l'entrée</p>
+                    <div id="qr-code-entree" class="qr-box"></div>
+                </div>
+                
+                <div class="qr-content" id="qr-barre-content">
+                    <p class="qr-hint">Présentez ce QR Code au bar</p>
+                    <div id="qr-code-barre" class="qr-box"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SCAN RESULT MODAL ==================== -->
+    <div id="scan-result-modal" class="modal-overlay" onclick="closeModal(event, 'scan-result-modal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Bilan du client</h3>
+                <button class="btn-close" onclick="closeModal(null, 'scan-result-modal')">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="scan-success-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <h4 id="result-user-name" class="result-title">Client</h4>
+                <div class="result-stats">
+                    <div class="stat-box">
+                        <span class="stat-label">Boissons</span>
+                        <strong id="result-drinks" class="stat-value">0</strong>
                     </div>
-                    <div class="column-body" id="col-non-converti">
-                        <div class="empty-state">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                            <p>Aucun lead non converti</p>
-                        </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Points fidélités</span>
+                        <strong id="result-points" class="stat-value">0</strong>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
     <script src="app.js"></script>

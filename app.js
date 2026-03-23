@@ -181,6 +181,9 @@ function showDashboard(username) {
     document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('dashboard-screen').classList.add('active');
     document.getElementById('user-display').textContent = username;
+    
+    // Render clubs
+    renderClubs();
 }
 
 // ===== LOGOUT =====
@@ -188,6 +191,9 @@ function handleLogout() {
     sessionStorage.removeItem('user');
     document.getElementById('dashboard-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
+    
+    document.getElementById('side-menu').classList.remove('open');
+    document.getElementById('menu-overlay').classList.remove('open');
 
     // Reset forms
     document.getElementById('login-form').reset();
@@ -207,3 +213,226 @@ window.addEventListener('DOMContentLoaded', () => {
         showDashboard(user.name || 'Utilisateur');
     }
 });
+
+// ===== NIGHTCLUB LOGIC =====
+const nightclubs = [
+    {
+        id: 'club-1',
+        name: 'Le Macumba',
+        image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80',
+        status: 'open',
+        count: 450,
+        vibe: '🔥 Incroyable',
+        desc: 'La plus grande boîte de nuit de la région avec 3 salles et une ambiance de folie.'
+    },
+    {
+        id: 'club-2',
+        name: 'L\'Atrium',
+        image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
+        status: 'closed',
+        count: 0,
+        vibe: '💤 Calme',
+        desc: 'Club intimiste spécialisé dans la musique électronique.'
+    },
+    {
+        id: 'club-3',
+        name: 'Le Palace',
+        image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=500&q=80',
+        status: 'open',
+        count: 850,
+        vibe: '🎉 Plein à craquer',
+        desc: 'Lieu historique de la nuit parisienne, toujours au top.'
+    }
+];
+
+function toggleMenu() {
+    const menu = document.getElementById('side-menu');
+    const overlay = document.getElementById('menu-overlay');
+    menu.classList.toggle('open');
+    overlay.classList.toggle('open');
+}
+
+function switchMainView(viewId) {
+    document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+    
+    document.getElementById(`${viewId}-view`).classList.add('active');
+    document.getElementById(`link-${viewId}`).classList.add('active');
+    
+    const title = viewId === 'home' ? 'Boîtes Partenaires' : 'Scanner';
+    document.getElementById('header-title').textContent = title;
+    
+    toggleMenu();
+    
+    if (viewId === 'scan') {
+        startScanner();
+    } else {
+        stopScanner();
+    }
+}
+
+function renderClubs() {
+    const container = document.getElementById('clubs-container');
+    container.innerHTML = '';
+    
+    nightclubs.forEach(club => {
+        const statusText = club.status === 'open' ? 'Ouvert' : 'Fermé';
+        
+        container.innerHTML += `
+            <div class="club-card" onclick="openClubModal('${club.id}')">
+                <img src="${club.image}" class="club-img" alt="${club.name}">
+                <div class="club-info">
+                    <div class="club-header">
+                        <h3 class="club-name">${club.name}</h3>
+                        <div class="club-status status-${club.status}">
+                            <div class="status-dot"></div>
+                            ${statusText}
+                        </div>
+                    </div>
+                    <div class="club-stats">
+                        <div class="stat-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                            ${club.count} pers.
+                        </div>
+                        <div class="stat-item">
+                            ${club.vibe}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Global variables for QR instances
+let qrEntree = null;
+let qrBarre = null;
+
+function openClubModal(clubId) {
+    const club = nightclubs.find(c => c.id === clubId);
+    if (!club) return;
+    
+    document.getElementById('modal-club-name').textContent = club.name;
+    document.getElementById('modal-club-desc').textContent = club.desc;
+    
+    document.getElementById('club-modal').classList.add('active');
+    switchQRTab('entree');
+    
+    // Generate QR Codes
+    const userStr = sessionStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : { name: 'Client', uuid: 'uuid-123' };
+    
+    const dataEntree = { type: 'entree', userId: user.uuid, userName: user.name, clubName: club.name };
+    const dataBarre = { type: 'barre', userId: user.uuid, userName: user.name, clubName: club.name };
+    
+    const qrBoxEntree = document.getElementById('qr-code-entree');
+    const qrBoxBarre = document.getElementById('qr-code-barre');
+    
+    qrBoxEntree.innerHTML = '';
+    qrBoxBarre.innerHTML = '';
+    
+    qrEntree = new QRCode(qrBoxEntree, {
+        text: JSON.stringify(dataEntree),
+        width: 180,
+        height: 180,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+    
+    qrBarre = new QRCode(qrBoxBarre, {
+        text: JSON.stringify(dataBarre),
+        width: 180,
+        height: 180,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+}
+
+function closeModal(event, modalId) {
+    if (event && event.target.id !== modalId) return;
+    document.getElementById(modalId).classList.remove('active');
+}
+
+function switchQRTab(tab) {
+    document.querySelectorAll('.qr-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.qr-content').forEach(c => c.classList.remove('active'));
+    
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    document.getElementById(`qr-${tab}-content`).classList.add('active');
+}
+
+// ===== SCANNER LOGIC =====
+let html5QrcodeScanner = null;
+
+function startScanner() {
+    if (!document.getElementById('qr-reader')) return;
+    
+    document.getElementById('scan-status').textContent = "Prêt à scanner...";
+    document.getElementById('restart-scan-btn').style.display = 'none';
+    
+    if (html5QrcodeScanner) {
+        return;
+    }
+    
+    try {
+        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    } catch(e) {
+        console.error("Scanner init error", e);
+    }
+}
+
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(e => console.error(e));
+        html5QrcodeScanner = null;
+    }
+}
+
+async function onScanSuccess(decodedText, decodedResult) {
+    try {
+        const data = JSON.parse(decodedText);
+        if (data.type && data.userId) {
+            
+            document.getElementById('scan-status').textContent = "QR Code détecté, envoi en cours...";
+            document.getElementById('restart-scan-btn').style.display = 'inline-block';
+            
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.pause(true);
+            }
+            
+            const payload = {
+                name: "entree_barre",
+                value: "entree_barre.01",
+                scan_type: data.type,
+                user_id: data.userId,
+                user_name: data.userName,
+                club_name: data.clubName
+            };
+            
+            await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.error('Webhook error', e));
+            
+            if (data.type === 'barre') {
+                document.getElementById('result-user-name').textContent = data.userName;
+                document.getElementById('result-drinks').textContent = Math.floor(Math.random() * 5) + 1;
+                document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
+                document.getElementById('scan-result-modal').classList.add('active');
+                document.getElementById('scan-status').textContent = "Bilan affiché.";
+            } else {
+                document.getElementById('scan-status').textContent = `Entrée validée pour ${data.userName} à ${data.clubName}. (+1)`;
+            }
+        }
+    } catch(e) {
+        document.getElementById('scan-status').textContent = "QR Code invalide ou illisible.";
+    }
+}
+
+function onScanFailure(error) {
+    // optional: console.warn(error);
+}
