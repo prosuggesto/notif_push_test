@@ -207,10 +207,26 @@ function handleLogout() {
 
 // ===== CHECK SESSION ON LOAD =====
 window.addEventListener('DOMContentLoaded', () => {
-    const stored = sessionStorage.getItem('user');
-    if (stored) {
-        const user = JSON.parse(stored);
-        showDashboard(user.name || 'Utilisateur');
+    // Populate club selector for QR Boîtes View
+    const selector = document.getElementById('club-selector');
+    if (selector) {
+        nightclubs.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            selector.appendChild(opt);
+        });
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'scan') {
+        handleNativeScan();
+    } else {
+        const stored = sessionStorage.getItem('user');
+        if (stored) {
+            const user = JSON.parse(stored);
+            showDashboard(user.name || 'Utilisateur');
+        }
     }
 });
 
@@ -259,16 +275,10 @@ function switchMainView(viewId) {
     document.getElementById(`${viewId}-view`).classList.add('active');
     document.getElementById(`link-${viewId}`).classList.add('active');
     
-    const title = viewId === 'home' ? 'Boîtes Partenaires' : 'Scanner';
+    const title = viewId === 'home' ? 'Boîtes Partenaires' : 'QR Boîtes';
     document.getElementById('header-title').textContent = title;
     
     toggleMenu();
-    
-    if (viewId === 'scan') {
-        startScanner();
-    } else {
-        stopScanner();
-    }
 }
 
 function renderClubs() {
@@ -304,10 +314,6 @@ function renderClubs() {
     });
 }
 
-// Global variables for QR instances
-let qrEntree = null;
-let qrBarre = null;
-
 function openClubModal(clubId) {
     const club = nightclubs.find(c => c.id === clubId);
     if (!club) return;
@@ -315,39 +321,12 @@ function openClubModal(clubId) {
     document.getElementById('modal-club-name').textContent = club.name;
     document.getElementById('modal-club-desc').textContent = club.desc;
     
-    document.getElementById('club-modal').classList.add('active');
-    switchQRTab('entree');
-    
-    // Generate QR Codes
     const userStr = sessionStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { name: 'Client', uuid: 'uuid-123' };
+    const user = userStr ? JSON.parse(userStr) : { name: 'Client', uuid: 'Aucun compte' };
     
-    const dataEntree = { type: 'entree', userId: user.uuid, userName: user.name, clubName: club.name };
-    const dataBarre = { type: 'barre', userId: user.uuid, userName: user.name, clubName: club.name };
+    document.getElementById('modal-user-code').textContent = user.uuid;
     
-    const qrBoxEntree = document.getElementById('qr-code-entree');
-    const qrBoxBarre = document.getElementById('qr-code-barre');
-    
-    qrBoxEntree.innerHTML = '';
-    qrBoxBarre.innerHTML = '';
-    
-    qrEntree = new QRCode(qrBoxEntree, {
-        text: JSON.stringify(dataEntree),
-        width: 180,
-        height: 180,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.L
-    });
-    
-    qrBarre = new QRCode(qrBoxBarre, {
-        text: JSON.stringify(dataBarre),
-        width: 180,
-        height: 180,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.L
-    });
+    document.getElementById('club-modal').classList.add('active');
 }
 
 function closeModal(event, modalId) {
@@ -363,173 +342,115 @@ function switchQRTab(tab) {
     document.getElementById(`qr-${tab}-content`).classList.add('active');
 }
 
-// ===== SCANNER LOGIC =====
-// ===== SCANNER LOGIC =====
-let html5QrCode = null;
-let currentFacingMode = "environment";
-let isProcessing = false;
+// ===== NATIVE QR LOGIC =====
 
-function startScanner() {
-    if (!document.getElementById('qr-reader')) return;
+function generateClubQRs() {
+    const clubId = document.getElementById('club-selector').value;
+    const wrapper = document.getElementById('club-qrs-wrapper');
     
-    document.getElementById('scan-status').textContent = "Ouverture de la caméra...";
-    document.getElementById('restart-scan-btn').style.display = 'none';
-    isProcessing = false;
-    
-    if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("qr-reader");
-    }
-    
-    if (html5QrCode.isScanning) {
+    if (!clubId) {
+        wrapper.style.display = 'none';
         return;
     }
     
-    // Configuration optimisée pour une détection plus rapide
-    const config = { 
-        fps: 15, 
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.floor(minEdge * 0.7);
-            return { width: size, height: size };
-        }
-    };
+    wrapper.style.display = 'block';
     
-    html5QrCode.start(
-        { facingMode: currentFacingMode },
-        config,
-        onScanSuccess,
-        onScanFailure
-    ).then(() => {
-        document.getElementById('scan-status').textContent = "Prêt à scanner ! Approchez le QR Code.";
-        document.getElementById('flip-camera-btn').style.display = 'inline-flex';
-    }).catch(err => {
-        console.error("Scanner init error", err);
-        // Fallback sans imposer la caméra arrière
-        html5QrCode.start(
-            { facingMode: "user" },
-            config,
-            onScanSuccess,
-            onScanFailure
-        ).then(() => {
-            currentFacingMode = "user";
-            document.getElementById('scan-status').textContent = "Caméra frontale (arrière non trouvée). Prêt !";
-            document.getElementById('flip-camera-btn').style.display = 'inline-flex';
-        }).catch(e => {
-            document.getElementById('scan-status').textContent = "Erreur d'accès à la caméra. Vérifiez les permissions.";
-        });
+    const club = nightclubs.find(c => c.id === clubId);
+    
+    const baseUrl = window.location.origin + window.location.pathname;
+    const urlEntree = `${baseUrl}?action=scan&clubId=${club.id}&type=entree`;
+    const urlBarre = `${baseUrl}?action=scan&clubId=${club.id}&type=barre`;
+    
+    const qrBoxEntree = document.getElementById('qr-code-gen-entree');
+    const qrBoxBarre = document.getElementById('qr-code-gen-barre');
+    
+    qrBoxEntree.innerHTML = '';
+    qrBoxBarre.innerHTML = '';
+    
+    new QRCode(qrBoxEntree, {
+        text: urlEntree,
+        width: 250,
+        height: 250,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.L
     });
+    
+    new QRCode(qrBoxBarre, {
+        text: urlBarre,
+        width: 250,
+        height: 250,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.L
+    });
+    
+    switchGenQRTab('entree');
 }
 
-function stopScanner() {
-    if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-            document.getElementById('flip-camera-btn').style.display = 'none';
-        }).catch(err => console.error(err));
-    }
+function switchGenQRTab(tab) {
+    document.querySelectorAll('#club-qrs-wrapper .qr-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#club-qrs-wrapper .qr-content').forEach(c => c.classList.remove('active'));
+    
+    document.getElementById(`tab-gen-${tab}`).classList.add('active');
+    document.getElementById(`qr-gen-${tab}-content`).classList.add('active');
 }
 
-function flipCamera() {
-    currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-    if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().then(() => {
-            startScanner();
-        }).catch(err => {
-            console.error("Failed to stop and flip camera", err);
-        });
-    }
+function downloadQR(containerId) {
+    const container = document.getElementById(containerId);
+    const img = container.querySelector('img');
+    if (!img) return;
+    
+    const a = document.createElement('a');
+    a.href = img.src;
+    a.download = `QR_${containerId}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
-function restartScanning() {
-    isProcessing = false;
-    document.getElementById('restart-scan-btn').style.display = 'none';
-    document.getElementById('scan-status').textContent = "Prêt à scanner !";
+// Intercept Scans on Load
+async function handleNativeScan() {
+    const params = new URLSearchParams(window.location.search);
+    const clubId = params.get('clubId');
+    const type = params.get('type') || 'entree';
+    const club = nightclubs.find(c => c.id === clubId);
     
-    try {
-        html5QrCode.resume();
-    } catch(e) {
-        startScanner();
-    }
-}
-
-let pendingPayload = null;
-let pendingData = null;
-
-async function onScanSuccess(decodedText, decodedResult) {
-    if (isProcessing) return;
+    if (!club) return;
     
-    let data = null;
-    try {
-        data = JSON.parse(decodedText);
-    } catch(e) {
-        return; 
-    }
-
-    if (!data || !data.type || !data.userId) {
-        return;
-    }
-
-    isProcessing = true;
+    const stored = sessionStorage.getItem('user');
+    const user = stored ? JSON.parse(stored) : null;
     
-    try {
-        if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.pause(true); 
-        }
-    } catch(e) { console.warn(e); }
-    
-    const readerEl = document.getElementById('qr-reader');
-    readerEl.style.transition = "opacity 0.1s";
-    readerEl.style.opacity = "0.5";
-    setTimeout(() => { readerEl.style.opacity = "1"; }, 100);
-    
-    pendingPayload = {
+    const payload = {
         name: "entree_barre",
         value: "entree_barre.01",
-        scan_type: data.type,
-        user_id: data.userId,
-        user_name: data.userName,
-        club_name: data.clubName
+        scan_type: type,
+        club_name: club.name
     };
-    pendingData = data;
     
-    document.getElementById('scan-status').innerHTML = `
-        <div style="margin-top: 8px;"><strong>QR ${data.type === 'barre' ? 'Bar' : 'Entrée'}</strong> détecté pour <strong>${data.userName}</strong></div>
-        <div style="margin-top: 16px; display: flex; gap: 10px; justify-content: center;">
-            <button class="btn-primary" style="background-color: var(--success); width: auto; padding: 10px 20px;" onclick="sendWebhook()">Valider</button>
-            <button class="btn-secondary" style="background-color: rgba(255,255,255,0.1); color: white; border: 1px solid var(--border); border-radius: 8px; width: auto; padding: 10px 20px; cursor: pointer;" onclick="restartScanning()">Annuler</button>
-        </div>
-    `;
-    document.getElementById('restart-scan-btn').style.display = 'none';
-}
-
-async function sendWebhook() {
-    if (!pendingPayload) return;
-    
-    document.getElementById('scan-status').innerHTML = "Envoi au serveur en cours...";
-    
-    await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pendingPayload)
-    }).catch(e => console.error('Webhook error', e));
-    
-    let isBarre = (pendingData.type === 'barre');
-    
-    if (isBarre) {
-        document.getElementById('result-user-name').textContent = pendingData.userName;
-        document.getElementById('result-drinks').textContent = Math.floor(Math.random() * 5) + 1;
-        document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
-        document.getElementById('scan-result-modal').classList.add('active');
-        document.getElementById('scan-status').textContent = "Validation réussie, bilan affiché.";
-    } else {
-        document.getElementById('scan-status').textContent = `Entrée validée et envoyée pour ${pendingData.userName} (+1)`;
+    if (user) {
+        payload.user_id = user.uuid;
+        payload.user_name = user.name;
     }
     
-    document.getElementById('restart-scan-btn').style.display = 'inline-block';
+    // Send webhook transparently
+    fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(e => console.error('Webhook error', e));
     
-    pendingPayload = null;
-    pendingData = null;
-}
-
-function onScanFailure(error) {
-    // Ignore les erreurs de frames vides
+    // Clean URL to prevent refresh loops
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    if (user) {
+        showDashboard(user.name);
+        setTimeout(() => alert(`✅ Validé : ${type === 'entree' ? 'Entrée' : 'Bar'} chez ${club.name} !`), 500);
+    } else {
+        // Redirige sur auth screen -> onglet signup
+        document.getElementById('dashboard-screen').classList.remove('active');
+        document.getElementById('auth-screen').classList.add('active');
+        switchTab('signup');
+        setTimeout(() => alert(`✅ Validé chez ${club.name} !\\n👉 Créez vite un compte pour accumuler vos points !`), 500);
+    }
 }
