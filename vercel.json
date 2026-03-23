@@ -1,9 +1,6 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false,
   "rewrites": [
-    { "source": "/fetars", "destination": "/index.html?v=fetars" },
-    { "source": "/entreprise", "destination": "/index.html?v=entreprise" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
