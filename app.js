@@ -453,58 +453,52 @@ function restartScanning() {
 
 async function onScanSuccess(decodedText, decodedResult) {
     if (isProcessing) return;
+    
+    // 1. Vérifie si c'est un de nos QR (JSON avec type & userId)
+    let data = null;
+    try {
+        data = JSON.parse(decodedText);
+    } catch(e) {
+        // Ignore silencieusement s'il scanne un autre QR (ex: menu de resto)
+        return; 
+    }
+
+    if (!data || !data.type || !data.userId) {
+        // Ignore si c'est du JSON mais pas le bon format
+        return;
+    }
+
+    // 2. C'est un bon QR : On bloque les autres scans et on traite
     isProcessing = true;
     
-    // Pause immediately on detection
+    // Met en pause la caméra immédiatement
     try {
         if (html5QrCode && html5QrCode.isScanning) {
             html5QrCode.pause(true); 
         }
     } catch(e) { console.warn(e); }
     
-    // Visual flash feedback
+    // Petit flash visuel
     const readerEl = document.getElementById('qr-reader');
     readerEl.style.transition = "opacity 0.1s";
     readerEl.style.opacity = "0.5";
     setTimeout(() => { readerEl.style.opacity = "1"; }, 100);
     
     try {
-        // Accepte un JSON ou du texte brut pour tester
-        let data = null;
-        try {
-            data = JSON.parse(decodedText);
-        } catch(e) {
-            // Pas du JSON
-            data = { type: 'inconnu', rawText: decodedText };
-        }
-
-        document.getElementById('scan-status').textContent = "QR Code détecté, validation auto en cours...";
+        document.getElementById('scan-status').textContent = "Validation auto en cours...";
         document.getElementById('restart-scan-btn').style.display = 'inline-block';
         
-        let payload;
-        let isBarre = false;
+        let isBarre = (data.type === 'barre');
+        let payload = {
+            name: "entree_barre",
+            value: "entree_barre.01",
+            scan_type: data.type,
+            user_id: data.userId,
+            user_name: data.userName,
+            club_name: data.clubName
+        };
         
-        if (data.type && data.userId) {
-            isBarre = (data.type === 'barre');
-            payload = {
-                name: "entree_barre",
-                value: "entree_barre.01",
-                scan_type: data.type,
-                user_id: data.userId,
-                user_name: data.userName,
-                club_name: data.clubName
-            };
-        } else {
-            // QR Code non généré par l'app, mais on valide quand même pour l'UX
-            payload = {
-                name: "entree_barre",
-                value: "entree_barre.01",
-                scan_type: "autre",
-                raw_data: decodedText
-            };
-        }
-        
-        // Envoi au Webhook
+        // 3. Envoi automatique des infos !
         await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -517,13 +511,12 @@ async function onScanSuccess(decodedText, decodedResult) {
             document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
             document.getElementById('scan-result-modal').classList.add('active');
             document.getElementById('scan-status').textContent = "Validation réussie, bilan affiché.";
-        } else if (data.userName) {
-            document.getElementById('scan-status').textContent = `Validation auto réussie pour ${data.userName} (+1)`;
         } else {
-            document.getElementById('scan-status').textContent = `QR classique détecté et validé !`;
+            document.getElementById('scan-status').textContent = `Validation auto réussie pour ${data.userName} (+1)`;
         }
+        
     } catch(e) {
-        document.getElementById('scan-status').textContent = "Erreur de validation. Réessayez.";
+        document.getElementById('scan-status').textContent = "Erreur réseau. Réessayez.";
         document.getElementById('restart-scan-btn').style.display = 'inline-block';
     }
 }
