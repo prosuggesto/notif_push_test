@@ -104,13 +104,45 @@
 
             <!-- Signup Form -->
             <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
-                <div class="input-group">
-                    <label for="signup-name">Nom</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <input type="text" id="signup-name" placeholder="Entrez votre nom" required>
+                <div class="registration-grid">
+                    <div class="input-group">
+                        <label for="signup-name">Nom complet</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input type="text" id="signup-name" placeholder="Ex: Jean Dupont" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="signup-age">Âge</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <input type="number" id="signup-age" placeholder="Votre âge" min="18" required>
+                        </div>
                     </div>
                 </div>
+
+                <div class="registration-grid">
+                    <div class="input-group">
+                        <label for="signup-sexe">Sexe</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                            <select id="signup-sexe" required class="custom-select">
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="Homme">Homme</option>
+                                <option value="Femme">Femme</option>
+                                <option value="Non-binaire">Non-binaire</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="signup-city">Ville</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <input type="text" id="signup-city" placeholder="Votre ville" required>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="input-group">
                     <label for="signup-password">Mot de passe</label>
                     <div class="input-wrapper">
@@ -146,6 +178,10 @@
             <button class="menu-link" onclick="switchMainView('qr')" id="link-qr">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
                 QR Boîtes
+            </button>
+            <button class="menu-link" onclick="switchMainView('code')" id="link-code">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
+                Mon Code
             </button>
         </div>
         <div class="menu-footer">
@@ -224,6 +260,63 @@
                         <div id="qr-code-gen-barre" class="qr-box"></div>
                         <br/>
                         <button class="btn-primary mt-4" style="width: auto; padding: 10px 20px; margin: 0 auto;" onclick="downloadQR('qr-code-gen-barre')">Télécharger le QR Bar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Mon Code View -->
+        <main id="code-view" class="main-view">
+            <div class="profile-container">
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="profile-initials">?</div>
+                        <h3 id="profile-name">Chargement...</h3>
+                        <p id="profile-city" class="text-muted"></p>
+                    </div>
+                    
+                    <div class="code-section">
+                        <span class="code-label">MON CODE UNIQUE</span>
+                        <div class="big-code" id="display-user-code">------</div>
+                        <p class="code-help">Présentez ce code à l'entrée de l'établissement ou lors de vos commandes au bar.</p>
+                    </div>
+
+                    <div class="profile-stats">
+                        <div class="p-stat">
+                            <span class="p-stat-val" id="profile-count-visits">0</span>
+                            <span class="p-stat-label">Sorties</span>
+                        </div>
+                        <div class="p-stat">
+                            <span class="p-stat-val" id="profile-count-points">0</span>
+                            <span class="p-stat-label">Points</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- QR Verification View (Hidden by default, shown on scan) -->
+        <main id="verify-view" class="main-view">
+            <div class="verify-container">
+                <div class="verify-card">
+                    <div class="verify-club-header">
+                        <div class="verify-icon">✨</div>
+                        <h3 id="verify-club-name">Bienvenue</h3>
+                        <p id="verify-scan-type">Scan en cours...</p>
+                    </div>
+
+                    <div id="logged-flow" style="display: none;">
+                        <p class="verify-desc">Entrez votre code personnel pour valider votre entrée.</p>
+                        <div class="input-group">
+                            <input type="text" id="verification-code-input" class="big-verify-input" placeholder="CODE" maxlength="6">
+                        </div>
+                        <button class="btn-primary" onclick="submitVerificationCode()">Valider mon passage</button>
+                    </div>
+
+                    <div id="guest-flow" style="display: none;">
+                        <p class="verify-desc">Vous n'avez pas encore de code ?</p>
+                        <button class="btn-primary" onclick="handleNoCode()">I don't have a code</button>
+                        <p class="verify-hint">En cliquant, vous validerez votre passage (+1) et serez redirigé pour créer votre compte.</p>
                     </div>
                 </div>
             </div>

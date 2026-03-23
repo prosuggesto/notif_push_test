@@ -48,6 +48,10 @@ function generateUUID() {
     });
 }
 
+function generateUserCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 // ===== SET LOADING STATE =====
 function setLoading(btnId, loading) {
     const btn = document.getElementById(btnId);
@@ -101,6 +105,7 @@ async function handleLogin(e) {
             
             // On récupère le userid renvoyé par le webhook n8n
             const userId = data.userid || data.uuid; 
+            const userCode = data.user_code || data.code || generateUserCode();
             
             // Identify user in OneSignal if we have an ID
             if (window.OneSignal && userId) {
@@ -108,8 +113,16 @@ async function handleLogin(e) {
                 OneSignal.login(userId);
             }
 
-            sessionStorage.setItem('user', JSON.stringify({ name: 'Utilisateur', uuid: userId }));
-            setTimeout(() => { showDashboard('Utilisateur'); }, 800);
+            const userData = { 
+                name: data.nom || 'Utilisateur', 
+                uuid: userId,
+                code: userCode,
+                age: data.age,
+                sexe: data.sexe,
+                city: data.ville
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            setTimeout(() => { showDashboard(userData.name); }, 800);
         }
     } catch (err) {
         console.error('Login webhook error:', err);
@@ -123,9 +136,12 @@ async function handleLogin(e) {
 async function handleSignup(e) {
     e.preventDefault();
     const name = document.getElementById('signup-name').value.trim();
+    const age = document.getElementById('signup-age').value.trim();
+    const sexe = document.getElementById('signup-sexe').value;
+    const city = document.getElementById('signup-city').value.trim();
     const password = document.getElementById('signup-password').value.trim();
 
-    if (!name || !password) {
+    if (!name || !password || !age || !sexe || !city) {
         showMessage('signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -134,6 +150,7 @@ async function handleSignup(e) {
     showMessage('signup-message', '', '');
 
     const uuid = generateUUID();
+    const userCode = generateUserCode();
 
     try {
         const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/inscription', {
@@ -145,13 +162,16 @@ async function handleSignup(e) {
             body: JSON.stringify({
                 nom: name,
                 password: password,
-                uuid: uuid
+                uuid: uuid,
+                user_code: userCode,
+                age: age,
+                sexe: sexe,
+                ville: city
             })
         });
 
         const raw = await response.json().catch(() => null);
         const data = Array.isArray(raw) ? raw[0] : raw;
-        console.log('Signup response:', response.status, data);
 
         if (!data) {
             showMessage('signup-message', 'Erreur: impossible de lire la réponse du serveur.', 'error');
@@ -160,12 +180,19 @@ async function handleSignup(e) {
         } else {
             showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
             
-            // Identify user in OneSignal
             if (window.OneSignal) {
                 OneSignal.login(uuid);
             }
 
-            sessionStorage.setItem('user', JSON.stringify({ name: name, uuid: uuid }));
+            const userData = { 
+                name: name, 
+                uuid: uuid, 
+                code: userCode,
+                age: age,
+                sexe: sexe,
+                city: city
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
             setTimeout(() => { showDashboard(name); }, 800);
         }
     } catch (err) {
@@ -188,7 +215,7 @@ function showDashboard(username) {
 
 // ===== LOGOUT =====
 function handleLogout() {
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
     document.getElementById('dashboard-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
     
@@ -222,7 +249,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (params.get('action') === 'scan') {
         handleNativeScan();
     } else {
-        const stored = sessionStorage.getItem('user');
+        const stored = localStorage.getItem('user');
         if (stored) {
             const user = JSON.parse(stored);
             showDashboard(user.name || 'Utilisateur');
@@ -239,7 +266,14 @@ const nightclubs = [
         status: 'open',
         count: 450,
         vibe: '🔥 Incroyable',
-        desc: 'La plus grande boîte de nuit de la région avec 3 salles et une ambiance de folie.'
+        menRatio: 45,
+        womenRatio: 50,
+        nbRatio: 5,
+        price: '25€ (avec conso)',
+        theme: 'Années 80 Full Red',
+        nightDesc: 'Soirée spéciale revival avec DJ Guest de Londres. Spectacle pyrotechnique à minuit.',
+        generalDesc: 'La plus grande boîte de nuit de la région avec 3 salles, 5 bars et un carré VIP exclusif.',
+        instagram: '@macumba_officiel'
     },
     {
         id: 'club-2',
@@ -248,7 +282,14 @@ const nightclubs = [
         status: 'closed',
         count: 0,
         vibe: '💤 Calme',
-        desc: 'Club intimiste spécialisé dans la musique électronique.'
+        menRatio: 55,
+        womenRatio: 40,
+        nbRatio: 5,
+        price: '15€',
+        theme: 'Deep Into Detroit',
+        nightDesc: 'Pas d\'événements prévus ce soir. Ouverture demain 23h.',
+        generalDesc: 'Club intimiste spécialisé dans la musique électronique underground et techno mélodique.',
+        instagram: '@atrium_club'
     },
     {
         id: 'club-3',
@@ -257,7 +298,14 @@ const nightclubs = [
         status: 'open',
         count: 850,
         vibe: '🎉 Plein à craquer',
-        desc: 'Lieu historique de la nuit parisienne, toujours au top.'
+        menRatio: 48,
+        womenRatio: 48,
+        nbRatio: 4,
+        price: '30€',
+        theme: 'Gala de Printemps',
+        nightDesc: 'Dress code élégant exigé. Champagne offert aux groupes de 5 femmes avant minuit.',
+        generalDesc: 'Lieu historique de la nuit parisienne, réputé pour son acoustique et ses soirées mondaines.',
+        instagram: '@palace_paris'
     }
 ];
 
@@ -273,12 +321,37 @@ function switchMainView(viewId) {
     document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
     
     document.getElementById(`${viewId}-view`).classList.add('active');
-    document.getElementById(`link-${viewId}`).classList.add('active');
+    const link = document.getElementById(`link-${viewId}`);
+    if (link) link.classList.add('active');
     
-    const title = viewId === 'home' ? 'Boîtes Partenaires' : 'QR Boîtes';
+    let title = 'Boîtes Partenaires';
+    if (viewId === 'qr') title = 'Générateur QR';
+    if (viewId === 'code') title = 'Profil Client';
+    if (viewId === 'verify') title = 'Vérification';
+    
     document.getElementById('header-title').textContent = title;
     
-    toggleMenu();
+    if (viewId === 'code') {
+        renderProfile();
+    }
+    
+    // Fermer le menu si ouvert
+    const menu = document.getElementById('side-menu');
+    if (menu.classList.contains('open')) {
+        toggleMenu();
+    }
+}
+
+function renderProfile() {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    
+    const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('profile-initials').textContent = initials;
+    document.getElementById('profile-name').textContent = user.name;
+    document.getElementById('profile-city').textContent = user.city || 'Ville non renseignée';
+    document.getElementById('display-user-code').textContent = user.code || '------';
 }
 
 function renderClubs() {
@@ -319,12 +392,64 @@ function openClubModal(clubId) {
     if (!club) return;
     
     document.getElementById('modal-club-name').textContent = club.name;
-    document.getElementById('modal-club-desc').textContent = club.desc;
     
-    const userStr = sessionStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { name: 'Client', uuid: 'Aucun compte' };
-    
-    document.getElementById('modal-user-code').textContent = user.uuid;
+    const body = document.querySelector('#club-modal .modal-body');
+    body.innerHTML = `
+        <div class="modal-club-hero" style="background-image: url('${club.image}')">
+            <div class="hero-overlay">
+                <span class="vibe-badge">${club.vibe}</span>
+            </div>
+        </div>
+        
+        <div class="modal-content-inner">
+            <div class="detail-section">
+                <h4>À propos de l'établissement</h4>
+                <p class="text-dim">${club.generalDesc}</p>
+                <a href="https://instagram.com/${club.instagram.replace('@','')}" target="_blank" class="insta-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    ${club.instagram}
+                </a>
+            </div>
+
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Entrée</span>
+                    <span class="detail-val">${club.price}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Public</span>
+                    <span class="detail-val">${club.count} pers.</span>
+                </div>
+            </div>
+
+            <div class="gender-breakdown">
+                <div class="gender-bar">
+                    <div class="bar-segment men" style="width: ${club.menRatio}%" title="Hommes"></div>
+                    <div class="bar-segment women" style="width: ${club.womenRatio}%" title="Femmes"></div>
+                    <div class="bar-segment nb" style="width: ${club.nbRatio}%" title="Non-binaires"></div>
+                </div>
+                <div class="gender-labels">
+                    <span>♂ ${club.menRatio}%</span>
+                    <span>♀ ${club.womenRatio}%</span>
+                    <span>⚧ ${club.nbRatio}%</span>
+                </div>
+            </div>
+
+            <hr class="modal-hr">
+
+            <div class="detail-section">
+                <div class="theme-header">
+                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <h4>${club.theme}</h4>
+                </div>
+                <p class="text-small">${club.nightDesc}</p>
+            </div>
+            
+            <div class="modal-footer-code">
+                <p>Scannez le QR de l'établissement avec votre caméra native pour valider votre entrée.</p>
+            </div>
+        </div>
+    `;
     
     document.getElementById('club-modal').classList.add('active');
 }
@@ -412,6 +537,8 @@ function downloadQR(containerId) {
 }
 
 // Intercept Scans on Load
+let currentScanData = null;
+
 async function handleNativeScan() {
     const params = new URLSearchParams(window.location.search);
     const clubId = params.get('clubId');
@@ -420,45 +547,86 @@ async function handleNativeScan() {
     
     if (!club) return;
     
-    const stored = sessionStorage.getItem('user');
+    currentScanData = { club, type };
+    
+    // Nettoyer l'URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    const stored = localStorage.getItem('user');
     const user = stored ? JSON.parse(stored) : null;
+    
+    switchMainView('verify');
+    document.getElementById('verify-club-name').textContent = club.name;
+    document.getElementById('verify-scan-type').textContent = `Validation ${type === 'entree' ? 'Entrée' : 'Bar'}`;
+    
+    if (user) {
+        document.getElementById('logged-flow').style.display = 'block';
+        document.getElementById('guest-flow').style.display = 'none';
+        // Auto-fill code if possible for convenience but let them click submit
+        document.getElementById('verification-code-input').value = ''; 
+    } else {
+        document.getElementById('logged-flow').style.display = 'none';
+        document.getElementById('guest-flow').style.display = 'block';
+    }
+}
+
+async function submitVerificationCode() {
+    const codeInput = document.getElementById('verification-code-input').value.trim().toUpperCase();
+    const userStr = localStorage.getItem('user');
+    const user = JSON.parse(userStr);
+    
+    if (codeInput !== user.code) {
+        alert("Code incorrect. Veuillez vérifier votre code dans la rubrique 'Mon Code'.");
+        return;
+    }
     
     const payload = {
         name: "entree_barre",
         value: "entree_barre.01",
-        scan_type: type,
-        club_name: club.name
+        scan_type: currentScanData.type,
+        club_name: currentScanData.club.name,
+        user_id: user.uuid,
+        user_name: user.name,
+        user_code: codeInput,
+        action: "add 1"
     };
     
-    if (user) {
-        payload.user_id = user.uuid;
-        payload.user_name = user.name;
-    }
-    
-    // Il faut attendre (await) que la requête s'envoie car sur Safari/Mobile, 
-    // la fonction alert() qui suit risque de bloquer ou d'annuler la requête réseau.
     try {
         await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        console.log("Webhook envoyé !");
+        alert(`✅ Validé : Passage enregistré chez ${currentScanData.club.name} !`);
+        switchMainView('home');
     } catch(e) {
         console.error('Webhook error', e);
+        alert("Erreur lors de la validation. Réessayez.");
     }
+}
+
+async function handleNoCode() {
+    const payload = {
+        name: "entree_barre",
+        value: "entree_barre.01",
+        scan_type: currentScanData.type,
+        club_name: currentScanData.club.name,
+        action: "add 1"
+    };
     
-    // Nettoyer l'URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-    
-    if (user) {
-        showDashboard(user.name);
-        setTimeout(() => alert(`✅ Validé : ${type === 'entree' ? 'Entrée' : 'Bar'} chez ${club.name} !`), 100);
-    } else {
-        document.getElementById('dashboard-screen').classList.remove('active');
-        document.getElementById('auth-screen').classList.add('active');
+    try {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        alert(`✅ +1 Validé chez ${currentScanData.club.name} !\n\n👉 Créez un compte pour profiter de vos avantages.`);
+        switchMainView('home');
         switchTab('signup');
-        // On affiche un popup visuel temporaire ou une alerte
-        setTimeout(() => alert(`✅ +1 Validé chez ${club.name} !\n\n👉 Créez vite un compte pour accumuler vos avantages !`), 100);
+        document.getElementById('auth-screen').classList.add('active');
+        document.getElementById('dashboard-screen').classList.remove('active');
+    } catch(e) {
+        console.error('Webhook error', e);
+        switchMainView('home');
     }
 }
