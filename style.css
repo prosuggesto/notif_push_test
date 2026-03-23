@@ -1373,32 +1373,66 @@ input[type="number"] {
     -moz-appearance: textfield;
 }
 
-.gender-selector {
-    display: flex;
-    gap: 10px;
-    margin-top: 4px;
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
 }
-.gender-btn {
-    flex: 1;
-    padding: 12px 0;
+.select-trigger {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    color: var(--text-muted);
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 13px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     cursor: pointer;
     transition: all 0.2s;
-    text-align: center;
+    color: var(--text-muted);
 }
-.gender-btn:hover {
+.select-trigger:hover {
     background: var(--surface-hover);
     border-color: var(--primary-light);
 }
-.gender-btn.active {
-    background: var(--primary-glow);
+.custom-select-wrapper.active .select-trigger {
     border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+.custom-select-wrapper.active .select-trigger svg {
+    transform: rotate(180deg);
+}
+
+.select-options {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    background: rgba(15, 15, 35, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.2s ease;
+}
+.custom-select-wrapper.active .select-options {
+    display: block;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.select-option {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.select-option:hover {
+    background: var(--primary-glow);
     color: #fff;
-    box-shadow: 0 0 15px var(--primary-glow);
 }

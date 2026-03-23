@@ -124,10 +124,16 @@
                 <div class="registration-grid">
                     <div class="input-group">
                         <label>Sexe</label>
-                        <div class="gender-selector">
-                            <button type="button" class="gender-btn" onclick="selectGender('Homme')" data-value="Homme">Homme</button>
-                            <button type="button" class="gender-btn" onclick="selectGender('Femme')" data-value="Femme">Femme</button>
-                            <button type="button" class="gender-btn" onclick="selectGender('Autre')" data-value="Autre">Autre</button>
+                        <div class="custom-select-wrapper" id="gender-dropdown">
+                            <div class="select-trigger" onclick="toggleDropdown('gender-dropdown')">
+                                <span id="selected-gender">Choisir...</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                            </div>
+                            <div class="select-options">
+                                <div class="select-option" onclick="selectGenderOption('Homme')">Homme</div>
+                                <div class="select-option" onclick="selectGenderOption('Femme')">Femme</div>
+                                <div class="select-option" onclick="selectGenderOption('Autre')">Autre</div>
+                            </div>
                         </div>
                         <input type="hidden" id="signup-sexe" required>
                     </div>

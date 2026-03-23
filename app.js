@@ -132,12 +132,22 @@ async function handleLogin(e) {
     }
 }
 
-function selectGender(value) {
-    document.getElementById('signup-sexe').value = value;
-    document.querySelectorAll('.gender-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
-    });
+function toggleDropdown(id) {
+    document.getElementById(id).classList.toggle('active');
 }
+
+function selectGenderOption(value) {
+    document.getElementById('signup-sexe').value = value;
+    document.getElementById('selected-gender').textContent = value;
+    document.getElementById('gender-dropdown').classList.remove('active');
+}
+
+// Global listener to close dropdowns when clicking outside
+window.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-wrapper').forEach(d => d.classList.remove('active'));
+    }
+});
 
 // ===== SIGNUP HANDLER =====
 async function handleSignup(e) {
