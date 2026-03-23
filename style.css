@@ -1361,3 +1361,44 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== SIGNUP REFINEMENT ===== */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.gender-selector {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+.gender-btn {
+    flex: 1;
+    padding: 12px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.gender-btn:hover {
+    background: var(--surface-hover);
+    border-color: var(--primary-light);
+}
+.gender-btn.active {
+    background: var(--primary-glow);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 15px var(--primary-glow);
+}

@@ -132,6 +132,13 @@ async function handleLogin(e) {
     }
 }
 
+function selectGender(value) {
+    document.getElementById('signup-sexe').value = value;
+    document.querySelectorAll('.gender-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-value') === value);
+    });
+}
+
 // ===== SIGNUP HANDLER =====
 async function handleSignup(e) {
     e.preventDefault();

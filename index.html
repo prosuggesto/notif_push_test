@@ -123,16 +123,13 @@
 
                 <div class="registration-grid">
                     <div class="input-group">
-                        <label for="signup-sexe">Sexe</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                            <select id="signup-sexe" required class="custom-select">
-                                <option value="" disabled selected>Choisir...</option>
-                                <option value="Homme">Homme</option>
-                                <option value="Femme">Femme</option>
-                                <option value="Non-binaire">Non-binaire</option>
-                            </select>
+                        <label>Sexe</label>
+                        <div class="gender-selector">
+                            <button type="button" class="gender-btn" onclick="selectGender('Homme')" data-value="Homme">Homme</button>
+                            <button type="button" class="gender-btn" onclick="selectGender('Femme')" data-value="Femme">Femme</button>
+                            <button type="button" class="gender-btn" onclick="selectGender('Autre')" data-value="Autre">Autre</button>
                         </div>
+                        <input type="hidden" id="signup-sexe" required>
                     </div>
                     <div class="input-group">
                         <label for="signup-city">Ville</label>
