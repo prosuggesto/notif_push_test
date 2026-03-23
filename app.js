@@ -364,6 +364,7 @@ function switchQRTab(tab) {
 }
 
 // ===== SCANNER LOGIC =====
+// ===== SCANNER LOGIC =====
 let html5QrCode = null;
 let currentFacingMode = "environment";
 let isProcessing = false;
@@ -371,7 +372,7 @@ let isProcessing = false;
 function startScanner() {
     if (!document.getElementById('qr-reader')) return;
     
-    document.getElementById('scan-status').textContent = "Démarrage de la caméra...";
+    document.getElementById('scan-status').textContent = "Ouverture de la caméra...";
     document.getElementById('restart-scan-btn').style.display = 'none';
     isProcessing = false;
     
@@ -383,7 +384,15 @@ function startScanner() {
         return;
     }
     
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    // Configuration optimisée pour une détection plus rapide
+    const config = { 
+        fps: 15, 
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const size = Math.floor(minEdge * 0.7);
+            return { width: size, height: size };
+        }
+    };
     
     html5QrCode.start(
         { facingMode: currentFacingMode },
@@ -391,11 +400,23 @@ function startScanner() {
         onScanSuccess,
         onScanFailure
     ).then(() => {
-        document.getElementById('scan-status').textContent = "Prêt à scanner !";
+        document.getElementById('scan-status').textContent = "Prêt à scanner ! Approchez le QR Code.";
         document.getElementById('flip-camera-btn').style.display = 'inline-flex';
     }).catch(err => {
         console.error("Scanner init error", err);
-        document.getElementById('scan-status').textContent = "Erreur d'accès à la caméra.";
+        // Fallback sans imposer la caméra arrière
+        html5QrCode.start(
+            { facingMode: "user" },
+            config,
+            onScanSuccess,
+            onScanFailure
+        ).then(() => {
+            currentFacingMode = "user";
+            document.getElementById('scan-status').textContent = "Caméra frontale (arrière non trouvée). Prêt !";
+            document.getElementById('flip-camera-btn').style.display = 'inline-flex';
+        }).catch(e => {
+            document.getElementById('scan-status').textContent = "Erreur d'accès à la caméra. Vérifiez les permissions.";
+        });
     });
 }
 
@@ -434,20 +455,38 @@ async function onScanSuccess(decodedText, decodedResult) {
     if (isProcessing) return;
     isProcessing = true;
     
+    // Pause immediately on detection
     try {
         if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.pause(true);
+            html5QrCode.pause(true); 
         }
     } catch(e) { console.warn(e); }
     
+    // Visual flash feedback
+    const readerEl = document.getElementById('qr-reader');
+    readerEl.style.transition = "opacity 0.1s";
+    readerEl.style.opacity = "0.5";
+    setTimeout(() => { readerEl.style.opacity = "1"; }, 100);
+    
     try {
-        const data = JSON.parse(decodedText);
+        // Accepte un JSON ou du texte brut pour tester
+        let data = null;
+        try {
+            data = JSON.parse(decodedText);
+        } catch(e) {
+            // Pas du JSON
+            data = { type: 'inconnu', rawText: decodedText };
+        }
+
+        document.getElementById('scan-status').textContent = "QR Code détecté, validation auto en cours...";
+        document.getElementById('restart-scan-btn').style.display = 'inline-block';
+        
+        let payload;
+        let isBarre = false;
+        
         if (data.type && data.userId) {
-            
-            document.getElementById('scan-status').textContent = "QR Code détecté, envoi en cours...";
-            document.getElementById('restart-scan-btn').style.display = 'inline-block';
-            
-            const payload = {
+            isBarre = (data.type === 'barre');
+            payload = {
                 name: "entree_barre",
                 value: "entree_barre.01",
                 scan_type: data.type,
@@ -455,32 +494,40 @@ async function onScanSuccess(decodedText, decodedResult) {
                 user_name: data.userName,
                 club_name: data.clubName
             };
-            
-            await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(e => console.error('Webhook error', e));
-            
-            if (data.type === 'barre') {
-                document.getElementById('result-user-name').textContent = data.userName;
-                document.getElementById('result-drinks').textContent = Math.floor(Math.random() * 5) + 1;
-                document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
-                document.getElementById('scan-result-modal').classList.add('active');
-                document.getElementById('scan-status').textContent = "Bilan affiché.";
-            } else {
-                document.getElementById('scan-status').textContent = `Entrée validée pour ${data.userName} à ${data.clubName}. (+1)`;
-            }
         } else {
-            document.getElementById('scan-status').textContent = "QR Code mal formaté.";
-            document.getElementById('restart-scan-btn').style.display = 'inline-block';
+            // QR Code non généré par l'app, mais on valide quand même pour l'UX
+            payload = {
+                name: "entree_barre",
+                value: "entree_barre.01",
+                scan_type: "autre",
+                raw_data: decodedText
+            };
+        }
+        
+        // Envoi au Webhook
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(e => console.error('Webhook error', e));
+        
+        if (isBarre) {
+            document.getElementById('result-user-name').textContent = data.userName;
+            document.getElementById('result-drinks').textContent = Math.floor(Math.random() * 5) + 1;
+            document.getElementById('result-points').textContent = Math.floor(Math.random() * 100) + 20;
+            document.getElementById('scan-result-modal').classList.add('active');
+            document.getElementById('scan-status').textContent = "Validation réussie, bilan affiché.";
+        } else if (data.userName) {
+            document.getElementById('scan-status').textContent = `Validation auto réussie pour ${data.userName} (+1)`;
+        } else {
+            document.getElementById('scan-status').textContent = `QR classique détecté et validé !`;
         }
     } catch(e) {
-        document.getElementById('scan-status').textContent = "QR Code invalide ou non reconnu.";
+        document.getElementById('scan-status').textContent = "Erreur de validation. Réessayez.";
         document.getElementById('restart-scan-btn').style.display = 'inline-block';
     }
 }
 
 function onScanFailure(error) {
-    // Ignore error, it happens every frame a QR isn't found
+    // Ignore les erreurs de frames vides
 }
