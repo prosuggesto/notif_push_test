@@ -357,7 +357,9 @@ function generateClubQRs() {
     
     const club = nightclubs.find(c => c.id === clubId);
     
-    const baseUrl = window.location.origin + window.location.pathname;
+    // Forcer l'URL de production GitHub Pages pour éviter que l'appareil photo ne lance une recherche Google
+    // si l'application est ouverte localement (file://).
+    const baseUrl = 'https://prosuggesto.github.io/notif_push_test/';
     const urlEntree = `${baseUrl}?action=scan&clubId=${club.id}&type=entree`;
     const urlBarre = `${baseUrl}?action=scan&clubId=${club.id}&type=barre`;
     
@@ -433,24 +435,30 @@ async function handleNativeScan() {
         payload.user_name = user.name;
     }
     
-    // Send webhook transparently
-    fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).catch(e => console.error('Webhook error', e));
+    // Il faut attendre (await) que la requête s'envoie car sur Safari/Mobile, 
+    // la fonction alert() qui suit risque de bloquer ou d'annuler la requête réseau.
+    try {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        console.log("Webhook envoyé !");
+    } catch(e) {
+        console.error('Webhook error', e);
+    }
     
-    // Clean URL to prevent refresh loops
+    // Nettoyer l'URL
     window.history.replaceState({}, document.title, window.location.pathname);
     
     if (user) {
         showDashboard(user.name);
-        setTimeout(() => alert(`✅ Validé : ${type === 'entree' ? 'Entrée' : 'Bar'} chez ${club.name} !`), 500);
+        setTimeout(() => alert(`✅ Validé : ${type === 'entree' ? 'Entrée' : 'Bar'} chez ${club.name} !`), 100);
     } else {
-        // Redirige sur auth screen -> onglet signup
         document.getElementById('dashboard-screen').classList.remove('active');
         document.getElementById('auth-screen').classList.add('active');
         switchTab('signup');
-        setTimeout(() => alert(`✅ Validé chez ${club.name} !\\n👉 Créez vite un compte pour accumuler vos points !`), 500);
+        // On affiche un popup visuel temporaire ou une alerte
+        setTimeout(() => alert(`✅ +1 Validé chez ${club.name} !\n\n👉 Créez vite un compte pour accumuler vos avantages !`), 100);
     }
 }
