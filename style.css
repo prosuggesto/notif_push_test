@@ -145,12 +145,13 @@ body {
 /* Tab Switcher */
 .tab-switcher {
     display: flex;
-    position: relative;
+    position: relative !important;
     background: var(--surface);
     border-radius: var(--radius-sm);
     padding: 4px;
     margin-bottom: 28px;
     border: 1px solid var(--border);
+    z-index: 5;
 }
 .tab-btn {
     flex: 1;
@@ -1587,10 +1588,15 @@ body.logged-in-biz #business-dashboard-screen.active .sidebar {
 /* Content Area */
 .biz-content {
     flex: 1;
-    margin-left: 260px;
+    margin-left: 0; /* Reset for non-logged in state */
     padding: 40px;
     max-width: 1200px;
     width: 100%;
+    transition: margin-left 0.4s;
+}
+
+body.logged-in-biz .biz-content {
+    margin-left: 260px;
 }
 
 @media (max-width: 1024px) {
