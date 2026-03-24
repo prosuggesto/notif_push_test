@@ -263,9 +263,16 @@ async function handleBusinessSignup(e) {
         const data = Array.isArray(raw) ? raw[0] : raw;
 
         if (response.ok && data && data.statut !== 'invalid') {
-            msg.textContent = 'Inscription réussie ! Vous pouvez vous connecter.';
+            currentBusiness = { 
+                name: name,
+                uuid: uuid,
+                user_code: userCode,
+                ...data 
+            };
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+            msg.textContent = 'Inscription réussie ! Redirection...';
             msg.className = 'form-message success';
-            setTimeout(() => switchBizTab('login'), 2000);
+            setTimeout(() => showBusinessDashboard(), 1500);
         } else {
             throw new Error(data?.phrase || 'Erreur lors de l\'inscription');
         }
