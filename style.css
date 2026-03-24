@@ -1470,7 +1470,7 @@ input[type="number"] {
     background: rgba(15, 15, 30, 0.95);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border);
-    display: none;
+    display: none !important;
     flex-direction: column;
     position: fixed;
     top: 0;
@@ -1482,7 +1482,7 @@ input[type="number"] {
 }
 
 #business-dashboard-screen.active .sidebar {
-    display: flex;
+    display: flex !important;
     transform: translateX(0);
 }
 

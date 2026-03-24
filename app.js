@@ -209,11 +209,26 @@ function switchBizTab(tab) {
 }
 
 function switchBizSection(sectionId) {
-    document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
-    document.getElementById(`biz-section-${sectionId}`).classList.add('active');
+    const sections = document.querySelectorAll('.biz-section');
+    const navItems = document.querySelectorAll('.nav-item');
     
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('onclick').includes(sectionId));
+    sections.forEach(s => {
+        s.classList.remove('active');
+        s.style.display = 'none'; // Hide all sections by default
+        if (s.id === `biz-section-${sectionId}`) { // Use biz-section-${sectionId}
+            s.classList.add('active');
+            s.style.display = 'block'; // Show the active section
+        }
+    });
+    
+    navItems.forEach(item => {
+        // Use a more robust check for active state
+        const onClickAttr = item.getAttribute('onclick') || '';
+        if (onClickAttr.includes(`'${sectionId}'`)) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
     });
 }
 
@@ -270,9 +285,9 @@ async function handleBusinessSignup(e) {
                 ...data 
             };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            msg.textContent = 'Inscription réussie ! Redirection...';
+            msg.textContent = 'Inscription réussie ! Redirection immédiate...';
             msg.className = 'form-message success';
-            setTimeout(() => showBusinessDashboard(), 1500);
+            setTimeout(() => showBusinessDashboard(), 500);
         } else {
             throw new Error(data?.phrase || 'Erreur lors de l\'inscription');
         }
