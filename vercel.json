@@ -1,6 +1,7 @@
 {
   "rewrites": [
+    { "source": "/entreprise", "destination": "/entreprise.html" },
     { "source": "/fetars", "destination": "/index.html" },
-    { "source": "/entreprise", "destination": "/index.html" }
+    { "source": "/", "destination": "/index.html" }
   ]
 }

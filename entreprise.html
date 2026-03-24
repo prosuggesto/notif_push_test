@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggesto — Espace Entreprise</title>
+    <!-- PWA & iOS Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Suggesto">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <meta name="description" content="Espace de gestion pour les établissements partenaires Suggesto.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
+        });
+      });
+    </script>
+</head>
+<body class="view-entreprise">
+    <!-- ==================== ENTREPRISE VIEW ==================== -->
+    <div id="entreprise-view">
+        <div class="auth-bg">
+            <div class="orb orb-1" style="background: radial-gradient(circle, #818cf8 0%, transparent 70%);"></div>
+            <div class="orb orb-2" style="background: radial-gradient(circle, #6366f1 0%, transparent 70%);"></div>
+        </div>
+
+        <!-- Business Auth Screen -->
+        <div id="business-auth-screen" class="screen">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/><path d="M18 12h.01"/><path d="M18 16h.01"/><path d="M18 8h.01"/><path d="M14 19h1"/><path d="M14 15h1"/><path d="M14 11h1"/><path d="M14 8h1"/></svg>
+                    </div>
+                    <h1>Espace Entreprise</h1>
+                    <p>Développez votre visibilité et gérez vos rewards.</p>
+                </div>
+
+                <div class="auth-tabs">
+                    <div class="tab-indicator" id="biz-tab-indicator"></div>
+                    <button class="tab-btn active" onclick="switchBizTab('login')">Connexion</button>
+                    <button class="tab-btn" onclick="switchBizTab('signup')">Inscription</button>
+                </div>
+
+                <!-- Business Login -->
+                <form id="business-login-form" class="auth-form active" onsubmit="handleBusinessLogin(event)">
+                    <div class="input-group">
+                        <label>Mot de passe</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            <input type="password" id="biz-login-password" placeholder="Entrez votre mot de passe club" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="biz-login-btn">Se connecter à l'espace pro</button>
+                    <div id="biz-login-message" class="form-message"></div>
+                </form>
+
+                <!-- Business Signup -->
+                <form id="business-signup-form" class="auth-form" onsubmit="handleBusinessSignup(event)">
+                    <div class="input-group">
+                        <label>Nom de la boîte de nuit</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/></svg>
+                            <input type="text" id="biz-signup-name" placeholder="Ex: Le Macumba" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Mot de passe</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            <input type="password" id="biz-signup-password" placeholder="Min. 8 caractères" required>
+                        </div>
+                    </div>
+                    <div class="payment-info" style="background: var(--primary-glow); padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--primary-light);">
+                        <p style="font-size: 11px; color: var(--primary-light); display: flex; align-items: center; gap: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            Frais d'inscription de 49€ (Paiement à l'étape suivante)
+                        </p>
+                    </div>
+                    <button type="submit" class="btn-primary" id="biz-signup-btn" style="margin-top: 10px;">Procéder au paiement & Créer</button>
+                    <div id="biz-signup-message" class="form-message"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Business Dashboard (HIDDEN INITIALLY) -->
+        <div id="business-dashboard-screen" class="screen">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="biz-logo-sm">S</div>
+                    <span id="biz-club-name">Pro Space</span>
+                </div>
+                <nav class="sidebar-nav">
+                    <button class="nav-item active" onclick="switchBizSection('annonces')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        Mes Annonces
+                    </button>
+                    <button class="nav-item" onclick="switchBizSection('calendrier')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Calendrier
+                    </button>
+                    <button class="nav-item" onclick="switchBizSection('rewards')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                        Rewards
+                    </button>
+                    <button class="nav-item" onclick="switchBizSection('give-rewards')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                        Give Rewards
+                    </button>
+                    <button class="nav-item" onclick="switchBizSection('stats')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                        Stats
+                    </button>
+                </nav>
+                <div class="sidebar-footer">
+                    <button class="btn-logout-biz" onclick="handleBusinessLogout()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Déconnexion
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="biz-content">
+                <!-- Section: Mes Annonces -->
+                <section id="biz-section-annonces" class="biz-section active">
+                    <div class="section-header">
+                        <h2>Mes Annonces</h2>
+                        <p>Configurez la preview de votre boîte de nuit.</p>
+                    </div>
+                    <form id="biz-annonces-form" onsubmit="handleSaveAnnonces(event)">
+                        <div class="biz-card">
+                            <h3 class="card-title">Profil du Club</h3>
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label>Image de couverture (URL)</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <input type="text" id="biz-club-image" placeholder="https://exemple.com/image.jpg">
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label>Lien Instagram</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                                        <input type="text" id="biz-club-insta" placeholder="@votreclub">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="input-group" style="margin-top: 20px;">
+                                <label>Description</label>
+                                <textarea id="biz-club-desc" class="biz-textarea" placeholder="Décrivez l'ambiance de votre club..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="biz-card" style="margin-top: 24px;">
+                            <h3 class="card-title">En direct : Soirée Actuelle</h3>
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label>Nom de la soirée</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.71-2.13 0-2.97l-3-3a2.1 2.1 0 010-2.97m0 0L3 3l10.5 10.5m-3-3a2.1 2.1 0 012.97 0m0 0L16.5 4.5l3 3a2.1 2.1 0 010 2.97l-1.5 1.5m-3-3a2.1 2.1 0 010 2.97l3 3a2.1 2.1 0 010 2.97l-1.5 1.5m3-3a2.1 2.1 0 010 2.97l3 3a2.1 2.1 0 010 2.97l-1.5 1.5"/></svg>
+                                        <input type="text" id="biz-party-name" placeholder="Ex: Latin Night">
+                                    </div>
+                                </div>
+                                <div class="input-group">
+                                    <label>Thème / Ambiance</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                        <input type="text" id="biz-party-theme" placeholder="Ex: Reggaeton & Cocktails">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="biz-actions">
+                            <button type="submit" class="btn-primary" id="btn-save-annonces">Enregistrer les modifications</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Section: Calendrier -->
+                <section id="biz-section-calendrier" class="biz-section">
+                    <div class="section-header">
+                        <h2>Calendrier</h2>
+                        <p>Planifiez vos soirées avec vos templates.</p>
+                    </div>
+                    <div class="biz-grid">
+                        <!-- Templates Column -->
+                        <div class="biz-card">
+                            <h3 class="card-title">Mes Templates</h3>
+                            <div id="biz-template-list" class="template-list">
+                                <!-- Templates dynamically added here -->
+                            </div>
+                            <button class="btn-secondary" onclick="openNewTemplateModal()" style="width: 100%; margin-top: 16px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                                Nouveau Template
+                            </button>
+                        </div>
+
+                        <!-- Calendar Column -->
+                        <div class="biz-card">
+                            <div class="calendar-header">
+                                <h4 id="calendar-month-year">Mars 2026</h4>
+                                <div class="calendar-controls">
+                                    <button class="btn-icon" onclick="changeMonth(-1)">&lt;</button>
+                                    <button class="btn-icon" onclick="changeMonth(1)">&gt;</button>
+                                </div>
+                            </div>
+                            <div class="calendar-weeks">
+                                <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+                            </div>
+                            <div id="biz-calendar-grid" class="calendar-grid">
+                                <!-- Days dynamically added here -->
+                            </div>
+                            
+                            <div id="biz-calendar-actions" class="calendar-actions" style="display: none; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                                <div class="selection-info">
+                                    <span id="selected-days-count" style="font-size: 13px; color: var(--text-muted);">0 jours sélectionnés</span>
+                                </div>
+                                <div class="action-row" style="display: flex; gap: 12px; margin-top: 12px;">
+                                    <select id="biz-apply-template" class="biz-textarea" style="min-height: 48px; flex: 1; padding: 0 12px;">
+                                        <option value="">-- Appliquer un template --</option>
+                                        <option value="closed">🚩 Fermé</option>
+                                    </select>
+                                    <button class="btn-primary" onclick="applyTemplateToSelection()" style="width: auto; padding: 0 20px;">Appliquer</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: Rewards -->
+                <section id="biz-section-rewards" class="biz-section">
+                    <div class="section-header">
+                        <h2>Rewards</h2>
+                        <p>Gérez vos récompenses de fidélité.</p>
+                    </div>
+                    <div class="biz-grid">
+                        <div class="biz-card">
+                            <h3 class="card-title">Créer une Récompense</h3>
+                            <form id="biz-reward-form" onsubmit="handleCreateReward(event)">
+                                <div class="input-group">
+                                    <label>Nom de la récompense</label>
+                                    <input type="text" id="rew-name" class="biz-textarea" style="min-height: 48px;" placeholder="Ex: Shot de bienvenue" required>
+                                </div>
+                                <div class="input-group" style="margin-top: 16px;">
+                                    <label>Image de la récompense (URL)</label>
+                                    <input type="text" id="rew-image" class="biz-textarea" style="min-height: 48px;" placeholder="https://exemple.com/shot.jpg">
+                                </div>
+                                <div class="input-group" style="margin-top: 16px;">
+                                    <label>Code Secret (pour la caisse)</label>
+                                    <input type="text" id="rew-code" class="biz-textarea" style="min-height: 48px;" placeholder="Ex: shoot1" required>
+                                </div>
+                                <button type="submit" class="btn-primary" style="margin-top: 20px;">Ajouter la récompense</button>
+                            </form>
+                        </div>
+                        <div class="biz-card">
+                            <h3 class="card-title">Récompenses Actives</h3>
+                            <div id="biz-rewards-list" class="template-list">
+                                <!-- Rewards dynamically added here -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: Give Rewards -->
+                <section id="biz-section-give-rewards" class="biz-section">
+                    <div class="section-header">
+                        <h2>Give Rewards</h2>
+                        <p>Scannez ou saisissez le code client pour donner une récompense.</p>
+                    </div>
+                    <div class="biz-card" style="max-width: 600px; margin: 0 auto;">
+                        <div class="search-box">
+                            <label>Code Client ou ID</label>
+                            <div class="input-row" style="display: flex; gap: 12px; margin-top: 8px;">
+                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: 123456">
+                                <button class="btn-primary" onclick="searchClientForReward()" style="width: auto; padding: 0 24px;">Rechercher</button>
+                            </div>
+                        </div>
+
+                        <div id="biz-client-result" class="client-result-card" style="display: none; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border);">
+                            <div class="client-info-header" style="text-align: center; margin-bottom: 24px;">
+                                <div class="client-avatar" style="width: 64px; height: 64px; background: var(--primary-glow); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; color: var(--primary-light);">👤</div>
+                                <h3 id="res-client-name">Nom du Client</h3>
+                                <p id="res-client-points" style="color: var(--primary-light); font-weight: 700; font-size: 18px;">0 Points</p>
+                            </div>
+                            
+                            <div id="biz-available-rewards" class="rewards-redeem-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <!-- Available rewards for this client -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: Stats -->
+                <section id="biz-section-stats" class="biz-section">
+                    <div class="section-header">
+                        <h2>Statistiques</h2>
+                        <p>Analysez les performances de votre club.</p>
+                    </div>
+                    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+                        <div class="biz-card stat-card">
+                            <span class="stat-label">Total Scans (Entrée)</span>
+                            <strong class="stat-value" id="stats-total-scans">1,280</strong>
+                            <span class="stat-trend positive">+12% vs mois dernier</span>
+                        </div>
+                        <div class="biz-card stat-card">
+                            <span class="stat-label">Rewards Distribués</span>
+                            <strong class="stat-value" id="stats-rewards-given">450</strong>
+                            <span class="stat-trend positive">+5% vs mois dernier</span>
+                        </div>
+                        <div class="biz-card stat-card">
+                            <span class="stat-label">Affluence Moyenne</span>
+                            <strong class="stat-value" id="stats-avg-attendance">680</strong>
+                            <span class="stat-trend">Stable</span>
+                        </div>
+                    </div>
+
+                    <div class="biz-card" style="margin-top: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 class="card-title" style="margin: 0;">Analyses Détaillées</h3>
+                            <select id="stats-party-filter" class="biz-textarea" style="width: auto; min-height: 40px; padding: 0 12px; font-size: 13px;" onchange="updateStatsUI()">
+                                <option value="all">Toutes les soirées</option>
+                                <!-- Party names dynamically added here -->
+                            </select>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+                            <!-- Gender Breakdown -->
+                            <div class="stat-sub-section">
+                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;">Répartition par Sexe</h4>
+                                <div class="chart-container" style="height: 180px; display: flex; align-items: flex-end; gap: 20px; justify-content: space-around; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                                    <div class="bar-group" style="text-align: center; flex: 1;">
+                                        <div id="bar-m" style="height: 0%; width: 100%; max-width: 40px; background: #3b82f6; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Hommes</span>
+                                        <span id="val-m" style="font-size: 12px; font-weight: 700;">0%</span>
+                                    </div>
+                                    <div class="bar-group" style="text-align: center; flex: 1;">
+                                        <div id="bar-f" style="height: 0%; width: 100%; max-width: 40px; background: #ec4899; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Femmes</span>
+                                        <span id="val-f" style="font-size: 12px; font-weight: 700;">0%</span>
+                                    </div>
+                                    <div class="bar-group" style="text-align: center; flex: 1;">
+                                        <div id="bar-nb" style="height: 0%; width: 100%; max-width: 40px; background: #a855f7; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Non-binaire</span>
+                                        <span id="val-nb" style="font-size: 12px; font-weight: 700;">0%</span>
+                                    </div>
+                                    <div class="bar-group" style="text-align: center; flex: 1;">
+                                        <div id="bar-unk" style="height: 0%; width: 100%; max-width: 40px; background: #64748b; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Inconnu</span>
+                                        <span id="val-unk" style="font-size: 12px; font-weight: 700;">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rewards Usage -->
+                            <div class="stat-sub-section">
+                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;">Utilisation des Rewards</h4>
+                                <div id="stats-rewards-list" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <!-- Rewards usage dynamically added here -->
+                                    <p style="font-size: 12px; color: var(--text-dim);">Aucune donnée pour cette période.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- ==================== TEMPLATE MODAL ==================== -->
+    <div id="biz-template-modal" class="modal-overlay" onclick="closeModal(event, 'biz-template-modal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Template de Soirée</h3>
+                <button class="btn-close" onclick="closeModal(null, 'biz-template-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="handleCreateTemplate(event)">
+                    <div class="input-group">
+                        <label>Nom de la soirée</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="tpl-name" placeholder="Ex: Soirée Bambi" class="biz-textarea" style="min-height: 48px;" required>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-top: 16px;">
+                        <label>Thème / Ambiance</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="tpl-theme" placeholder="Ex: Chic & Glamour" class="biz-textarea" style="min-height: 48px;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top: 20px;">Créer le template</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

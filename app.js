@@ -5,24 +5,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const isBusinessView = document.body.classList.contains('view-entreprise');
     const fetarsEl = document.getElementById('fetars-view');
     const entrepriseEl = document.getElementById('entreprise-view');
+    const bizAuthScreen = document.getElementById('business-auth-screen');
     
     console.log('App Init - isBusinessView:', isBusinessView);
 
     if (isBusinessView) {
+        // Mode Entreprise
         if (fetarsEl) fetarsEl.style.display = 'none';
         if (entrepriseEl) entrepriseEl.style.display = 'block';
         
+        // Use the globally defined currentBusiness
         if (currentBusiness) {
             showBusinessDashboard();
         } else {
-            document.getElementById('business-auth-screen').style.display = 'flex';
+            if (bizAuthScreen) {
+                bizAuthScreen.classList.add('active');
+                bizAuthScreen.style.display = 'flex';
+            }
         }
     } else {
+        // Mode Client (Fetars)
         if (fetarsEl) fetarsEl.style.display = 'block';
         if (entrepriseEl) entrepriseEl.style.display = 'none';
         
-        // Original client init logic could be here if needed
-        handleNativeScan();
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('action') === 'scan' || params.get('clubId')) {
+            handleNativeScan();
+        } else {
+            const stored = localStorage.getItem('user');
+            if (stored) {
+                const user = JSON.parse(stored);
+                showDashboard(user.name || 'Utilisateur');
+            }
+        }
     }
     
     // Remove loading state
@@ -247,7 +262,6 @@ async function handleBusinessSignup(e) {
 
 async function handleBusinessLogin(e) {
     e.preventDefault();
-    const name = document.getElementById('biz-login-name').value;
     const password = document.getElementById('biz-login-password').value;
     const btn = document.getElementById('biz-login-btn');
     const msg = document.getElementById('biz-login-message');
@@ -261,7 +275,6 @@ async function handleBusinessLogin(e) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 action: 'business_login',
-                clubName: name, 
                 password: password 
             })
         });
@@ -292,14 +305,21 @@ let bizRewards = currentBusiness?.rewards || [];
 let lastFoundClient = null;
 
 function showBusinessDashboard() {
-    document.getElementById('business-auth-screen').style.display = 'none';
-    document.getElementById('business-dashboard-screen').style.display = 'flex';
-    document.getElementById('biz-club-name').textContent = currentBusiness.name;
+    const authScreen = document.getElementById('business-auth-screen');
+    const dashScreen = document.getElementById('business-dashboard-screen');
+    const clubNameEl = document.getElementById('biz-club-name');
+
+    if (authScreen) authScreen.style.display = 'none';
+    if (dashScreen) dashScreen.style.display = 'flex';
+    if (clubNameEl && currentBusiness) clubNameEl.textContent = currentBusiness.name;
+    
+    // Re-initialize lists/stats if elements exist
+    if (document.getElementById('biz-calendar-grid')) renderCalendar();
+    if (document.getElementById('biz-template-list')) renderTemplateList();
+    if (document.getElementById('biz-rewards-list')) renderRewardsList();
+    if (document.getElementById('stats-total-scans')) updateStatsUI();
+    
     loadBusinessData();
-    renderCalendar();
-    renderTemplateList();
-    renderRewardsList();
-    updateStatsUI();
 }
 
 // ----- Rewards Logic -----
@@ -307,11 +327,15 @@ function handleCreateReward(e) {
     e.preventDefault();
     const name = document.getElementById('rew-name').value;
     const points = parseInt(document.getElementById('rew-points').value);
+    const image = document.getElementById('rew-image').value;
+    const code = document.getElementById('rew-code').value;
     
     const newRew = {
         id: 'rew_' + Date.now(),
         name: name,
-        points: points
+        points: points,
+        image: image,
+        secretCode: code
     };
     
     bizRewards.push(newRew);
@@ -328,8 +352,15 @@ function renderRewardsList() {
     
     bizRewards.forEach(r => {
         const item = document.createElement('div');
-        item.className = 'template-item';
-        item.innerHTML = `<h5>${r.name}</h5><p>${r.points} Points requis</p>`;
+        item.className = 'reward-item-card';
+        item.style = "background: var(--surface); padding: 12px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 12px; align-items: center; margin-bottom: 8px;";
+        item.innerHTML = `
+            ${r.image ? `<img src="${r.image}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;">` : '<div style="width: 40px; height: 40px; background: var(--surface-hover); border-radius: 8px;"></div>'}
+            <div style="flex: 1;">
+                <h5 style="margin: 0; font-size: 14px;">${r.name}</h5>
+                <p style="margin: 2px 0 0; font-size: 12px; color: var(--primary-light);">${r.points} Pts • Code: ${r.secretCode}</p>
+            </div>
+        `;
         list.appendChild(item);
     });
 }
@@ -384,14 +415,13 @@ function renderAvailableRewardsForClient(points) {
     bizRewards.forEach(r => {
         const canAfford = points >= r.points;
         const item = document.createElement('div');
-        item.className = 'reward-redeem-item';
+        item.style = `background: ${canAfford ? 'var(--surface-hover)' : 'rgba(255,255,255,0.02)'}; padding: 16px; border-radius: 16px; border: 1px solid ${canAfford ? 'var(--primary-glow)' : 'var(--border)'}; text-align: center; opacity: ${canAfford ? '1' : '0.5'}`;
         item.innerHTML = `
-            <div class="reward-info">
-                <h5>${r.name}</h5>
-                <span>${r.points} pts</span>
-            </div>
-            <button class="btn-redeem" ${canAfford ? '' : 'disabled'} onclick="redeemReward('${r.id}')">
-                ${canAfford ? 'Donner' : 'Points insuffisants'}
+            ${r.image ? `<img src="${r.image}" style="width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-bottom: 12px;">` : '<div style="width: 60px; height: 60px; background: var(--surface); border-radius: 12px; margin: 0 auto 12px;"></div>'}
+            <h5 style="font-size: 14px; margin-bottom: 4px;">${r.name}</h5>
+            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">${r.points} pts</p>
+            <button class="btn-primary" style="height: 36px; font-size: 12px; width: 100%;" ${canAfford ? '' : 'disabled'} onclick="redeemReward('${r.id}')">
+                ${canAfford ? 'Valider' : 'Points insuffisants'}
             </button>
         `;
         list.appendChild(item);
@@ -418,7 +448,7 @@ async function redeemReward(rewardId) {
         });
 
         if (response.ok) {
-            alert('Récompense attribuée !');
+            alert(`Récompense attribuée ! \n\nCODE À ENTRER EN CAISSE : ${reward.secretCode}`);
             searchClientForReward(); // Refresh client view
         } else {
             alert('Erreur lors de la distribution');
@@ -429,10 +459,50 @@ async function redeemReward(rewardId) {
 }
 
 function updateStatsUI() {
-    // Mock data for now, would ideally fetch from n8n
-    document.getElementById('stats-total-scans').textContent = '1,280';
-    document.getElementById('stats-rewards-given').textContent = '450';
-    document.getElementById('stats-avg-attendance').textContent = '680';
+    const filter = document.getElementById('stats-party-filter').value;
+    
+    // Mocking data based on filter
+    const data = {
+        all: { scans: 1280, rewards: 450, avg: 680, m: 45, f: 40, nb: 10, unk: 5 },
+        soirée: { scans: 320, rewards: 110, avg: 320, m: 50, f: 35, nb: 10, unk: 5 }
+    };
+    
+    const s = data[filter === 'all' ? 'all' : 'soirée'];
+    
+    document.getElementById('stats-total-scans').textContent = s.scans.toLocaleString();
+    document.getElementById('stats-rewards-given').textContent = s.rewards.toLocaleString();
+    document.getElementById('stats-avg-attendance').textContent = s.avg.toLocaleString();
+    
+    // Update Bars
+    updateBar('m', s.m);
+    updateBar('f', s.f);
+    updateBar('nb', s.nb);
+    updateBar('unk', s.unk);
+    
+    // Update Rewards List
+    const rewList = document.getElementById('stats-rewards-list');
+    rewList.innerHTML = '';
+    
+    if (bizRewards.length) {
+        bizRewards.forEach(r => {
+            const usage = Math.floor(Math.random() * 50) + 10; // Mock usage
+            const row = document.createElement('div');
+            row.style = "display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03);";
+            row.innerHTML = `<span style="font-size: 13px;">${r.name}</span><span style="font-weight: 700; color: var(--primary-light);">${usage}</span>`;
+            rewList.appendChild(row);
+        });
+    } else {
+        rewList.innerHTML = '<p style="font-size: 12px; color: var(--text-dim);">Aucune récompense configurée.</p>';
+    }
+}
+
+function updateBar(id, percent) {
+    const bar = document.getElementById(`bar-${id}`);
+    const val = document.getElementById(`val-${id}`);
+    if (bar && val) {
+        bar.style.height = percent + '%';
+        val.textContent = percent + '%';
+    }
 }
 
 // ----- Calendar Logic -----
@@ -467,17 +537,13 @@ function renderCalendar() {
         if (selectedDates.has(dateStr)) d.classList.add('selected');
         
         const scheduleItem = bizSchedule[dateStr];
-        if (scheduleItem) {
-            if (scheduleItem === 'closed') {
-                d.classList.add('closed');
-                d.innerHTML = `<span>${day}</span><span class="closed-indicator">Fermé</span>`;
-            } else {
-                const template = bizTemplates.find(t => t.id === scheduleItem);
-                d.classList.add('has-event');
-                d.innerHTML = `<span>${day}</span><span class="event-label">${template ? template.name : 'Soirée'}</span>`;
-            }
+        if (scheduleItem && scheduleItem !== 'closed') {
+            const template = bizTemplates.find(t => t.id === scheduleItem);
+            d.classList.add('has-event');
+            d.innerHTML = `<span>${day}</span><span class="event-label">${template ? template.name : 'Soirée'}</span>`;
         } else {
-            d.textContent = day;
+            d.classList.add('closed');
+            d.innerHTML = `<span>${day}</span><span class="closed-indicator">Fermé</span>`;
         }
         
         d.onclick = () => toggleDateSelection(dateStr);
