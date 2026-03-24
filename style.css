@@ -1476,8 +1476,13 @@ input[type="number"] {
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: 100;
-    transition: transform 0.3s ease;
+    z-index: 1000;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(-100%);
+}
+
+#business-dashboard-screen.active .sidebar {
+    transform: translateX(0);
 }
 
 .sidebar-header {
@@ -1572,6 +1577,15 @@ input[type="number"] {
     padding: 40px;
     max-width: 1200px;
     width: 100%;
+}
+
+@media (max-width: 1024px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .biz-content {
+        margin-left: 0;
+    }
 }
 
 .biz-section {

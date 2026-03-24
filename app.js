@@ -224,75 +224,104 @@ function handleBusinessLogout() {
 
 async function handleBusinessSignup(e) {
     e.preventDefault();
-    const name = document.getElementById('biz-signup-name').value;
-    const password = document.getElementById('biz-signup-password').value;
+    const name = document.getElementById('biz-signup-name').value.trim();
+    const password = document.getElementById('biz-signup-password').value.trim();
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
+    if (!name || !password) {
+        showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
+        return;
+    }
+
     btn.disabled = true;
-    btn.textContent = 'Création...';
+    btn.textContent = 'Paiement...';
+
+    const uuid = generateUUID();
+    const userCode = generateUserCode();
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/inscription', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                action: 'business_signup',
-                clubName: name, 
+            headers: {
+                'Content-Type': 'application/json',
+                'inscription.setter': 'inscription.setter.01'
+            },
+            body: JSON.stringify({
+                nom: name,
                 password: password,
-                role: 'owner'
+                uuid: uuid,
+                user_code: userCode,
+                role: 'business',
+                age: 'N/A',
+                sexe: 'Autre',
+                ville: 'N/A'
             })
         });
 
-        if (response.ok) {
+        const raw = await response.json().catch(() => null);
+        const data = Array.isArray(raw) ? raw[0] : raw;
+
+        if (response.ok && data && data.statut !== 'invalid') {
             msg.textContent = 'Inscription réussie ! Vous pouvez vous connecter.';
-            msg.style.color = 'var(--success)';
+            msg.className = 'form-message success';
             setTimeout(() => switchBizTab('login'), 2000);
         } else {
-            throw new Error('Erreur lors de l\'inscription');
+            throw new Error(data?.phrase || 'Erreur lors de l\'inscription');
         }
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
-        msg.style.color = 'var(--danger)';
+        msg.className = 'form-message error';
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Créer mon espace';
+        btn.textContent = 'Procéder au paiement & Créer';
     }
 }
 
 async function handleBusinessLogin(e) {
     e.preventDefault();
-    const password = document.getElementById('biz-login-password').value;
+    const password = document.getElementById('biz-login-password').value.trim();
     const btn = document.getElementById('biz-login-btn');
     const msg = document.getElementById('biz-login-message');
+
+    if (!password) {
+        showMessage('biz-login-message', 'Veuillez entrer un mot de passe.', 'error');
+        return;
+    }
 
     btn.disabled = true;
     btn.textContent = 'Connexion...';
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/valide_mdp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                action: 'business_login',
-                password: password 
-            })
+            headers: {
+                'Content-Type': 'application/json',
+                'valid.mdp': 'valid.mdp.01'
+            },
+            body: JSON.stringify({ password: password })
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            currentBusiness = { name: name, ...data };
+        const raw = await response.json().catch(() => null);
+        const data = Array.isArray(raw) ? raw[0] : raw;
+
+        if (response.ok && data && data.statut !== 'invalid') {
+            currentBusiness = { 
+                name: data.nom || 'Club Partenaire', 
+                uuid: data.userid || data.uuid,
+                ...data 
+            };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
             showBusinessDashboard();
         } else {
-            throw new Error('Identifiants incorrects');
+            throw new Error(data?.phrase || 'Identifiants incorrects');
         }
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
-        msg.style.color = 'var(--danger)';
+        msg.className = 'form-message error';
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Se connecter';
+        btn.textContent = 'Se connecter à l\'espace pro';
     }
 }
 
@@ -309,8 +338,14 @@ function showBusinessDashboard() {
     const dashScreen = document.getElementById('business-dashboard-screen');
     const clubNameEl = document.getElementById('biz-club-name');
 
-    if (authScreen) authScreen.style.display = 'none';
-    if (dashScreen) dashScreen.style.display = 'flex';
+    if (authScreen) {
+        authScreen.classList.remove('active');
+        authScreen.style.display = 'none';
+    }
+    if (dashScreen) {
+        dashScreen.classList.add('active');
+        dashScreen.style.display = 'flex';
+    }
     if (clubNameEl && currentBusiness) clubNameEl.textContent = currentBusiness.name;
     
     // Re-initialize lists/stats if elements exist
