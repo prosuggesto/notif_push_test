@@ -234,6 +234,7 @@ function switchBizSection(sectionId) {
 
 function handleBusinessLogout() {
     localStorage.removeItem('businessUser');
+    document.body.classList.remove('logged-in-biz');
     location.reload();
 }
 
@@ -359,6 +360,8 @@ function showBusinessDashboard() {
     const authScreen = document.getElementById('business-auth-screen');
     const dashScreen = document.getElementById('business-dashboard-screen');
     const clubNameEl = document.getElementById('biz-club-name');
+
+    document.body.classList.add('logged-in-biz');
 
     if (authScreen) {
         authScreen.classList.remove('active');

@@ -1459,8 +1459,21 @@ input[type="number"] {
     color: var(--text);
 }
 
+#business-auth-screen {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    position: relative;
+    z-index: 10;
+}
+
+#business-auth-screen.active {
+    display: flex;
+}
+
 #business-dashboard-screen {
-    display: none; /* Controlled by JS */
+    display: none;
     min-height: 100vh;
 }
 
@@ -1470,7 +1483,7 @@ input[type="number"] {
     background: rgba(15, 15, 30, 0.95);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border);
-    display: none !important;
+    display: none !important; /* FOOLPROOF HIDING */
     flex-direction: column;
     position: fixed;
     top: 0;
@@ -1481,7 +1494,7 @@ input[type="number"] {
     transform: translateX(-100%);
 }
 
-#business-dashboard-screen.active .sidebar {
+body.logged-in-biz #business-dashboard-screen.active .sidebar {
     display: flex !important;
     transform: translateX(0);
 }
