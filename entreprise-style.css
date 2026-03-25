@@ -1,0 +1,55 @@
+/* ===== ANNONCES LIVE PREVIEW LAYOUT ===== */
+.annonces-layout {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+}
+
+#biz-annonces-form {
+    flex: 1;
+    max-width: 600px;
+}
+
+.preview-container {
+    flex: 1;
+    position: sticky;
+    top: 40px;
+    max-width: 400px;
+}
+
+.preview-container .card-title {
+    font-size: 16px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1024px) {
+    .annonces-layout {
+        flex-direction: column;
+    }
+    
+    .preview-container {
+        position: static;
+        width: 100%;
+        max-width: none;
+        margin-top: 40px;
+        order: -1; /* Show preview on top on mobile */
+    }
+    
+    #biz-annonces-form {
+        max-width: none;
+    }
+}
+
+/* Ensure modal content looks good in preview */
+#annonces-preview-card {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.insta-link {
+    pointer-events: none; /* Disable links in preview */
+}

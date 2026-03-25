@@ -401,6 +401,87 @@ function showBusinessDashboard() {
     if (document.getElementById('biz-template-list')) renderTemplateList();
     if (document.getElementById('biz-rewards-list')) renderRewardsList();
     if (document.getElementById('stats-total-scans')) updateStatsUI();
+    
+    // Initial preview render
+    if (document.getElementById('annonces-preview-card')) updateAnnoncesPreview();
+}
+
+function updateAnnoncesPreview() {
+    const previewContainer = document.getElementById('annonces-preview-card');
+    if (!previewContainer) return;
+
+    const clubName = currentBusiness ? currentBusiness.name : 'Mon Club';
+    const image = document.getElementById('biz-club-image').value || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
+    const insta = document.getElementById('biz-club-insta').value || '@votreclub';
+    const desc = document.getElementById('biz-club-desc').value || 'Aucune description fournie.';
+    const partyName = document.getElementById('biz-party-name').value || 'Soirée Spéciale';
+    const partyTheme = document.getElementById('biz-party-theme').value || 'Ambiance & Cocktails';
+
+    // Mock stats for preview (Live data would come from currentBusiness stats)
+    const stats = {
+        vibe: 'TRENDY',
+        price: '20€',
+        count: 110,
+        men: 45,
+        women: 40,
+        nb: 15
+    };
+
+    previewContainer.innerHTML = `
+        <div class="modal-club-hero" style="background-image: url('${image}')">
+            <div class="hero-overlay">
+                <span class="vibe-badge">${stats.vibe}</span>
+            </div>
+            <div style="position: absolute; top: 20px; left: 20px; color: white; font-weight: 800; font-size: 20px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+                ${clubName}
+            </div>
+        </div>
+        
+        <div class="modal-content-inner">
+            <div class="detail-section">
+                <h4>À propos de l'établissement</h4>
+                <p class="text-dim">${desc}</p>
+                <a href="#" class="insta-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    ${insta}
+                </a>
+            </div>
+
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Entrée</span>
+                    <span class="detail-val">${stats.price}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Public</span>
+                    <span class="detail-val">${stats.count} pers.</span>
+                </div>
+            </div>
+
+            <div class="gender-breakdown" style="padding: 0;">
+                <div class="gender-bar">
+                    <div class="bar-segment men" style="width: ${stats.men}%" title="Hommes"></div>
+                    <div class="bar-segment women" style="width: ${stats.women}%" title="Femmes"></div>
+                    <div class="bar-segment nb" style="width: ${stats.nb}%" title="Non-binaires"></div>
+                </div>
+                <div class="gender-labels">
+                    <span>♂ ${stats.men}%</span>
+                    <span>♀ ${stats.women}%</span>
+                    <span>⚧ ${stats.nb}%</span>
+                </div>
+            </div>
+
+            <hr class="modal-hr">
+
+            <div class="detail-section">
+                <div class="theme-header">
+                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <h4>${partyName}</h4>
+                </div>
+                <p class="text-small">${partyTheme}</p>
+            </div>
+        </div>
+    `;
 }
 
 function handleSaveAnnonces(e) {
