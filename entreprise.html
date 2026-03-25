@@ -143,27 +143,40 @@
                     <div class="section-header">
                         <h2>Mes Annonces</h2>
                         <p>Configurez la preview de votre boîte de nuit.</p>
-                                 <div class="annonces-layout">
-                        <!-- Hidden File Input for Image Upload -->
-                        <input type="file" id="biz-club-image-input" accept="image/*" style="display: none" onchange="handleClubImageUpload(event)">
-                        
-                        <!-- The Preview Editor Card (Main Focus) -->
-                        <div class="preview-container editor-mode">
-                             <div class="editor-header">
-                                <h3 class="card-title">Édition Directe</h3>
-                                <p class="text-dim" style="font-size: 13px; margin-bottom: 20px;">Cliquez sur n'importe quel élément de la carte pour le modifier.</p>
-                             </div>
-                            
-                            <div id="annonces-preview-card" class="modal-content" style="position: static; transform: none; width: 100%; max-width: 420px; margin: 0 auto;">
-                                <!-- Will be filled by JavaScript -->
-                            </div>
+                                 <div class="annonces-layout-split">
+                        <!-- Left Side: The Preview Editor Card -->
+                        <div class="editor-section">
+                            <div class="preview-container editor-mode">
+                                <div class="editor-header">
+                                    <h3 class="card-title">Édition Directe</h3>
+                                    <p class="text-dim" style="font-size: 13px;">Cliquez sur la carte pour la personnaliser.</p>
+                                </div>
+                                
+                                <div id="annonces-preview-card" class="modal-content" style="position: static; transform: none; width: 100%; max-width: 420px; margin: 0 auto;">
+                                    <!-- Will be filled by JavaScript -->
+                                </div>
 
-                            <div class="biz-actions" style="margin-top: 32px; justify-content: center;">
-                                <button type="button" class="btn-primary" onclick="handleSaveAnnonces(event)" style="width: 100%; max-width: 420px;">Enregistrer les modifications</button>
+                                <div class="biz-actions" style="margin-top: 24px; justify-content: center;">
+                                    <button type="button" class="btn-primary" onclick="handleSaveTemplate(event)" style="width: 100%; max-width: 420px;">Enregistrer comme Template</button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Secondary Form (Keep for data binding but hide/collapse) -->
+                        <!-- Right Side: Mes Templates -->
+                        <div class="templates-section">
+                            <div class="section-header">
+                                <h3 class="card-title">Mes Templates</h3>
+                                <p class="text-dim" style="font-size: 13px;">Gérez vos annonces enregistrées.</p>
+                            </div>
+                            <div id="biz-templates-grid" class="templates-grid">
+                                <!-- Will be filled by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden File Input for Image Upload -->
+                        <input type="file" id="biz-club-image-input" accept="image/*" style="display: none" onchange="handleClubImageUpload(event)">
+                        
+                        <!-- Secondary Form (Keep for data binding) -->
                         <form id="biz-annonces-form" style="display: none;">
                             <input type="text" id="biz-club-image">
                             <input type="text" id="biz-club-name-hidden">

@@ -403,7 +403,9 @@ function showBusinessDashboard() {
     if (document.getElementById('stats-total-scans')) updateStatsUI();
     
     // Initial preview render
-    if (document.getElementById('annonces-preview-card')) updateAnnoncesPreview();
+    if (document.getElementById('annonces-preview-card')) {
+        initAnnouncementEditor();
+    }
 }
 
 function updateAnnoncesPreview() {
@@ -485,22 +487,52 @@ function updateAnnoncesPreview() {
         </div>
     `;
 
+    const defaultTexts = [
+        (currentBusiness ? currentBusiness.name : 'Mon Club'),
+        'Mon Club',
+        '@votreclub',
+        'Aucune description fournie.',
+        '20€',
+        'Soirée Spéciale',
+        'Ambiance & Cocktails'
+    ];
+
     // Add event listeners to sync and clear contenteditable fields
     previewContainer.querySelectorAll('.editable-text').forEach(el => {
-        // Clear on focus as requested by user
+        // Clear on focus ONLY if it's default/placeholder text
         el.onfocus = (e) => {
             const currentText = e.target.innerText.trim();
             e.target.setAttribute('data-before', currentText);
-            e.target.innerText = '';
+            
+            if (defaultTexts.includes(currentText)) {
+                e.target.innerText = '';
+                // For Instagram, if it was default, maybe leave the @? 
+                // User said "le @ doit rester".
+                if (e.target.getAttribute('data-field') === 'biz-club-insta') {
+                    e.target.innerText = '@';
+                }
+            }
         };
 
         el.onblur = (e) => {
             const fieldId = e.target.getAttribute('data-field');
             const hiddenInput = document.getElementById(fieldId);
-            const newText = e.target.innerText.trim();
+            let newText = e.target.innerText.trim();
             const oldText = e.target.getAttribute('data-before');
 
-            if (newText === '') {
+            // Instagram @ protection
+            if (fieldId === 'biz-club-insta') {
+                if (!newText.startsWith('@')) {
+                    newText = '@' + newText;
+                    e.target.innerText = newText;
+                }
+                if (newText === '@') {
+                    newText = oldText;
+                    e.target.innerText = oldText;
+                }
+            }
+
+            if (newText === '' || newText === '@') {
                 // Restore if empty
                 e.target.innerText = oldText;
             } else if (hiddenInput) {
@@ -522,6 +554,115 @@ function updateAnnoncesPreview() {
             }
         };
     });
+}
+
+// ----- Announcement Template Management -----
+let announcementTemplates = [];
+
+function initAnnouncementEditor() {
+    // Load templates from current business profile
+    if (currentBusiness && currentBusiness.announcementTemplates) {
+        announcementTemplates = currentBusiness.announcementTemplates;
+    } else {
+        announcementTemplates = [];
+    }
+    renderTemplatesGrid();
+    updateAnnoncesPreview();
+}
+
+async function handleSaveTemplate(e) {
+    if (e) e.preventDefault();
+    
+    // Collect data from the hidden inputs (which are synced with the editor)
+    const newTemplate = {
+        id: 'ann_' + Date.now(),
+        image: document.getElementById('biz-club-image').value,
+        name: document.getElementById('biz-club-name-hidden').value,
+        insta: document.getElementById('biz-club-insta').value,
+        description: document.getElementById('biz-club-desc').value,
+        price: document.getElementById('biz-club-price').value,
+        partyName: document.getElementById('biz-party-name').value,
+        partyTheme: document.getElementById('biz-party-theme').value,
+        timestamp: new Date().toISOString()
+    };
+
+    announcementTemplates.unshift(newTemplate); // Add to start
+    
+    // Save to local storage and potentially sync with webhook
+    if (currentBusiness) {
+        currentBusiness.announcementTemplates = announcementTemplates;
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        
+        // Also save as the "live" announcement
+        handleSaveAnnonces();
+    }
+
+    renderTemplatesGrid();
+    alert('Template enregistré avec succès !');
+}
+
+function renderTemplatesGrid() {
+    const grid = document.getElementById('biz-templates-grid');
+    if (!grid) return;
+
+    if (announcementTemplates.length === 0) {
+        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun template pour le moment.</p>';
+        return;
+    }
+
+    grid.innerHTML = announcementTemplates.map(t => `
+        <div class="template-card" id="tpl-${t.id}">
+            <div class="template-card-hero" style="background-image: url('${t.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop'}')"></div>
+            <div class="template-card-content">
+                <div class="template-card-title">${t.partyName || 'Sans nom'}</div>
+                <div class="template-card-desc">${t.partyTheme || 'Aucun thème'}</div>
+            </div>
+            <div class="template-actions">
+                <button class="btn-mini btn-edit" onclick="loadAdminTemplate('${t.id}')">Modifier</button>
+                <button class="btn-mini btn-inspire" onclick="inspireAdminTemplate('${t.id}')">S'inspirer</button>
+                <button class="btn-mini btn-delete" onclick="deleteAdminTemplate('${t.id}')">Supprimer</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadAdminTemplate(id) {
+    const tpl = announcementTemplates.find(t => t.id === id);
+    if (!tpl) return;
+
+    // Fill the hidden inputs
+    document.getElementById('biz-club-image').value = tpl.image || '';
+    document.getElementById('biz-club-name-hidden').value = tpl.name || '';
+    document.getElementById('biz-club-insta').value = tpl.insta || '';
+    document.getElementById('biz-club-desc').value = tpl.description || '';
+    document.getElementById('biz-club-price').value = tpl.price || '';
+    document.getElementById('biz-party-name').value = tpl.partyName || '';
+    document.getElementById('biz-party-theme').value = tpl.partyTheme || '';
+
+    // Refresh preview
+    updateAnnoncesPreview();
+    
+    // Scroll to editor
+    document.querySelector('.editor-section')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function deleteAdminTemplate(id) {
+    if (!confirm('Supprimer ce template ?')) return;
+    announcementTemplates = announcementTemplates.filter(t => t.id !== id);
+    if (currentBusiness) {
+        currentBusiness.announcementTemplates = announcementTemplates;
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+    }
+    renderTemplatesGrid();
+}
+
+function inspireAdminTemplate(id) {
+    const tpl = announcementTemplates.find(t => t.id === id);
+    if (!tpl) return;
+
+    // Same as load but clearly for new inspiration
+    loadAdminTemplate(id);
+    alert('Modification activée. Enregistrez pour créer un nouveau template à partir de celui-ci.');
 }
 
 function handleClubImageUpload(event) {

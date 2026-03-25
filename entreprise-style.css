@@ -1,17 +1,34 @@
-/* ===== ANNONCES LIVE PREVIEW LAYOUT ===== */
-.annonces-layout {
+/* ===== ANNONCES SPLIT LAYOUT ===== */
+.annonces-layout-split {
     display: flex;
-    justify-content: center;
+    gap: 48px;
+    align-items: flex-start;
     padding: 20px 0;
 }
 
-.preview-container.editor-mode {
-    width: 100%;
-    max-width: 420px; /* Match the card width */
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.editor-section {
+    flex: 0 0 420px;
+    position: sticky;
+    top: 20px;
+}
+
+.templates-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+}
+
+/* Forcing 2 columns on larger screens as requested */
+@media (min-width: 1400px) {
+    .templates-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 .preview-container .card-title {
@@ -93,11 +110,91 @@
     color: var(--primary-light);
 }
 
-/* Ensure modal content looks good in preview */
-#annonces-preview-card {
-    border: 1px solid var(--border);
+/* Template Card (Mini Preview) */
+.template-card {
     background: var(--surface);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    border-radius: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
     overflow: hidden;
+    position: relative;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: default;
+}
+
+.template-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-4px);
+}
+
+.template-card-hero {
+    height: 120px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.template-card-content {
+    padding: 12px;
+}
+
+.template-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+.template-card-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.template-actions {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.template-card:hover .template-actions {
+    opacity: 1;
+}
+
+.btn-mini {
+    padding: 6px 12px;
+    font-size: 11px;
+    border-radius: 6px;
+    width: 100px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-edit { background: var(--primary); color: white; }
+.btn-inspire { background: #34d399; color: white; } /* Emerald */
+.btn-delete { background: #ef4444; color: white; } /* Red */
+
+/* Responsive Adaptations */
+@media (max-width: 1100px) {
+    .annonces-layout-split {
+        flex-direction: column;
+    }
+    .editor-section {
+        position: static;
+        width: 100%;
+        max-width: none;
+        display: flex;
+        justify-content: center;
+    }
 }
