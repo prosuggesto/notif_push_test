@@ -456,7 +456,7 @@ function updateAnnoncesPreview() {
                     <span class="detail-label">Entrée</span>
                     <span class="detail-val editable-text" contenteditable="true" data-field="biz-club-price">${price}</span>
                 </div>
-                <div class="detail-item read-only">
+                <div class="detail-item read-only biz-anchor-public">
                     <span class="detail-label">Public (Live)</span>
                     <span class="detail-val">${stats.count} pers.</span>
                 </div>
@@ -661,18 +661,25 @@ async function proceedWithSave(btn, templateName) {
 
 function animateCardToGrid(card) {
     const rect = card.getBoundingClientRect();
+    const anchor = card.querySelector('.biz-anchor-public')?.getBoundingClientRect() || rect;
     const clone = card.cloneNode(true);
     
-    // Precise Calibration for Start Position
+    // Precise Calibration for Start Position (Centered on Anchor)
     clone.className = 'fly-card-clone';
     clone.style.width = rect.width + 'px';
     clone.style.height = rect.height + 'px';
-    clone.style.left = rect.left + 'px';
-    clone.style.top = rect.top + 'px';
+    
+    // Position the clone so its center matches the anchor's center
+    const startX = (anchor.left + anchor.width / 2) - (rect.width / 2);
+    const startY = (anchor.top + anchor.height / 2) - (rect.height / 2);
+    
+    clone.style.left = startX + 'px';
+    clone.style.top = startY + 'px';
     clone.style.margin = '0';
     clone.style.padding = '0';
     clone.style.boxSizing = 'border-box';
     clone.style.pointerEvents = 'none';
+    clone.style.opacity = '0'; // Start hidden for a smooth fade-in
     document.body.appendChild(clone);
 
     // Target position: The first template card slot
@@ -691,6 +698,7 @@ function animateCardToGrid(card) {
         clone.style.transform = 'scale(1.2)';
         clone.style.boxShadow = '0 0 100px rgba(99, 102, 241, 0.6)';
         clone.style.zIndex = '100000';
+        clone.style.opacity = '1';
 
         setTimeout(() => {
             // Step 2: Slide to the Right (Grid)
@@ -707,7 +715,7 @@ function animateCardToGrid(card) {
             setTimeout(() => {
                 clone.remove();
             }, 1000);
-        }, 1500); // Wait longer at center for "preview" feel
+        }, 1500); 
     });
 }
 
