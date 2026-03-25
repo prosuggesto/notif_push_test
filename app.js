@@ -663,49 +663,51 @@ function animateCardToGrid(card) {
     const rect = card.getBoundingClientRect();
     const clone = card.cloneNode(true);
     
-    // Start calibration: The user said it starts too low.
-    // We'll calculate the center of the original card and position the clone there.
+    // Precise Calibration for Start Position
     clone.className = 'fly-card-clone';
     clone.style.width = rect.width + 'px';
     clone.style.height = rect.height + 'px';
     clone.style.left = rect.left + 'px';
-    clone.style.top = rect.top + 'px'; // Ensure it starts exactly on top
+    clone.style.top = rect.top + 'px';
     clone.style.margin = '0';
+    clone.style.padding = '0';
+    clone.style.boxSizing = 'border-box';
+    clone.style.pointerEvents = 'none';
     document.body.appendChild(clone);
 
     // Target position: The first template card slot
     const grid = document.getElementById('biz-templates-grid');
     const firstTpl = grid?.querySelector('.template-card') || grid;
-    const targetRect = firstTpl?.getBoundingClientRect() || { left: window.innerWidth - 300, top: 200, width: 200, height: 150 };
+    const targetRect = firstTpl?.getBoundingClientRect() || { left: window.innerWidth - 300, top: 200, width: 240, height: 180 };
 
-    // Cinematic Path: Screen Center -> Target Grid
+    // Step 1: Fly to Center (Mode Preview)
     requestAnimationFrame(() => {
-        // Step 1: Fly to Center
         const centerX = (window.innerWidth / 2) - (rect.width / 2);
         const centerY = (window.innerHeight / 2) - (rect.height / 2);
         
-        clone.style.transition = 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
         clone.style.left = centerX + 'px';
         clone.style.top = centerY + 'px';
-        clone.style.transform = 'scale(1.1)';
-        clone.style.boxShadow = '0 30px 60px rgba(0,0,0,0.8)';
-        clone.style.opacity = '1';
+        clone.style.transform = 'scale(1.2)';
+        clone.style.boxShadow = '0 0 100px rgba(99, 102, 241, 0.6)';
+        clone.style.zIndex = '100000';
 
         setTimeout(() => {
-            // Step 2: Fly to Grid
+            // Step 2: Slide to the Right (Grid)
             clone.style.transition = 'all 1s cubic-bezier(0.19, 1, 0.22, 1)';
-            const scaleX = (targetRect.width || 200) / rect.width;
-            const scaleY = (targetRect.height || 150) / rect.height;
+            
+            const scaleX = (targetRect.width || 240) / rect.width;
+            const scaleY = (targetRect.height || 180) / rect.height;
             const translateX = (targetRect.left) - centerX;
             const translateY = (targetRect.top) - centerY;
 
-            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
-            clone.style.opacity = '0.2';
+            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX*0.8}, ${scaleY*0.8})`;
+            clone.style.opacity = '0';
             
             setTimeout(() => {
                 clone.remove();
             }, 1000);
-        }, 1200); // Wait a bit longer at the center
+        }, 1500); // Wait longer at center for "preview" feel
     });
 }
 
@@ -721,18 +723,21 @@ function showConfirmModal(title, message, onConfirm) {
     msgEl.innerText = message;
     modal.classList.add('active');
 
-    const handleOk = () => {
+    // Use direct assignment to ensure no listener stacking
+    okBtn.onclick = () => {
         onConfirm();
         closeConfirm();
     };
-    const closeConfirm = () => {
-        modal.classList.remove('active');
-        okBtn.removeEventListener('click', handleOk);
-        cancelBtn.removeEventListener('click', closeConfirm);
+    
+    cancelBtn.onclick = () => {
+        closeConfirm();
     };
 
-    okBtn.addEventListener('click', handleOk);
-    cancelBtn.addEventListener('click', closeConfirm);
+    const closeConfirm = () => {
+        modal.classList.remove('active');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+    };
 }
 
 function showPromptModal(title, message, onConfirm) {
@@ -758,14 +763,15 @@ function showPromptModal(title, message, onConfirm) {
             input.style.borderColor = '#ef4444';
         }
     };
+
+    okBtn.onclick = handleOk;
+    cancelBtn.onclick = () => closePrompt();
+
     const closePrompt = () => {
         modal.classList.remove('active');
-        okBtn.removeEventListener('click', handleOk);
-        cancelBtn.removeEventListener('click', closePrompt);
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
     };
-
-    okBtn.addEventListener('click', handleOk);
-    cancelBtn.addEventListener('click', closePrompt);
     
     // Allow Enter key
     input.onkeydown = (e) => {
