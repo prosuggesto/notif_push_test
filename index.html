@@ -3,431 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suggesto — Dashboard</title>
-    <!-- PWA & iOS Support -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Suggesto">
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-icon" href="icon.png">
-    
-    <meta name="description" content="Plateforme de gestion de leads Suggesto.">
+    <title>Suggesto — La nuit, autrement</title>
+
+    <meta name="description" content="Plateforme de gestion et d'optimisation des sorties nocturnes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
-          allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: true,
-          },
-        });
-        
-        // Force the prompt for v16 using a more robust method
-        setTimeout(() => {
-          try {
-            if (!OneSignal.Notifications.permission) {
-              if (typeof OneSignal.slidedown !== 'undefined') {
-                OneSignal.slidedown.prompt({force: true});
-              } else {
-                OneSignal.Notifications.requestPermission();
-              }
-            }
-          } catch (e) {
-            console.warn("OneSignal prompt failed:", e);
-          }
-        }, 3000);
-      });
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="landing.css">
 </head>
-<body class="view-fetars">
-    <div id="fetars-view">
-
-    <!-- ==================== AUTH SCREEN ==================== -->
-    <div id="auth-screen" class="screen active">
-        <div class="auth-bg">
-            <div class="orb orb-1"></div>
-            <div class="orb orb-2"></div>
-            <div class="orb orb-3"></div>
+<body>
+    <div class="landing-container">
+        <!-- Background effects -->
+        <div class="bg-effects">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+            <div class="grid-pattern"></div>
         </div>
 
-        <div class="auth-container">
-            <div class="auth-header">
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Logo -->
+            <div class="logo-section">
                 <div class="logo">
-                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                        <rect width="40" height="40" rx="12" fill="url(#logo-grad)"/>
+                    <svg width="48" height="48" viewBox="0 0 40 40" fill="none">
+                        <rect width="40" height="40" rx="12" fill="url(#logo-gradient)"/>
                         <path d="M12 20C12 15.58 15.58 12 20 12C24.42 12 28 15.58 28 20C28 24.42 24.42 28 20 28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
                         <circle cx="20" cy="20" r="3" fill="white"/>
                         <defs>
-                            <linearGradient id="logo-grad" x1="0" y1="0" x2="40" y2="40">
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
                                 <stop stop-color="#6366f1"/>
                                 <stop offset="1" stop-color="#8b5cf6"/>
                             </linearGradient>
                         </defs>
                     </svg>
                 </div>
-                <h1 class="brand">Suggesto</h1>
-                <p class="brand-sub">Plateforme de gestion de leads</p>
+                <h1 class="brand-name">Suggesto</h1>
             </div>
 
-            <!-- Tab Switcher -->
-            <div class="tab-switcher">
-                <button id="tab-login" class="tab-btn active" onclick="switchTab('login')">Connexion</button>
-                <button id="tab-signup" class="tab-btn" onclick="switchTab('signup')">Inscription</button>
-                <div class="tab-indicator" id="tab-indicator"></div>
-            </div>
-
-            <!-- Login Form -->
-            <form id="login-form" class="auth-form active" onsubmit="handleLogin(event)">
-                <div class="input-group">
-                    <label for="login-password">Mot de passe</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        <input type="password" id="login-password" placeholder="Entrez votre mot de passe" required>
-                        <button type="button" class="toggle-password" onclick="togglePassword('login-password', this)">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" class="btn-primary" id="login-btn">
-                    <span class="btn-text">Se connecter</span>
-                    <span class="btn-loader" style="display:none;"><span class="spinner"></span></span>
+            <!-- Mode Switch -->
+            <div class="mode-switch-container">
+                <button class="mode-label active" id="fetard-label" onclick="switchMode('fetard')">
+                    <span class="emoji">🎉</span>
+                    <span>Fêtard</span>
                 </button>
-                <div id="login-message" class="form-message"></div>
-            </form>
-
-            <!-- Signup Form -->
-            <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
-                <div class="registration-grid">
-                    <div class="input-group">
-                        <label for="signup-name">Nom complet</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            <input type="text" id="signup-name" placeholder="Ex: Jean Dupont" required>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label for="signup-age">Âge</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            <input type="number" id="signup-age" placeholder="Votre âge" min="18" required>
-                        </div>
-                    </div>
+                <div class="switch-track" onclick="toggleSwitch()">
+                    <div class="switch-thumb" id="switch-thumb"></div>
                 </div>
-
-                <div class="registration-grid">
-                    <div class="input-group">
-                        <label>Sexe</label>
-                        <div class="custom-select-wrapper" id="gender-dropdown">
-                            <div class="input-wrapper select-trigger" onclick="toggleDropdown('gender-dropdown')">
-                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                                <span id="selected-gender">Choisir...</span>
-                                <svg class="dropdown-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                            </div>
-                            <div class="select-options">
-                                <div class="select-option" onclick="selectGenderOption('Homme')">Homme</div>
-                                <div class="select-option" onclick="selectGenderOption('Femme')">Femme</div>
-                                <div class="select-option" onclick="selectGenderOption('Autre')">Autre</div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="signup-sexe" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="signup-city">Ville</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <input type="text" id="signup-city" placeholder="Votre ville" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label for="signup-password">Mot de passe</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        <input type="password" id="signup-password" placeholder="Choisissez un mot de passe" required>
-                        <button type="button" class="toggle-password" onclick="togglePassword('signup-password', this)">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" class="btn-primary" id="signup-btn">
-                    <span class="btn-text">S'inscrire</span>
-                    <span class="btn-loader" style="display:none;"><span class="spinner"></span></span>
+                <button class="mode-label" id="entreprise-label" onclick="switchMode('entreprise')">
+                    <span class="emoji">🏢</span>
+                    <span>Entreprise</span>
                 </button>
-                <div id="signup-message" class="form-message"></div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ==================== SIDE MENU ==================== -->
-    <div id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <h3>Menu</h3>
-            <button class="btn-close-menu" onclick="toggleMenu()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>
-        <div class="menu-links">
-            <button class="menu-link active" onclick="switchMainView('home')" id="link-home">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                Accueil Boîtes
-            </button>
-            <button class="menu-link" onclick="switchMainView('qr')" id="link-qr">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
-                QR Boîtes
-            </button>
-            <button class="menu-link" onclick="switchMainView('code')" id="link-code">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
-                Mon Code
-            </button>
-        </div>
-        <div class="menu-footer">
-            <button class="btn-logout" onclick="handleLogout()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Déconnexion
-            </button>
-        </div>
-    </div>
-    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
-
-    <!-- ==================== DASHBOARD SCREEN ==================== -->
-    <div id="dashboard-screen" class="screen">
-        <header class="dash-header">
-            <div class="dash-header-left">
-                <button class="btn-burger" onclick="toggleMenu()">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                </button>
-                <div class="logo-title">
-                    <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-                        <rect width="40" height="40" rx="12" fill="url(#logo-grad2)"/>
-                        <path d="M12 20C12 15.58 15.58 12 20 12C24.42 12 28 15.58 28 20C28 24.42 24.42 28 20 28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                        <circle cx="20" cy="20" r="3" fill="white"/>
-                        <defs>
-                            <linearGradient id="logo-grad2" x1="0" y1="0" x2="40" y2="40">
-                                <stop stop-color="#6366f1"/>
-                                <stop offset="1" stop-color="#8b5cf6"/>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    <h2 id="header-title">Boîtes Partenaires</h2>
-                </div>
-            </div>
-            <div class="dash-header-right">
-                <span id="user-display" class="user-badge"></span>
-            </div>
-        </header>
-
-        <!-- Home View: Nightclubs -->
-        <main id="home-view" class="main-view active">
-            <div class="search-filter-container">
-                <div class="search-bar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="club-search" placeholder="Rechercher une boîte..." oninput="filterClubs()">
-                </div>
-                <div class="filters-row">
-                    <select id="filter-city" onchange="filterClubs()">
-                        <option value="">Toutes les villes</option>
-                    </select>
-                    <select id="filter-region" onchange="filterClubs()">
-                        <option value="">Toutes les régions</option>
-                    </select>
-                    <select id="filter-country" onchange="filterClubs()">
-                        <option value="">Tous les pays</option>
-                    </select>
-                </div>
             </div>
 
-            <section id="favorites-section" style="display: none; margin-bottom: 40px;">
-                <h3 class="section-title">Mes Boîtes Préférées</h3>
-                <div class="favorites-slider" id="favorites-container">
-                    <!-- Favorite cards injected here -->
-                </div>
-            </section>
-
-            <h3 class="section-title">Toutes les Boîtes</h3>
-            <div class="clubs-grid" id="clubs-container">
-                <!-- Cards injected here via app.js -->
-            </div>
-        </main>
-
-        <!-- QR Boites View: For clubs to get their QRs -->
-        <main id="qr-view" class="main-view">
-            <div class="scanner-container" style="max-width: 600px;">
-                <div class="scanner-header">
-                    <h3>Générateur de QR Boîtes</h3>
-                    <p>Sélectionnez une boîte pour générer ses QR Entrée et Bar fixes.</p>
-                </div>
-                
-                <div class="input-group" style="text-align: left; margin-bottom: 24px;">
-                    <label>Boîte de Nuit</label>
-                    <div class="input-wrapper">
-                        <select id="club-selector" onchange="generateClubQRs()" style="width: 100%; padding: 13px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); outline: none;">
-                            <option value="">-- Choisir une boîte --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="club-qrs-wrapper" style="display: none; text-align: center;">
-                    <div class="qr-tabs" style="justify-content: center; gap: 10px; background: transparent;">
-                        <button class="qr-tab-btn active" id="tab-gen-entree" onclick="switchGenQRTab('entree')">QR Entrée</button>
-                        <button class="qr-tab-btn" id="tab-gen-barre" onclick="switchGenQRTab('barre')">QR Bar</button>
-                    </div>
-                    
-                    <div class="qr-content active" id="qr-gen-entree-content">
-                        <div id="qr-code-gen-entree" class="qr-box"></div>
-                        <br/>
-                        <button class="btn-primary mt-4" style="width: auto; padding: 10px 20px; margin: 0 auto;" onclick="downloadQR('qr-code-gen-entree')">Télécharger le QR Entrée</button>
-                    </div>
-                    
-                    <div class="qr-content" id="qr-gen-barre-content">
-                        <div id="qr-code-gen-barre" class="qr-box"></div>
-                        <br/>
-                        <button class="btn-primary mt-4" style="width: auto; padding: 10px 20px; margin: 0 auto;" onclick="downloadQR('qr-code-gen-barre')">Télécharger le QR Bar</button>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Mon Code View -->
-        <main id="code-view" class="main-view">
-            <div class="profile-container">
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <div class="profile-avatar" id="profile-initials">?</div>
-                        <h3 id="profile-name">Chargement...</h3>
-                        <p id="profile-city" class="text-muted"></p>
-                    </div>
-                    
-                    <div class="code-section">
-                        <span class="code-label">MON CODE UNIQUE</span>
-                        <div class="big-code" id="display-user-code">------</div>
-                        <p class="code-help">Présentez ce code à l'entrée de l'établissement ou lors de vos commandes au bar.</p>
+            <!-- Dynamic Content -->
+            <div class="content-wrapper">
+                <!-- Fêtard Content -->
+                <div class="mode-content active" id="fetard-content">
+                    <div class="hero-section">
+                        <h2 class="hero-title">Sors au bon endroit, au bon moment.</h2>
+                        <p class="hero-subtitle">Vois où il y a du monde, reçois un signal quand ça bouge… et gagne des récompenses à chaque sortie.</p>
                     </div>
 
-                    <div class="profile-stats">
-                        <div class="p-stat">
-                            <span class="p-stat-val" id="profile-count-visits">0</span>
-                            <span class="p-stat-label">Sorties</span>
-                        </div>
-                        <div class="p-stat">
-                            <span class="p-stat-val" id="profile-count-points">0</span>
-                            <span class="p-stat-label">Points Total</span>
-                        </div>
-                    </div>
-
-                    <div class="points-explanation">
-                        <div class="exp-box">
-                            <h5>💎 Gagner des points</h5>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">⚡</div>
+                            <h3>Arrête de sortir au hasard</h3>
                             <ul>
-                                <li>Scanne à l'entrée et entre ton code unique.</li>
-                                <li>Évalue l'ambiance de la boîte via l'app.</li>
+                                <li>Vois l'ambiance en temps réel</li>
+                                <li>Ne perds plus tes soirées</li>
+                                <li>Va là où ça vaut vraiment le coup</li>
                             </ul>
                         </div>
-                        <div class="exp-box">
-                            <h5>🎁 Dépenser mes points</h5>
+
+                        <div class="feature-card">
+                            <div class="feature-icon">🔔</div>
+                            <h3>Reçois le signal au bon moment</h3>
+                            <p>Choisis une boîte, définis ton seuil, et sois prévenu dès que la soirée commence vraiment.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <div class="feature-icon">🎁</div>
+                            <h3>Sors comme d'habitude… mais gagne quelque chose</h3>
                             <ul>
-                                <li>Scanne le QR au bar pour voir tes récompenses.</li>
-                                <li>Donne ton code au barman et commande ton cadeau !</li>
+                                <li>Cumule des points à chaque sortie</li>
+                                <li>Débloque des avantages</li>
+                                <li>Accède à des rewards exclusifs</li>
                             </ul>
                         </div>
-                    </div>
 
-                    <div class="club-points-list">
-                        <h4>Détail par établissement</h4>
-                        <div id="per-club-points" class="club-points-container">
-                            <!-- Injected via JS -->
-                            <p class="text-dim">Aucun point cumulé pour le moment.</p>
+                        <div class="feature-card full-width">
+                            <div class="feature-icon">🔥</div>
+                            <h3>Les meilleures soirées, sans effort</h3>
+                            <p>Moins de temps à chercher. Plus de temps à profiter.</p>
                         </div>
                     </div>
+
+                    <button class="cta-button fetard-cta" onclick="goToFetard()">
+                        Commencer
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Entreprise Content -->
+                <div class="mode-content" id="entreprise-content">
+                    <div class="hero-section">
+                        <h2 class="hero-title">Remplissez vos soirées. Fidélisez vos clients.</h2>
+                        <p class="hero-subtitle">Transformez les personnes qui viennent déjà chez vous en une clientèle fidèle, activable et mesurable.</p>
+                    </div>
+
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">📊</div>
+                            <h3>Gardez le contrôle de votre affluence</h3>
+                            <ul>
+                                <li>Visualisez votre fréquentation en temps réel</li>
+                                <li>Identifiez vos creux et vos pics</li>
+                                <li>Prenez des décisions basées sur des données</li>
+                            </ul>
+                        </div>
+
+                        <div class="feature-card">
+                            <div class="feature-icon">⚡</div>
+                            <h3>Activez votre clientèle instantanément</h3>
+                            <p>Envoyez des notifications ciblées aux personnes intéressées par votre établissement, au bon moment.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <div class="feature-icon">💎</div>
+                            <h3>Fidélisez sans effort</h3>
+                            <ul>
+                                <li>Système de rewards intégré</li>
+                                <li>Incitez vos clients à revenir</li>
+                                <li>Créez une vraie différence avec vos concurrents</li>
+                            </ul>
+                        </div>
+
+                        <div class="feature-card">
+                            <div class="feature-icon">📈</div>
+                            <h3>Comprenez vraiment votre business</h3>
+                            <p>Qui vient ? Quand ? Combien ça vous rapporte ? Prenez enfin des décisions basées sur des données concrètes.</p>
+                        </div>
+
+                        <div class="feature-card full-width">
+                            <div class="feature-icon">🚀</div>
+                            <h3>Ne dépendez plus uniquement d'Instagram</h3>
+                            <p>Construisez votre propre base de clients et communiquez avec eux directement.</p>
+                        </div>
+                    </div>
+
+                    <button class="cta-button entreprise-cta" onclick="goToEntreprise()">
+                        Commencer
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </main>
-
-        <!-- QR Verification View (Hidden by default, shown on scan) -->
-        <main id="verify-view" class="main-view">
-            <div class="verify-container">
-                <div class="verify-card">
-                    <div class="verify-club-header">
-                        <div class="verify-icon">✨</div>
-                        <h3 id="verify-club-name">Bienvenue</h3>
-                        <p id="verify-scan-type">Scan en cours...</p>
-                    </div>
-
-                    <div id="logged-flow" style="display: none;">
-                        <p class="verify-desc">Entrez votre code personnel pour valider votre entrée.</p>
-                        <div class="input-group">
-                            <input type="text" id="verification-code-input" class="big-verify-input" placeholder="CODE" maxlength="6">
-                        </div>
-                        <button class="btn-primary" onclick="submitVerificationCode()">Valider mon passage</button>
-                    </div>
-
-                    <div id="guest-flow" style="display: none;">
-                        <p class="verify-desc">Vous n'avez pas encore de code ?</p>
-                        <button class="btn-primary" onclick="handleNoCode()">I don't have a code</button>
-                        <p class="verify-hint">En cliquant, vous validerez votre passage (+1) et serez redirigé pour créer votre compte.</p>
-                    </div>
-                </div>
-            </div>
-        </main>
     </div>
 
-    <!-- ==================== CLUB INFO MODAL ==================== -->
-    <div id="club-modal" class="modal-overlay" onclick="closeModal(event, 'club-modal')">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-club-name">Boîte de nuit</h3>
-                <button class="btn-close" onclick="closeModal(null, 'club-modal')">&times;</button>
-            </div>
-            <div class="modal-body text-center">
-                <p id="modal-club-desc" class="club-desc"></p>
-                
-                <div style="background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Votre Code ID Personnel</p>
-                    <strong id="modal-user-code" style="font-size: 18px; color: var(--primary-light); word-break: break-all;"></strong>
-                </div>
-                <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;">Présentez ce code ou scannez le QR de la boîte avec votre appareil photo natif.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== SCAN RESULT MODAL ==================== -->
-    <div id="scan-result-modal" class="modal-overlay" onclick="closeModal(event, 'scan-result-modal')">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Bilan du client</h3>
-                <button class="btn-close" onclick="closeModal(null, 'scan-result-modal')">&times;</button>
-            </div>
-            <div class="modal-body text-center">
-                <div class="scan-success-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                </div>
-                <h4 id="result-user-name" class="result-title">Client</h4>
-                <div class="result-stats">
-                    <div class="stat-box">
-                        <span class="stat-label">Boissons</span>
-                        <strong id="result-drinks" class="stat-value">0</strong>
-                    </div>
-                    <div class="stat-box">
-                        <span class="stat-label">Points fidélités</span>
-                        <strong id="result-points" class="stat-value">0</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    </div> <!-- End fetars-view -->
-
-    </div> <!-- End fetars-view -->
-
-    <script src="app.js"></script>
+    <script src="landing.js"></script>
 </body>
 </html>

@@ -7,12 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const entrepriseEl = document.getElementById('entreprise-view');
     const bizAuthScreen = document.getElementById('business-auth-screen');
 
-    console.log('App Init - isBusinessView:', isBusinessView);
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
 
-    // Check if we're on the landing page - if yes, don't apply any logic
-    if (window.location.pathname.includes('landing.html')) {
-        return;
-    }
+    console.log('App Init - isBusinessView:', isBusinessView, 'Action:', action);
 
     if (isBusinessView) {
         // Mode Entreprise
@@ -42,6 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const user = JSON.parse(stored);
                 showDashboard(user.name || 'Utilisateur');
             }
+        }
+    }
+
+    // Handle ?action=signup
+    if (action === 'signup') {
+        if (isBusinessView) {
+            switchBizTab('signup');
+        } else {
+            switchTab('signup');
         }
     }
 

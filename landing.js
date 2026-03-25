@@ -72,12 +72,12 @@ function animateContentChange() {
 // Navigation functions
 function goToFetard() {
     // Redirect to the existing fetard interface
-    window.location.href = 'index.html';
+    window.location.href = 'auth.html';
 }
 
 function goToEntreprise() {
     // Redirect to the entreprise signup/login
-    window.location.href = 'entreprise.html';
+    window.location.href = 'entreprise.html?action=signup';
 }
 
 // Intersection Observer for scroll animations
