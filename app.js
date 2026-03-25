@@ -543,6 +543,9 @@ function updateAnnoncesPreview() {
                 if (fieldId === 'biz-club-name-hidden' && currentBusiness) {
                     currentBusiness.name = newText;
                 }
+
+                // Save draft for persistence
+                saveAnnouncementDraft();
             }
         };
 
@@ -566,8 +569,44 @@ function initAnnouncementEditor() {
     } else {
         announcementTemplates = [];
     }
+    
+    // Load Draft if exists
+    loadAnnouncementDraft();
+    
     renderTemplatesGrid();
     updateAnnoncesPreview();
+}
+
+// ----- Draft Persistence -----
+function saveAnnouncementDraft() {
+    const draft = {
+        image: document.getElementById('biz-club-image').value,
+        name: document.getElementById('biz-club-name-hidden').value,
+        insta: document.getElementById('biz-club-insta').value,
+        description: document.getElementById('biz-club-desc').value,
+        price: document.getElementById('biz-club-price').value,
+        partyName: document.getElementById('biz-party-name').value,
+        partyTheme: document.getElementById('biz-party-theme').value,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('announcementDraft', JSON.stringify(draft));
+}
+
+function loadAnnouncementDraft() {
+    const stored = localStorage.getItem('announcementDraft');
+    if (!stored) return;
+    
+    const draft = JSON.parse(stored);
+    // Only load if it's less than 24h old (optional safety)
+    if (Date.now() - draft.timestamp > 24 * 60 * 60 * 1000) return;
+
+    document.getElementById('biz-club-image').value = draft.image || '';
+    document.getElementById('biz-club-name-hidden').value = draft.name || '';
+    document.getElementById('biz-club-insta').value = draft.insta || '';
+    document.getElementById('biz-club-desc').value = draft.description || '';
+    document.getElementById('biz-club-price').value = draft.price || '';
+    document.getElementById('biz-party-name').value = draft.partyName || '';
+    document.getElementById('biz-party-theme').value = draft.partyTheme || '';
 }
 
 async function handleSaveTemplate(e) {
@@ -617,7 +656,6 @@ function animateCardToGrid(card) {
     const rect = card.getBoundingClientRect();
     const clone = card.cloneNode(true);
     
-    // Position the clone exactly over the original
     clone.className = 'fly-card-clone';
     clone.style.width = rect.width + 'px';
     clone.style.height = rect.height + 'px';
@@ -630,20 +668,60 @@ function animateCardToGrid(card) {
     const firstTpl = grid?.querySelector('.template-card') || grid;
     const targetRect = firstTpl?.getBoundingClientRect() || { left: window.innerWidth - 300, top: 200, width: 200, height: 150 };
 
-    // Trigger animation in next frame
+    // Cinematic Path: Screen Center -> Target Grid
     requestAnimationFrame(() => {
-        const scaleX = (targetRect.width || 200) / rect.width;
-        const scaleY = (targetRect.height || 150) / rect.height;
-        const translateX = (targetRect.left + (targetRect.width/2)) - (rect.left + (rect.width/2));
-        const translateY = (targetRect.top + (targetRect.height/2)) - (rect.top + (rect.height/2));
-
-        clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
-        clone.style.opacity = '0';
+        // Step 1: Fly to Center
+        const centerX = (window.innerWidth / 2) - (rect.width / 2);
+        const centerY = (window.innerHeight / 2) - (rect.height / 2);
         
+        clone.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        clone.style.left = centerX + 'px';
+        clone.style.top = centerY + 'px';
+        clone.style.transform = 'scale(1.1)';
+        clone.style.boxShadow = '0 30px 60px rgba(0,0,0,0.8)';
+
         setTimeout(() => {
-            clone.remove();
+            // Step 2: Fly to Grid
+            clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+            const scaleX = (targetRect.width || 200) / rect.width;
+            const scaleY = (targetRect.height || 150) / rect.height;
+            const translateX = (targetRect.left) - centerX;
+            const translateY = (targetRect.top) - centerY;
+
+            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+            clone.style.opacity = '0.3';
+            
+            setTimeout(() => {
+                clone.remove();
+            }, 800);
         }, 800);
     });
+}
+
+// ----- Custom Confirm Modal -----
+function showConfirmModal(title, message, onConfirm) {
+    const modal = document.getElementById('biz-confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl = document.getElementById('confirm-message');
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+
+    titleEl.innerText = title;
+    msgEl.innerText = message;
+    modal.classList.add('active');
+
+    const handleOk = () => {
+        onConfirm();
+        closeConfirm();
+    };
+    const closeConfirm = () => {
+        modal.classList.remove('active');
+        okBtn.removeEventListener('click', handleOk);
+        cancelBtn.removeEventListener('click', closeConfirm);
+    };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', closeConfirm);
 }
 
 function showSaveToast() {
@@ -695,18 +773,26 @@ function loadAdminTemplate(id) {
     // Refresh preview
     updateAnnoncesPreview();
     
+    // Save as draft to persist across refreshes
+    saveAnnouncementDraft();
+
     // Scroll to editor
     document.querySelector('.editor-section')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function deleteAdminTemplate(id) {
-    if (!confirm('Supprimer ce template ?')) return;
-    announcementTemplates = announcementTemplates.filter(t => t.id !== id);
-    if (currentBusiness) {
-        currentBusiness.announcementTemplates = announcementTemplates;
-        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-    }
-    renderTemplatesGrid();
+    showConfirmModal(
+        'Supprimer ce template ?', 
+        'Cette action est irréversible et supprimera le template de votre bibliothèque.',
+        () => {
+            announcementTemplates = announcementTemplates.filter(t => t.id !== id);
+            if (currentBusiness) {
+                currentBusiness.announcementTemplates = announcementTemplates;
+                localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+            }
+            renderTemplatesGrid();
+        }
+    );
 }
 
 function inspireAdminTemplate(id) {
