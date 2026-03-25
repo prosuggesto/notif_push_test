@@ -442,7 +442,7 @@ function updateAnnoncesPreview() {
         <div class="modal-content-inner">
             <div class="detail-section">
                 <h4>À propos de l'établissement</h4>
-                <p class="text-dim editable-text" contenteditable="true" data-field="biz-club-desc">${desc}</p>
+                <p class="text-dim editable-text" contenteditable="true" data-field="biz-club-desc" data-multi="true">${desc}</p>
                 <div class="insta-link-wrapper">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                     <span class="editable-text" contenteditable="true" data-field="biz-club-insta">${insta}</span>
@@ -485,19 +485,42 @@ function updateAnnoncesPreview() {
         </div>
     `;
 
-    // Add event listeners to sync contenteditable fields
+    // Add event listeners to sync and clear contenteditable fields
     previewContainer.querySelectorAll('.editable-text').forEach(el => {
-        el.addEventListener('blur', (e) => {
+        // Clear on focus as requested by user
+        el.onfocus = (e) => {
+            const currentText = e.target.innerText.trim();
+            e.target.setAttribute('data-before', currentText);
+            e.target.innerText = '';
+        };
+
+        el.onblur = (e) => {
             const fieldId = e.target.getAttribute('data-field');
             const hiddenInput = document.getElementById(fieldId);
-            if (hiddenInput) {
-                hiddenInput.value = e.target.innerText.trim();
-                // If it's the club name, update currentBusiness as well
+            const newText = e.target.innerText.trim();
+            const oldText = e.target.getAttribute('data-before');
+
+            if (newText === '') {
+                // Restore if empty
+                e.target.innerText = oldText;
+            } else if (hiddenInput) {
+                // Sync to hidden input
+                hiddenInput.value = newText;
+                
+                // Special case for club name
                 if (fieldId === 'biz-club-name-hidden' && currentBusiness) {
-                    currentBusiness.name = hiddenInput.value;
+                    currentBusiness.name = newText;
                 }
             }
-        });
+        };
+
+        // Prevent enter key from creating new lines in single-line fields
+        el.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.target.getAttribute('data-multi')) {
+                e.preventDefault();
+                e.target.blur();
+            }
+        };
     });
 }
 
