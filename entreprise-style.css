@@ -7,7 +7,11 @@
 
 .preview-container.editor-mode {
     width: 100%;
-    max-width: 600px;
+    max-width: 420px; /* Match the card width */
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .preview-container .card-title {
@@ -15,6 +19,13 @@
     font-weight: 700;
     margin-bottom: 8px;
     color: #fff;
+    text-align: center;
+}
+
+.editor-header {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 24px;
 }
 
 /* In-place Editing Styles */
@@ -25,16 +36,29 @@
     padding: 2px 4px;
     margin: -2px -4px;
     cursor: text;
+    border: 1px dashed transparent;
 }
 
 .editable-text:hover {
     background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .editable-text:focus {
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 2px var(--primary);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.club-hero-name {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-weight: 800;
+    font-size: 20px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    max-width: 80%;
 }
 
 .editable-hero {

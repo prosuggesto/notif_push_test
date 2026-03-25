@@ -410,19 +410,18 @@ function updateAnnoncesPreview() {
     const previewContainer = document.getElementById('annonces-preview-card');
     if (!previewContainer) return;
 
-    const clubName = currentBusiness ? currentBusiness.name : 'Mon Club';
-    
-    // Get values from hidden form or current state
+    // Get current values
+    const clubName = document.getElementById('biz-club-name-hidden')?.value || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = document.getElementById('biz-club-image').value || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
     const insta = document.getElementById('biz-club-insta').value || '@votreclub';
     const desc = document.getElementById('biz-club-desc').value || 'Aucune description fournie.';
+    const price = document.getElementById('biz-club-price')?.value || '20€';
     const partyName = document.getElementById('biz-party-name').value || 'Soirée Spéciale';
     const partyTheme = document.getElementById('biz-party-theme').value || 'Ambiance & Cocktails';
 
-    // Mock stats for preview
+    // Mock stats (ReadOnly)
     const stats = {
         vibe: 'TRENDY',
-        price: '20€',
         count: 110,
         men: 45,
         women: 40,
@@ -430,12 +429,12 @@ function updateAnnoncesPreview() {
     };
 
     previewContainer.innerHTML = `
-        <div class="modal-club-hero editable-hero" style="background-image: url('${image}')" onclick="document.getElementById('biz-club-image-input').click()">
-            <div class="hero-overlay">
+        <div class="modal-club-hero editable-hero" style="background-image: url('${image}')">
+            <div class="hero-overlay" onclick="document.getElementById('biz-club-image-input').click()">
                 <span class="vibe-badge">${stats.vibe}</span>
-                <div class="hero-edit-hint">Cliquez pour changer l'image</div>
+                <div class="hero-edit-hint">📷 Changer l'image</div>
             </div>
-            <div style="position: absolute; top: 20px; left: 20px; color: white; font-weight: 800; font-size: 20px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+            <div class="editable-text club-hero-name" contenteditable="true" data-field="biz-club-name-hidden">
                 ${clubName}
             </div>
         </div>
@@ -453,10 +452,10 @@ function updateAnnoncesPreview() {
             <div class="detail-grid">
                 <div class="detail-item">
                     <span class="detail-label">Entrée</span>
-                    <span class="detail-val">${stats.price}</span>
+                    <span class="detail-val editable-text" contenteditable="true" data-field="biz-club-price">${price}</span>
                 </div>
-                <div class="detail-item">
-                    <span class="detail-label">Public</span>
+                <div class="detail-item read-only">
+                    <span class="detail-label">Public (Live)</span>
                     <span class="detail-val">${stats.count} pers.</span>
                 </div>
             </div>
@@ -493,6 +492,10 @@ function updateAnnoncesPreview() {
             const hiddenInput = document.getElementById(fieldId);
             if (hiddenInput) {
                 hiddenInput.value = e.target.innerText.trim();
+                // If it's the club name, update currentBusiness as well
+                if (fieldId === 'biz-club-name-hidden' && currentBusiness) {
+                    currentBusiness.name = hiddenInput.value;
+                }
             }
         });
     });
