@@ -17,6 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="entreprise-style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -59,19 +60,21 @@
 
                 <!-- Business Login -->
                 <form id="business-login-form" class="auth-form active" onsubmit="handleBusinessLogin(event)">
+                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Entrez votre mot de passe pour accéder à votre espace.</p>
                     <div class="input-group">
                         <label>Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            <input type="password" id="biz-login-password" placeholder="Entrez votre mot de passe club" required>
+                            <input type="password" id="biz-login-password" placeholder="Votre mot de passe club" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="biz-login-btn">Se connecter à l'espace pro</button>
+                    <button type="submit" class="btn-primary" id="biz-login-btn">Se connecter</button>
                     <div id="biz-login-message" class="form-message"></div>
                 </form>
 
                 <!-- Business Signup -->
                 <form id="business-signup-form" class="auth-form" onsubmit="handleBusinessSignup(event)">
+                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Inscrivez votre établissement sur Suggesto.</p>
                     <div class="input-group">
                         <label>Nom de la boîte de nuit</label>
                         <div class="input-wrapper">
@@ -80,23 +83,16 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Email professionnel</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 7l-10 5L2 7"/></svg>
-                            <input type="email" id="biz-signup-email" placeholder="contact@votreclub.com" required>
-                        </div>
-                    </div>
-                    <div class="input-group">
                         <label>Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            <input type="password" id="biz-signup-password" placeholder="Min. 8 caractères" required>
+                            <input type="password" id="biz-signup-password" placeholder="Définissez votre mot de passe" required>
                             <button type="button" class="toggle-password" onclick="togglePassword('biz-signup-password', this)">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="biz-signup-btn">Créer mon compte entreprise</button>
+                    <button type="submit" class="btn-primary" id="biz-signup-btn">Créer mon compte</button>
                     <div id="biz-signup-message" class="form-message"></div>
                 </form>
             </div>
@@ -265,6 +261,10 @@
                                     <input type="text" id="rew-name" class="biz-textarea" style="min-height: 48px;" placeholder="Ex: Shot de bienvenue" required>
                                 </div>
                                 <div class="input-group" style="margin-top: 16px;">
+                                    <label>Points requis</label>
+                                    <input type="number" id="rew-points" class="biz-textarea" style="min-height: 48px;" placeholder="Ex: 100" required>
+                                </div>
+                                <div class="input-group" style="margin-top: 16px;">
                                     <label>Image de la récompense (URL)</label>
                                     <input type="text" id="rew-image" class="biz-textarea" style="min-height: 48px;" placeholder="https://exemple.com/shot.jpg">
                                 </div>
@@ -288,7 +288,7 @@
                 <section id="biz-section-give-rewards" class="biz-section">
                     <div class="section-header">
                         <h2>Give Rewards</h2>
-                        <p>Scannez ou saisissez le code client pour donner une récompense.</p>
+                        <p>Saisissez le code client pour afficher ses points et lui donner une récompense.</p>
                     </div>
                     <div class="biz-card" style="max-width: 600px; margin: 0 auto;">
                         <div class="search-box">
@@ -417,5 +417,30 @@
     </div>
 
     <script src="app.js"></script>
+    <!-- ==================== REDEEM RESULT MODAL ==================== -->
+    <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Récompense Validée !</h3>
+                <button class="btn-close" onclick="closeModal(null, 'biz-redeem-modal')">&times;</button>
+            </div>
+            <div class="modal-body text-center" style="padding: 40px 24px;">
+                <div class="scan-success-icon" style="margin-bottom: 24px;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <h2 id="redeem-reward-name" style="font-size: 24px; margin-bottom: 8px;">Shot de bienvenue</h2>
+                <p style="color: var(--text-muted); margin-bottom: 32px;">Le client a bien été débité.</p>
+                
+                <div style="background: var(--surface); padding: 24px; border-radius: 16px; border: 1px dashed var(--primary);">
+                    <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase;">Code à saisir en caisse</p>
+                    <strong id="redeem-secret-code" style="font-size: 32px; color: var(--primary-light); letter-spacing: 0.2em; font-family: monospace;">SHOOT1</strong>
+                </div>
+                
+                <button class="btn-primary" style="margin-top: 32px;" onclick="closeModal(null, 'biz-redeem-modal')">Terminer</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

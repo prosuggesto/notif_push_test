@@ -253,12 +253,12 @@ function handleBusinessLogout() {
 async function handleBusinessSignup(e) {
     e.preventDefault();
     const name = document.getElementById('biz-signup-name').value.trim();
-    const email = document.getElementById('biz-signup-email').value.trim();
     const password = document.getElementById('biz-signup-password').value.trim();
+    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz'; // Fallback for backend requirement
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
-    if (!name || !email || !password) {
+    if (!name || !password) {
         showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -278,7 +278,7 @@ async function handleBusinessSignup(e) {
             },
             body: JSON.stringify({
                 nom: name,
-                email: email,
+                email: email, 
                 password: password,
                 uuid: uuid,
                 user_code: userCode,
@@ -295,7 +295,6 @@ async function handleBusinessSignup(e) {
         if (response.ok && data && data.statut !== 'invalid') {
             currentBusiness = {
                 name: name,
-                email: email,
                 uuid: uuid,
                 user_code: userCode,
                 ...data
@@ -359,7 +358,7 @@ async function handleBusinessLogin(e) {
         msg.className = 'form-message error';
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Se connecter à l\'espace pro';
+        btn.textContent = 'Se connecter';
     }
 }
 
@@ -388,13 +387,40 @@ function showBusinessDashboard() {
     }
     if (clubNameEl && currentBusiness) clubNameEl.textContent = currentBusiness.name;
     
+    // Fill forms with existing data
+    if (currentBusiness.profile) {
+        document.getElementById('biz-club-image').value = currentBusiness.profile.image || '';
+        document.getElementById('biz-club-insta').value = currentBusiness.profile.insta || '';
+        document.getElementById('biz-club-desc').value = currentBusiness.profile.desc || '';
+        document.getElementById('biz-party-name').value = currentBusiness.profile.partyName || '';
+        document.getElementById('biz-party-theme').value = currentBusiness.profile.partyTheme || '';
+    }
+
     // Re-initialize lists/stats if elements exist
     if (document.getElementById('biz-calendar-grid')) renderCalendar();
     if (document.getElementById('biz-template-list')) renderTemplateList();
     if (document.getElementById('biz-rewards-list')) renderRewardsList();
     if (document.getElementById('stats-total-scans')) updateStatsUI();
+}
+
+function handleSaveAnnonces(e) {
+    e.preventDefault();
+    const profile = {
+        image: document.getElementById('biz-club-image').value,
+        insta: document.getElementById('biz-club-insta').value,
+        desc: document.getElementById('biz-club-desc').value,
+        partyName: document.getElementById('biz-party-name').value,
+        partyTheme: document.getElementById('biz-party-theme').value
+    };
     
-    loadBusinessData();
+    currentBusiness.profile = profile;
+    saveBusinessData();
+    alert('Annonces mises à jour avec succès !');
+}
+
+function saveBusinessData() {
+    localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+    // Optional: push to server
 }
 
 // ----- Rewards Logic -----
@@ -523,7 +549,10 @@ async function redeemReward(rewardId) {
         });
 
         if (response.ok) {
-            alert(`Récompense attribuée ! \n\nCODE À ENTRER EN CAISSE : ${reward.secretCode}`);
+            document.getElementById('redeem-reward-name').textContent = reward.name;
+            document.getElementById('redeem-secret-code').textContent = reward.secretCode;
+            document.getElementById('biz-redeem-modal').classList.add('active');
+            
             searchClientForReward(); // Refresh client view
         } else {
             alert('Erreur lors de la distribution');

@@ -142,8 +142,8 @@ body {
     font-weight: 400;
 }
 
-/* Tab Switcher */
-.tab-switcher {
+/* Tab Switcher & Auth Tabs */
+.tab-switcher, .auth-tabs {
     display: flex;
     position: relative !important;
     background: var(--surface);
