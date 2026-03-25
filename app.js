@@ -572,8 +572,10 @@ function initAnnouncementEditor() {
 
 async function handleSaveTemplate(e) {
     if (e) e.preventDefault();
+    const btn = e.target;
+    btn.classList.add('loading');
     
-    // Collect data from the hidden inputs (which are synced with the editor)
+    // Collect data
     const newTemplate = {
         id: 'ann_' + Date.now(),
         image: document.getElementById('biz-club-image').value,
@@ -586,19 +588,70 @@ async function handleSaveTemplate(e) {
         timestamp: new Date().toISOString()
     };
 
-    announcementTemplates.unshift(newTemplate); // Add to start
+    // Fly animation first for visual punch
+    const previewCard = document.getElementById('annonces-preview-card');
+    if (previewCard) {
+        animateCardToGrid(previewCard);
+    }
+
+    announcementTemplates.unshift(newTemplate);
     
-    // Save to local storage and potentially sync with webhook
     if (currentBusiness) {
         currentBusiness.announcementTemplates = announcementTemplates;
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
         
-        // Also save as the "live" announcement
-        handleSaveAnnonces();
+        try {
+            // Await the live save to ensure persistence
+            await handleSaveAnnonces();
+        } catch (err) {
+            console.error('Error saving announcement:', err);
+        }
     }
 
     renderTemplatesGrid();
-    alert('Template enregistré avec succès !');
+    btn.classList.remove('loading');
+    showSaveToast();
+}
+
+function animateCardToGrid(card) {
+    const rect = card.getBoundingClientRect();
+    const clone = card.cloneNode(true);
+    
+    // Position the clone exactly over the original
+    clone.className = 'fly-card-clone';
+    clone.style.width = rect.width + 'px';
+    clone.style.height = rect.height + 'px';
+    clone.style.left = rect.left + 'px';
+    clone.style.top = rect.top + 'px';
+    document.body.appendChild(clone);
+
+    // Target position: The first template card slot
+    const grid = document.getElementById('biz-templates-grid');
+    const firstTpl = grid?.querySelector('.template-card') || grid;
+    const targetRect = firstTpl?.getBoundingClientRect() || { left: window.innerWidth - 300, top: 200, width: 200, height: 150 };
+
+    // Trigger animation in next frame
+    requestAnimationFrame(() => {
+        const scaleX = (targetRect.width || 200) / rect.width;
+        const scaleY = (targetRect.height || 150) / rect.height;
+        const translateX = (targetRect.left + (targetRect.width/2)) - (rect.left + (rect.width/2));
+        const translateY = (targetRect.top + (targetRect.height/2)) - (rect.top + (rect.height/2));
+
+        clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+        clone.style.opacity = '0';
+        
+        setTimeout(() => {
+            clone.remove();
+        }, 800);
+    });
+}
+
+function showSaveToast() {
+    const toast = document.getElementById('save-toast');
+    if (toast) {
+        toast.classList.add('active');
+        setTimeout(() => toast.classList.remove('active'), 3000);
+    }
 }
 
 function renderTemplatesGrid() {
@@ -1039,12 +1092,14 @@ async function saveBusinessData() {
 }
 
 async function handleSaveAnnonces(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const btn = document.getElementById('btn-save-annonces');
-    const originalText = btn.textContent;
+    const originalText = btn ? btn.textContent : '';
     
-    btn.disabled = true;
-    btn.textContent = 'Enregistrement...';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Enregistrement...';
+    }
 
     const data = {
         action: 'update_club_annonces',
@@ -1053,7 +1108,8 @@ async function handleSaveAnnonces(e) {
         insta: document.getElementById('biz-club-insta').value,
         description: document.getElementById('biz-club-desc').value,
         partyName: document.getElementById('biz-party-name').value,
-        partyTheme: document.getElementById('biz-party-theme').value
+        partyTheme: document.getElementById('biz-party-theme').value,
+        price: document.getElementById('biz-club-price')?.value || ''
     };
 
     try {
@@ -1066,15 +1122,19 @@ async function handleSaveAnnonces(e) {
         if (response.ok) {
             currentBusiness.annonces = data;
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            alert('Annonces enregistrées avec succès !');
+            // Only show toast if triggered manually (not via handleSaveTemplate which has its own animation/toast)
+            if (e) showSaveToast();
         } else {
             throw new Error('Erreur lors de la sauvegarde');
         }
     } catch (error) {
-        alert('Erreur: ' + error.message);
+        console.error('Save error:', error);
+        if (e) alert('Erreur: ' + error.message);
     } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
     }
 }
 
