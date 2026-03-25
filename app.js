@@ -6,14 +6,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetarsEl = document.getElementById('fetars-view');
     const entrepriseEl = document.getElementById('entreprise-view');
     const bizAuthScreen = document.getElementById('business-auth-screen');
-    
+
     console.log('App Init - isBusinessView:', isBusinessView);
+
+    // Check if we're on the landing page - if yes, don't apply any logic
+    if (window.location.pathname.includes('landing.html')) {
+        return;
+    }
 
     if (isBusinessView) {
         // Mode Entreprise
         if (fetarsEl) fetarsEl.style.display = 'none';
         if (entrepriseEl) entrepriseEl.style.display = 'block';
-        
+
         // Use the globally defined currentBusiness
         if (currentBusiness) {
             showBusinessDashboard();
@@ -27,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mode Client (Fetars)
         if (fetarsEl) fetarsEl.style.display = 'block';
         if (entrepriseEl) entrepriseEl.style.display = 'none';
-        
+
         const params = new URLSearchParams(window.location.search);
         if (params.get('action') === 'scan' || params.get('clubId')) {
             handleNativeScan();
@@ -39,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     // Remove loading state
     document.body.classList.remove('view-loading');
 });
@@ -241,17 +246,18 @@ function handleBusinessLogout() {
 async function handleBusinessSignup(e) {
     e.preventDefault();
     const name = document.getElementById('biz-signup-name').value.trim();
+    const email = document.getElementById('biz-signup-email').value.trim();
     const password = document.getElementById('biz-signup-password').value.trim();
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
-    if (!name || !password) {
+    if (!name || !email || !password) {
         showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Paiement...';
+    btn.textContent = 'Création en cours...';
 
     const uuid = generateUUID();
     const userCode = generateUserCode();
@@ -265,6 +271,7 @@ async function handleBusinessSignup(e) {
             },
             body: JSON.stringify({
                 nom: name,
+                email: email,
                 password: password,
                 uuid: uuid,
                 user_code: userCode,
@@ -279,14 +286,15 @@ async function handleBusinessSignup(e) {
         const data = Array.isArray(raw) ? raw[0] : raw;
 
         if (response.ok && data && data.statut !== 'invalid') {
-            currentBusiness = { 
+            currentBusiness = {
                 name: name,
+                email: email,
                 uuid: uuid,
                 user_code: userCode,
-                ...data 
+                ...data
             };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            msg.textContent = 'Inscription réussie ! Redirection immédiate...';
+            msg.textContent = 'Inscription réussie ! Redirection...';
             msg.className = 'form-message success';
             setTimeout(() => showBusinessDashboard(), 500);
         } else {
@@ -297,7 +305,7 @@ async function handleBusinessSignup(e) {
         msg.className = 'form-message error';
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Procéder au paiement & Créer';
+        btn.textContent = 'Créer mon compte entreprise';
     }
 }
 
