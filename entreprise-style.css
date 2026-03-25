@@ -69,9 +69,28 @@
     pointer-events: auto;
 }
 
-.burger-menu.active span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
-.burger-menu.active span:nth-child(2) { opacity: 0; }
-.burger-menu.active span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+.btn-burger {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 8px;
+    margin-left: -8px; /* Offset padding for alignment */
+    z-index: 16000;
+}
+
+.btn-burger:hover {
+    color: var(--primary-light);
+    transform: scale(1.1);
+}
+
+.btn-burger:active {
+    transform: scale(0.95);
+}
 
 @media (max-width: 1024px) {
     .biz-content {
