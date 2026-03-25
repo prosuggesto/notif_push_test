@@ -186,15 +186,60 @@
 .btn-delete { background: #ef4444; color: white; } /* Red */
 
 /* Responsive Adaptations */
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
     .annonces-layout-split {
         flex-direction: column;
+        align-items: center;
+        gap: 40px;
     }
+    
+    .editor-section, .templates-section {
+        width: 100%;
+        max-width: 900px;
+    }
+    
     .editor-section {
         position: static;
-        width: 100%;
-        max-width: none;
         display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .biz-section {
+        padding: 16px;
+    }
+    
+    #annonces-preview-card {
+        transform: scale(0.95);
+        transform-origin: top center;
+        margin-bottom: -10px;
+    }
+    
+    .templates-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .template-management-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .bulk-actions {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        padding-left: 0;
+        padding-top: 12px;
+        justify-content: space-between;
+    }
+    
+    .btn-mini {
+        padding: 12px 16px;
+        font-size: 13px;
+        width: 100%; /* Full width on mobile for better touch */
     }
 }
 
@@ -406,6 +451,26 @@
     font-weight: bold;
     opacity: 1;
     transform: scale(1);
+}
+
+/* Touch Friendly Targets */
+@media (max-width: 480px) {
+    .biz-modal-content {
+        padding: 24px;
+        border-radius: 20px;
+    }
+    
+    .biz-modal-content h3 {
+        font-size: 18px;
+    }
+    
+    .biz-modal-actions {
+        flex-direction: column;
+    }
+    
+    .biz-modal-actions button {
+        width: 100%;
+    }
 }
 
 .template-card:hover {

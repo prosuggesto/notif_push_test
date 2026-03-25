@@ -699,11 +699,14 @@ function animateCardToGrid(card) {
         const centerX = (window.innerWidth / 2) - (rect.width / 2);
         const centerY = (window.innerHeight / 2) - (rect.height / 2);
         
+        // Slightly smaller scale on narrow mobiles to ensure visibility
+        const previewScale = window.innerWidth < 480 ? 1.05 : 1.15;
+        
         clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
         clone.style.opacity = '1';
         clone.style.left = centerX + 'px';
         clone.style.top = centerY + 'px';
-        clone.style.transform = 'scale(1.15)';
+        clone.style.transform = `scale(${previewScale})`;
         clone.style.boxShadow = '0 0 120px rgba(99, 102, 241, 0.8)';
 
         setTimeout(() => {
