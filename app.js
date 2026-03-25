@@ -220,13 +220,16 @@ function switchBizTab(tab) {
     document.getElementById('biz-tab-indicator').style.transform = isLogin ? 'translateX(0)' : 'translateX(100%)';
 }
 
-// Sidebar Toggle for Mobile
+// Sidebar Toggle for Universal Burger Menu
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const burger = document.getElementById('sidebar-toggle');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
     if (sidebar && burger) {
         sidebar.classList.toggle('active');
         burger.classList.toggle('active');
+        if (overlay) overlay.classList.toggle('active');
     }
 }
 
@@ -236,15 +239,14 @@ function switchBizSection(sectionId) {
     
     sections.forEach(s => {
         s.classList.remove('active');
-        s.style.display = 'none'; // Hide all sections by default
-        if (s.id === `biz-section-${sectionId}`) { // Use biz-section-${sectionId}
+        s.style.display = 'none'; 
+        if (s.id === `biz-section-${sectionId}`) {
             s.classList.add('active');
-            s.style.display = 'block'; // Show the active section
+            s.style.display = 'block'; 
         }
     });
     
     navItems.forEach(item => {
-        // Use a more robust check for active state
         const onClickAttr = item.getAttribute('onclick') || '';
         if (onClickAttr.includes(`'${sectionId}'`)) {
             item.classList.add('active');
@@ -253,13 +255,14 @@ function switchBizSection(sectionId) {
         }
     });
 
-    // Mobile Auto-Close
-    if (window.innerWidth <= 1024) {
-        const sidebar = document.querySelector('.sidebar');
-        const burger = document.getElementById('sidebar-toggle');
-        sidebar?.classList.remove('active');
-        burger?.classList.remove('active');
-    }
+    // Auto-Close Sidebar on selection (Universal)
+    const sidebar = document.querySelector('.sidebar');
+    const burger = document.getElementById('sidebar-toggle');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar?.classList.remove('active');
+    burger?.classList.remove('active');
+    overlay?.classList.remove('active');
 }
 
 function handleBusinessLogout() {
@@ -404,6 +407,10 @@ function showBusinessDashboard() {
         dashScreen.style.display = 'flex';
     }
     if (clubNameEl && currentBusiness) clubNameEl.textContent = currentBusiness.name;
+    
+    // Sync Name to Top Bar
+    const topBarName = document.getElementById('top-bar-club-name');
+    if (topBarName && currentBusiness) topBarName.textContent = currentBusiness.name;
     
     // Fill forms with existing data
     if (currentBusiness.profile) {
