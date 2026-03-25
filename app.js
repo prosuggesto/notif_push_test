@@ -802,17 +802,80 @@ function showSaveToast() {
     }
 }
 
+let templateSearchQuery = '';
+let selectedTemplateIds = new Set();
+
+function handleTemplateSearch(e) {
+    templateSearchQuery = e.target.value.toLowerCase().trim();
+    renderTemplatesGrid();
+}
+
+function toggleTemplateSelection(id, e) {
+    // If clicking a button, don't toggle selection unless it's the card itself
+    if (e.target.tagName === 'BUTTON') return;
+    
+    if (selectedTemplateIds.has(id)) {
+        selectedTemplateIds.delete(id);
+    } else {
+        selectedTemplateIds.add(id);
+    }
+    
+    updateBulkActionsUI();
+    renderTemplatesGrid();
+}
+
+function updateBulkActionsUI() {
+    const bar = document.getElementById('bulk-actions');
+    const countEl = document.getElementById('selected-count');
+    
+    if (selectedTemplateIds.size > 0) {
+        bar.style.display = 'flex';
+        countEl.textContent = `${selectedTemplateIds.size} sélectionné${selectedTemplateIds.size > 1 ? 's' : ''}`;
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+async function handleBulkDelete() {
+    showConfirmModal(
+        'Supprimer la sélection ?',
+        `Êtes-vous sûr de vouloir supprimer ces ${selectedTemplateIds.size} templates ?`,
+        async () => {
+            announcementTemplates = announcementTemplates.filter(t => !selectedTemplateIds.has(t.id));
+            selectedTemplateIds.clear();
+            
+            if (currentBusiness) {
+                currentBusiness.announcementTemplates = announcementTemplates;
+                localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+                await handleSaveAnnonces();
+            }
+            
+            updateBulkActionsUI();
+            renderTemplatesGrid();
+        }
+    );
+}
+
 function renderTemplatesGrid() {
     const grid = document.getElementById('biz-templates-grid');
     if (!grid) return;
 
-    if (announcementTemplates.length === 0) {
-        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun template pour le moment.</p>';
+    const filtered = announcementTemplates.filter(t => 
+        (t.partyName || '').toLowerCase().includes(templateSearchQuery) ||
+        (t.partyTheme || '').toLowerCase().includes(templateSearchQuery)
+    );
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+            ${templateSearchQuery ? 'Aucun résultat pour cette recherche.' : 'Aucun template pour le moment.'}
+        </p>`;
         return;
     }
 
-    grid.innerHTML = announcementTemplates.map(t => `
-        <div class="template-card" id="tpl-${t.id}">
+    grid.innerHTML = filtered.map(t => `
+        <div class="template-card ${selectedTemplateIds.has(t.id) ? 'selected' : ''}" 
+             id="tpl-${t.id}" 
+             onclick="toggleTemplateSelection('${t.id}', event)">
             <div class="template-card-hero" style="background-image: url('${t.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop'}')"></div>
             <div class="template-card-content">
                 <div class="template-card-title">${t.partyName || 'Sans nom'}</div>
