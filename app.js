@@ -612,6 +612,14 @@ function loadAnnouncementDraft() {
 async function handleSaveTemplate(e) {
     if (e) e.preventDefault();
     const btn = e.target;
+    
+    // Show Prompt Modal for name
+    showPromptModal('Nom du Template', 'Comment souhaitez-vous appeler ce template ?', (templateName) => {
+        proceedWithSave(btn, templateName);
+    });
+}
+
+async function proceedWithSave(btn, templateName) {
     btn.classList.add('loading');
     
     // Collect data
@@ -622,7 +630,7 @@ async function handleSaveTemplate(e) {
         insta: document.getElementById('biz-club-insta').value,
         description: document.getElementById('biz-club-desc').value,
         price: document.getElementById('biz-club-price').value,
-        partyName: document.getElementById('biz-party-name').value,
+        partyName: templateName || document.getElementById('biz-party-name').value, // Use custom name
         partyTheme: document.getElementById('biz-party-theme').value,
         timestamp: new Date().toISOString()
     };
@@ -640,7 +648,6 @@ async function handleSaveTemplate(e) {
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
         
         try {
-            // Await the live save to ensure persistence
             await handleSaveAnnonces();
         } catch (err) {
             console.error('Error saving announcement:', err);
@@ -656,11 +663,14 @@ function animateCardToGrid(card) {
     const rect = card.getBoundingClientRect();
     const clone = card.cloneNode(true);
     
+    // Start calibration: The user said it starts too low.
+    // We'll calculate the center of the original card and position the clone there.
     clone.className = 'fly-card-clone';
     clone.style.width = rect.width + 'px';
     clone.style.height = rect.height + 'px';
     clone.style.left = rect.left + 'px';
-    clone.style.top = rect.top + 'px';
+    clone.style.top = rect.top + 'px'; // Ensure it starts exactly on top
+    clone.style.margin = '0';
     document.body.appendChild(clone);
 
     // Target position: The first template card slot
@@ -674,27 +684,28 @@ function animateCardToGrid(card) {
         const centerX = (window.innerWidth / 2) - (rect.width / 2);
         const centerY = (window.innerHeight / 2) - (rect.height / 2);
         
-        clone.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        clone.style.transition = 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
         clone.style.left = centerX + 'px';
         clone.style.top = centerY + 'px';
         clone.style.transform = 'scale(1.1)';
         clone.style.boxShadow = '0 30px 60px rgba(0,0,0,0.8)';
+        clone.style.opacity = '1';
 
         setTimeout(() => {
             // Step 2: Fly to Grid
-            clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+            clone.style.transition = 'all 1s cubic-bezier(0.19, 1, 0.22, 1)';
             const scaleX = (targetRect.width || 200) / rect.width;
             const scaleY = (targetRect.height || 150) / rect.height;
             const translateX = (targetRect.left) - centerX;
             const translateY = (targetRect.top) - centerY;
 
             clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
-            clone.style.opacity = '0.3';
+            clone.style.opacity = '0.2';
             
             setTimeout(() => {
                 clone.remove();
-            }, 800);
-        }, 800);
+            }, 1000);
+        }, 1200); // Wait a bit longer at the center
     });
 }
 
@@ -722,6 +733,45 @@ function showConfirmModal(title, message, onConfirm) {
 
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', closeConfirm);
+}
+
+function showPromptModal(title, message, onConfirm) {
+    const modal = document.getElementById('biz-prompt-modal');
+    const titleEl = document.getElementById('prompt-title');
+    const msgEl = document.getElementById('prompt-message');
+    const input = document.getElementById('prompt-input');
+    const okBtn = document.getElementById('prompt-ok');
+    const cancelBtn = document.getElementById('prompt-cancel');
+
+    titleEl.innerText = title;
+    msgEl.innerText = message;
+    input.value = '';
+    modal.classList.add('active');
+    setTimeout(() => input.focus(), 100);
+
+    const handleOk = () => {
+        const val = input.value.trim();
+        if (val) {
+            onConfirm(val);
+            closePrompt();
+        } else {
+            input.style.borderColor = '#ef4444';
+        }
+    };
+    const closePrompt = () => {
+        modal.classList.remove('active');
+        okBtn.removeEventListener('click', handleOk);
+        cancelBtn.removeEventListener('click', closePrompt);
+    };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', closePrompt);
+    
+    // Allow Enter key
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') handleOk();
+        if (e.key === 'Escape') closePrompt();
+    };
 }
 
 function showSaveToast() {
