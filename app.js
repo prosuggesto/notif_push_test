@@ -220,6 +220,16 @@ function switchBizTab(tab) {
     document.getElementById('biz-tab-indicator').style.transform = isLogin ? 'translateX(0)' : 'translateX(100%)';
 }
 
+// Sidebar Toggle for Mobile
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const burger = document.getElementById('sidebar-toggle');
+    if (sidebar && burger) {
+        sidebar.classList.toggle('active');
+        burger.classList.toggle('active');
+    }
+}
+
 function switchBizSection(sectionId) {
     const sections = document.querySelectorAll('.biz-section');
     const navItems = document.querySelectorAll('.nav-item');
@@ -242,6 +252,14 @@ function switchBizSection(sectionId) {
             item.classList.remove('active');
         }
     });
+
+    // Mobile Auto-Close
+    if (window.innerWidth <= 1024) {
+        const sidebar = document.querySelector('.sidebar');
+        const burger = document.getElementById('sidebar-toggle');
+        sidebar?.classList.remove('active');
+        burger?.classList.remove('active');
+    }
 }
 
 function handleBusinessLogout() {
