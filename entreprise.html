@@ -144,63 +144,33 @@
                         <h2>Mes Annonces</h2>
                         <p>Configurez la preview de votre boîte de nuit.</p>
                                  <div class="annonces-layout">
-                        <form id="biz-annonces-form" onsubmit="handleSaveAnnonces(event)">
-                            <div class="biz-card">
-                                <h3 class="card-title">Profil du Club</h3>
-                                <div class="input-grid">
-                                    <div class="input-group">
-                                        <label>Image de couverture (URL)</label>
-                                        <div class="input-wrapper">
-                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                            <input type="text" id="biz-club-image" placeholder="https://exemple.com/image.jpg" oninput="updateAnnoncesPreview()">
-                                        </div>
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Lien Instagram</label>
-                                        <div class="input-wrapper">
-                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                                            <input type="text" id="biz-club-insta" placeholder="@votreclub" oninput="updateAnnoncesPreview()">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="input-group" style="margin-top: 20px;">
-                                    <label>Description</label>
-                                    <textarea id="biz-club-desc" class="biz-textarea" placeholder="Décrivez l'ambiance de votre club..." oninput="updateAnnoncesPreview()"></textarea>
-                                </div>
-                            </div>
-
-                            <div class="biz-card" style="margin-top: 24px;">
-                                <h3 class="card-title">En direct : Soirée Actuelle</h3>
-                                <div class="input-grid">
-                                    <div class="input-group">
-                                        <label>Nom de la soirée</label>
-                                        <div class="input-wrapper">
-                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.71-2.13 0-2.97l-3-3a2.1 2.1 0 010-2.97m0 0L3 3l10.5 10.5m-3-3a2.1 2.1 0 012.97 0m0 0L16.5 4.5l3 3a2.1 2.1 0 010 2.97l-1.5 1.5m-3-3a2.1 2.1 0 010 2.97l3 3a2.1 2.1 0 010 2.97l-1.5 1.5m3-3a2.1 2.1 0 010 2.97l3 3a2.1 2.1 0 010 2.97l-1.5 1.5"/></svg>
-                                            <input type="text" id="biz-party-name" placeholder="Ex: Latin Night" oninput="updateAnnoncesPreview()">
-                                        </div>
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Thème / Ambiance</label>
-                                        <div class="input-wrapper">
-                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                            <input type="text" id="biz-party-theme" placeholder="Ex: Reggaeton & Cocktails" oninput="updateAnnoncesPreview()">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="biz-actions">
-                                <button type="submit" class="btn-primary" id="btn-save-annonces">Enregistrer les modifications</button>
-                            </div>
-                        </form>
-
-                        <!-- Live Preview Card -->
-                        <div class="preview-container">
-                            <h3 class="card-title" style="margin-bottom: 16px;">Aperçu en direct</h3>
-                            <div id="annonces-preview-card" class="modal-content" style="position: static; transform: none; width: 100%; max-width: 360px; margin: 0 auto;">
+                        <!-- Hidden File Input for Image Upload -->
+                        <input type="file" id="biz-club-image-input" accept="image/*" style="display: none" onchange="handleClubImageUpload(event)">
+                        
+                        <!-- The Preview Editor Card (Main Focus) -->
+                        <div class="preview-container editor-mode">
+                             <div class="editor-header">
+                                <h3 class="card-title">Édition Directe</h3>
+                                <p class="text-dim" style="font-size: 13px; margin-bottom: 20px;">Cliquez sur n'importe quel élément de la carte pour le modifier.</p>
+                             </div>
+                            
+                            <div id="annonces-preview-card" class="modal-content" style="position: static; transform: none; width: 100%; max-width: 420px; margin: 0 auto;">
                                 <!-- Will be filled by JavaScript -->
                             </div>
+
+                            <div class="biz-actions" style="margin-top: 32px; justify-content: center;">
+                                <button type="button" class="btn-primary" onclick="handleSaveAnnonces(event)" style="width: 100%; max-width: 420px;">Enregistrer les modifications</button>
+                            </div>
                         </div>
+
+                        <!-- Secondary Form (Keep for data binding but hide/collapse) -->
+                        <form id="biz-annonces-form" style="display: none;">
+                            <input type="text" id="biz-club-image">
+                            <input type="text" id="biz-club-insta">
+                            <textarea id="biz-club-desc"></textarea>
+                            <input type="text" id="biz-party-name">
+                            <input type="text" id="biz-party-theme">
+                        </form>
                     </div>
           </form>
                 </section>

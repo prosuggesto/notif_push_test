@@ -1,55 +1,79 @@
 /* ===== ANNONCES LIVE PREVIEW LAYOUT ===== */
 .annonces-layout {
     display: flex;
-    gap: 40px;
-    align-items: flex-start;
+    justify-content: center;
+    padding: 20px 0;
 }
 
-#biz-annonces-form {
-    flex: 1;
+.preview-container.editor-mode {
+    width: 100%;
     max-width: 600px;
 }
 
-.preview-container {
-    flex: 1;
-    position: sticky;
-    top: 40px;
-    max-width: 400px;
-}
-
 .preview-container .card-title {
-    font-size: 16px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 1024px) {
-    .annonces-layout {
-        flex-direction: column;
-    }
-    
-    .preview-container {
-        position: static;
-        width: 100%;
-        max-width: none;
-        margin-top: 40px;
-        order: -1; /* Show preview on top on mobile */
-    }
-    
-    #biz-annonces-form {
-        max-width: none;
-    }
+/* In-place Editing Styles */
+.editable-text {
+    outline: none;
+    transition: all 0.2s;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    cursor: text;
+}
+
+.editable-text:hover {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.editable-text:focus {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.editable-hero {
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.hero-edit-hint {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.editable-hero:hover .hero-edit-hint {
+    opacity: 1;
+}
+
+.insta-link-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    color: var(--primary-light);
 }
 
 /* Ensure modal content looks good in preview */
 #annonces-preview-card {
     border: 1px solid var(--border);
-    background: var(--bg);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-}
-
-.insta-link {
-    pointer-events: none; /* Disable links in preview */
+    background: var(--surface);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    border-radius: 20px;
+    overflow: hidden;
 }

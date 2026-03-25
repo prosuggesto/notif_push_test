@@ -411,13 +411,15 @@ function updateAnnoncesPreview() {
     if (!previewContainer) return;
 
     const clubName = currentBusiness ? currentBusiness.name : 'Mon Club';
+    
+    // Get values from hidden form or current state
     const image = document.getElementById('biz-club-image').value || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
     const insta = document.getElementById('biz-club-insta').value || '@votreclub';
     const desc = document.getElementById('biz-club-desc').value || 'Aucune description fournie.';
     const partyName = document.getElementById('biz-party-name').value || 'Soirée Spéciale';
     const partyTheme = document.getElementById('biz-party-theme').value || 'Ambiance & Cocktails';
 
-    // Mock stats for preview (Live data would come from currentBusiness stats)
+    // Mock stats for preview
     const stats = {
         vibe: 'TRENDY',
         price: '20€',
@@ -428,9 +430,10 @@ function updateAnnoncesPreview() {
     };
 
     previewContainer.innerHTML = `
-        <div class="modal-club-hero" style="background-image: url('${image}')">
+        <div class="modal-club-hero editable-hero" style="background-image: url('${image}')" onclick="document.getElementById('biz-club-image-input').click()">
             <div class="hero-overlay">
                 <span class="vibe-badge">${stats.vibe}</span>
+                <div class="hero-edit-hint">Cliquez pour changer l'image</div>
             </div>
             <div style="position: absolute; top: 20px; left: 20px; color: white; font-weight: 800; font-size: 20px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
                 ${clubName}
@@ -440,11 +443,11 @@ function updateAnnoncesPreview() {
         <div class="modal-content-inner">
             <div class="detail-section">
                 <h4>À propos de l'établissement</h4>
-                <p class="text-dim">${desc}</p>
-                <a href="#" class="insta-link">
+                <p class="text-dim editable-text" contenteditable="true" data-field="biz-club-desc">${desc}</p>
+                <div class="insta-link-wrapper">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                    ${insta}
-                </a>
+                    <span class="editable-text" contenteditable="true" data-field="biz-club-insta">${insta}</span>
+                </div>
             </div>
 
             <div class="detail-grid">
@@ -460,9 +463,9 @@ function updateAnnoncesPreview() {
 
             <div class="gender-breakdown" style="padding: 0;">
                 <div class="gender-bar">
-                    <div class="bar-segment men" style="width: ${stats.men}%" title="Hommes"></div>
-                    <div class="bar-segment women" style="width: ${stats.women}%" title="Femmes"></div>
-                    <div class="bar-segment nb" style="width: ${stats.nb}%" title="Non-binaires"></div>
+                    <div class="bar-segment men" style="width: ${stats.men}%"></div>
+                    <div class="bar-segment women" style="width: ${stats.women}%"></div>
+                    <div class="bar-segment nb" style="width: ${stats.nb}%"></div>
                 </div>
                 <div class="gender-labels">
                     <span>♂ ${stats.men}%</span>
@@ -476,12 +479,38 @@ function updateAnnoncesPreview() {
             <div class="detail-section">
                 <div class="theme-header">
                     <span class="theme-tag">SOIRÉE ACTUELLE</span>
-                    <h4>${partyName}</h4>
+                    <h4 class="editable-text" contenteditable="true" data-field="biz-party-name">${partyName}</h4>
                 </div>
-                <p class="text-small">${partyTheme}</p>
+                <p class="text-small editable-text" contenteditable="true" data-field="biz-party-theme">${partyTheme}</p>
             </div>
         </div>
     `;
+
+    // Add event listeners to sync contenteditable fields
+    previewContainer.querySelectorAll('.editable-text').forEach(el => {
+        el.addEventListener('blur', (e) => {
+            const fieldId = e.target.getAttribute('data-field');
+            const hiddenInput = document.getElementById(fieldId);
+            if (hiddenInput) {
+                hiddenInput.value = e.target.innerText.trim();
+            }
+        });
+    });
+}
+
+function handleClubImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Data = e.target.result;
+        // Update hidden input
+        document.getElementById('biz-club-image').value = base64Data;
+        // Refresh preview
+        updateAnnoncesPreview();
+    };
+    reader.readAsDataURL(file);
 }
 
 function handleSaveAnnonces(e) {
