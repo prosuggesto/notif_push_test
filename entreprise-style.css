@@ -124,12 +124,7 @@
     margin-top: 24px;
 }
 
-/* Forcing 2 columns on larger screens as requested */
-@media (min-width: 1400px) {
-    .templates-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
+/* Natural grid filling allowed (matching fêtard style) */
 
 .preview-container .card-title {
     font-size: 18px;
@@ -227,14 +222,14 @@
 }
 
 .template-card-hero {
-    height: 120px;
+    height: 160px;
     background-size: cover;
     background-position: center;
     position: relative;
 }
 
 .template-card-content {
-    padding: 12px;
+    padding: 16px;
 }
 
 .template-card-title {
