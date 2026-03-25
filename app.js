@@ -661,26 +661,33 @@ async function proceedWithSave(btn, templateName) {
 
 function animateCardToGrid(card) {
     const rect = card.getBoundingClientRect();
+    // Look for the "Public (Live)" anchor inside
     const anchor = card.querySelector('.biz-anchor-public')?.getBoundingClientRect() || rect;
     const clone = card.cloneNode(true);
     
-    // Precise Calibration for Start Position (Centered on Anchor)
+    // Position it at 0,0 initially but with fixed layout
     clone.className = 'fly-card-clone';
     clone.style.width = rect.width + 'px';
     clone.style.height = rect.height + 'px';
-    
-    // Position the clone so its center matches the anchor's center
+    clone.style.position = 'fixed';
+    clone.style.zIndex = '1000000';
+    clone.style.margin = '0';
+    clone.style.pointerEvents = 'none';
+    clone.style.transition = 'none'; // Disable transition for initial snap
+    clone.style.opacity = '0';
+
+    // Start coordinates: Centered on the "Public" anchor
+    // We want the card's visual center to match anchor's center
     const startX = (anchor.left + anchor.width / 2) - (rect.width / 2);
     const startY = (anchor.top + anchor.height / 2) - (rect.height / 2);
     
     clone.style.left = startX + 'px';
     clone.style.top = startY + 'px';
-    clone.style.margin = '0';
-    clone.style.padding = '0';
-    clone.style.boxSizing = 'border-box';
-    clone.style.pointerEvents = 'none';
-    clone.style.opacity = '0'; // Start hidden for a smooth fade-in
+    
     document.body.appendChild(clone);
+
+    // Force reflow to snap it into position without animation
+    void clone.offsetHeight;
 
     // Target position: The first template card slot
     const grid = document.getElementById('biz-templates-grid');
@@ -693,29 +700,28 @@ function animateCardToGrid(card) {
         const centerY = (window.innerHeight / 2) - (rect.height / 2);
         
         clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+        clone.style.opacity = '1';
         clone.style.left = centerX + 'px';
         clone.style.top = centerY + 'px';
-        clone.style.transform = 'scale(1.2)';
-        clone.style.boxShadow = '0 0 100px rgba(99, 102, 241, 0.6)';
-        clone.style.zIndex = '100000';
-        clone.style.opacity = '1';
+        clone.style.transform = 'scale(1.15)';
+        clone.style.boxShadow = '0 0 120px rgba(99, 102, 241, 0.8)';
 
         setTimeout(() => {
             // Step 2: Slide to the Right (Grid)
-            clone.style.transition = 'all 1s cubic-bezier(0.19, 1, 0.22, 1)';
+            clone.style.transition = 'all 0.9s cubic-bezier(0.19, 1, 0.22, 1)';
             
             const scaleX = (targetRect.width || 240) / rect.width;
             const scaleY = (targetRect.height || 180) / rect.height;
             const translateX = (targetRect.left) - centerX;
             const translateY = (targetRect.top) - centerY;
 
-            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX*0.8}, ${scaleY*0.8})`;
+            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX*0.85}, ${scaleY*0.85})`;
             clone.style.opacity = '0';
             
             setTimeout(() => {
                 clone.remove();
-            }, 1000);
-        }, 1500); 
+            }, 900);
+        }, 1600); 
     });
 }
 
