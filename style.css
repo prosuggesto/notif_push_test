@@ -1478,27 +1478,7 @@ input[type="number"] {
     min-height: 100vh;
 }
 
-/* Sidebar */
-.sidebar {
-    width: 260px;
-    background: rgba(15, 15, 30, 0.95);
-    backdrop-filter: blur(20px);
-    border-right: 1px solid var(--border);
-    display: none !important; /* FOOLPROOF HIDING */
-    flex-direction: column;
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    transform: translateX(-100%);
-}
-
-body.logged-in-biz #business-dashboard-screen.active .sidebar {
-    display: flex !important;
-    transform: translateX(0);
-}
+/* Sidebar styling removed to let entreprise-style.css handle the universal drawer */
 
 .sidebar-header {
     padding: 24px;
@@ -1585,24 +1565,16 @@ body.logged-in-biz #business-dashboard-screen.active .sidebar {
     cursor: pointer;
 }
 
-/* Content Area */
+/* Content Area reset */
 .biz-content {
     flex: 1;
-    margin-left: 0; /* Reset for non-logged in state */
-    padding: 40px;
-    max-width: 1200px;
+    margin-left: 0 !important;
+    padding: 20px;
     width: 100%;
-    transition: margin-left 0.4s;
-}
-
-body.logged-in-biz .biz-content {
-    margin-left: 260px;
+    transition: all 0.4s;
 }
 
 @media (max-width: 1024px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
     .biz-content {
         margin-left: 0;
     }
