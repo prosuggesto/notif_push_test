@@ -408,10 +408,6 @@ function showBusinessDashboard() {
     }
     if (clubNameEl && currentBusiness) clubNameEl.textContent = currentBusiness.name;
     
-    // Sync Name to Top Bar
-    const topBarName = document.getElementById('top-bar-club-name');
-    if (topBarName && currentBusiness) topBarName.textContent = currentBusiness.name;
-    
     // Fill forms with existing data
     if (currentBusiness.profile) {
         document.getElementById('biz-club-image').value = currentBusiness.profile.image || '';
@@ -1006,13 +1002,15 @@ function handleCreateReward(e) {
     const name = document.getElementById('rew-name').value;
     const points = parseInt(document.getElementById('rew-points').value);
     const image = document.getElementById('rew-image').value;
-    const code = document.getElementById('rew-code').value;
+    const basePrice = document.getElementById('rew-base-price')?.value || '';
+    const code = document.getElementById('rew-code')?.value || '';
     
     const newRew = {
         id: 'rew_' + Date.now(),
         name: name,
         points: points,
         image: image,
+        basePrice: basePrice,
         secretCode: code
     };
     
@@ -1021,27 +1019,80 @@ function handleCreateReward(e) {
     
     renderRewardsList();
     e.target.reset();
+    
+    // Reset image preview
+    const preview = document.getElementById('rew-image-preview');
+    if (preview) {
+        preview.className = 'rew-image-placeholder';
+        preview.innerHTML = `
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Ajouter une image</span>
+        `;
+    }
+    
     saveBusinessData();
+    showSaveToast();
+}
+
+function handleRewardImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('rew-image').value = e.target.result;
+        const preview = document.getElementById('rew-image-preview');
+        preview.className = 'rew-image-placeholder has-image';
+        preview.innerHTML = `<img src="${e.target.result}" alt="Reward preview">`;
+    };
+    reader.readAsDataURL(file);
 }
 
 function renderRewardsList() {
-    const list = document.getElementById('biz-rewards-list');
-    list.innerHTML = bizRewards.length ? '' : '<p style="font-size:12px; color:var(--text-dim);">Aucune récompense créée.</p>';
+    const grid = document.getElementById('biz-rewards-grid');
+    if (!grid) return;
     
-    bizRewards.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'reward-item-card';
-        item.style = "background: var(--surface); padding: 12px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 12px; align-items: center; margin-bottom: 8px;";
-        item.innerHTML = `
-            ${r.image ? `<img src="${r.image}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;">` : '<div style="width: 40px; height: 40px; background: var(--surface-hover); border-radius: 8px;"></div>'}
-            <div style="flex: 1;">
-                <h5 style="margin: 0; font-size: 14px;">${r.name}</h5>
-                <p style="margin: 2px 0 0; font-size: 12px; color: var(--primary-light);">${r.points} Pts • Code: ${r.secretCode}</p>
+    if (bizRewards.length === 0) {
+        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
+            Aucune récompense créée pour le moment.
+        </p>`;
+        return;
+    }
+
+    grid.innerHTML = bizRewards.map(r => `
+        <div class="reward-card">
+            <div class="reward-card-image" style="${r.image ? `background-image: url('${r.image}')` : ''}">
+                ${!r.image ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
             </div>
-        `;
-        list.appendChild(item);
-    });
+            <div class="reward-card-body">
+                <div class="reward-card-name">${r.name}</div>
+                <div class="reward-card-meta">
+                    <span class="badge badge-points">⭐ ${r.points} pts</span>
+                    ${r.basePrice ? `<span class="badge badge-price">💰 ${r.basePrice}</span>` : ''}
+                </div>
+                <div class="reward-card-actions">
+                    <button class="btn-rew-delete" onclick="deleteReward('${r.id}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
+
+function deleteReward(id) {
+    showConfirmModal(
+        'Supprimer cette récompense ?',
+        'Cette action est irréversible.',
+        () => {
+            bizRewards = bizRewards.filter(r => r.id !== id);
+            currentBusiness.rewards = bizRewards;
+            renderRewardsList();
+            saveBusinessData();
+        }
+    );
+}
+
 
 // ----- Redemption Logic -----
 async function searchClientForReward() {
@@ -1186,54 +1237,117 @@ function updateBar(id, percent) {
     }
 }
 
-// ----- Calendar Logic -----
+// ----- Calendar Logic — Google Calendar Style -----
+let calClickTimeout = null;
+
 function renderCalendar() {
     const grid = document.getElementById('biz-calendar-grid');
     const monthLabel = document.getElementById('calendar-month-year');
+    if (!grid || !monthLabel) return;
     
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
     
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
-    // Adjust for Monday start (0=Sun, 1=Mon... 6=Sat)
+    // Monday start offset
     let startOffset = firstDay.getDay() - 1;
     if (startOffset === -1) startOffset = 6;
     
     monthLabel.textContent = firstDay.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     grid.innerHTML = '';
     
-    // Fill empty slots
+    // Empty leading cells
     for (let i = 0; i < startOffset; i++) {
-        const d = document.createElement('div');
-        d.className = 'calendar-day not-current';
-        grid.appendChild(d);
+        const cell = document.createElement('div');
+        cell.className = 'gcal-cell not-current';
+        grid.appendChild(cell);
     }
     
+    // Day cells
     for (let day = 1; day <= lastDay.getDate(); day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const d = document.createElement('div');
-        d.className = 'calendar-day';
-        if (selectedDates.has(dateStr)) d.classList.add('selected');
+        const cell = document.createElement('div');
+        cell.className = 'gcal-cell';
         
+        if (dateStr === todayStr) cell.classList.add('today');
+        if (selectedDates.has(dateStr)) cell.classList.add('selected');
+        
+        // Day number
+        const dayNum = document.createElement('div');
+        dayNum.className = 'gcal-day-num';
+        dayNum.textContent = day;
+        cell.appendChild(dayNum);
+        
+        // Event label
         const scheduleItem = bizSchedule[dateStr];
-        if (scheduleItem && scheduleItem !== 'closed') {
-            const template = bizTemplates.find(t => t.id === scheduleItem);
-            d.classList.add('has-event');
-            d.innerHTML = `<span>${day}</span><span class="event-label">${template ? template.name : 'Soirée'}</span>`;
-        } else {
-            d.classList.add('closed');
-            d.innerHTML = `<span>${day}</span><span class="closed-indicator">Fermé</span>`;
+        if (scheduleItem) {
+            const eventEl = document.createElement('span');
+            eventEl.className = 'gcal-event';
+            if (scheduleItem === 'closed') {
+                eventEl.classList.add('closed');
+                eventEl.textContent = 'Fermé';
+            } else {
+                // Look in both announcementTemplates and bizTemplates
+                const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
+                eventEl.textContent = template ? (template.partyName || template.name) : 'Soirée';
+            }
+            cell.appendChild(eventEl);
         }
         
-        d.onclick = () => toggleDateSelection(dateStr);
-        grid.appendChild(d);
+        // Click = select, DblClick = open picker
+        cell.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (calClickTimeout) {
+                clearTimeout(calClickTimeout);
+                calClickTimeout = null;
+                // Double click
+                handleCalendarDblClick(dateStr);
+                return;
+            }
+            calClickTimeout = setTimeout(() => {
+                calClickTimeout = null;
+                toggleDateSelection(dateStr);
+            }, 250);
+        });
+        
+        grid.appendChild(cell);
+    }
+    
+    // Trailing empty cells to complete last row
+    const totalCells = startOffset + lastDay.getDate();
+    const trailingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let i = 0; i < trailingCells; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'gcal-cell not-current';
+        grid.appendChild(cell);
+    }
+    
+    // Update selection badge
+    updateCalendarSelectionBadge();
+}
+
+function updateCalendarSelectionBadge() {
+    const badge = document.getElementById('gcal-selected-count');
+    if (!badge) return;
+    if (selectedDates.size > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = `${selectedDates.size} sélectionné${selectedDates.size > 1 ? 's' : ''}`;
+    } else {
+        badge.style.display = 'none';
     }
 }
 
 function changeMonth(dir) {
     calendarDate.setMonth(calendarDate.getMonth() + dir);
+    renderCalendar();
+}
+
+function goToToday() {
+    calendarDate = new Date();
     renderCalendar();
 }
 
@@ -1243,38 +1357,135 @@ function toggleDateSelection(dateStr) {
     } else {
         selectedDates.add(dateStr);
     }
-    
-    const actions = document.getElementById('biz-calendar-actions');
-    const count = document.getElementById('selected-days-count');
-    
-    actions.style.display = selectedDates.size > 0 ? 'block' : 'none';
-    count.textContent = `${selectedDates.size} jour(s) sélectionné(s)`;
-    
     renderCalendar();
 }
 
-function renderTemplateList() {
-    const list = document.getElementById('biz-template-list');
-    const select = document.getElementById('biz-apply-template');
-    
-    list.innerHTML = bizTemplates.length ? '' : '<p style="font-size:12px; color:var(--text-dim);">Aucun template créé.</p>';
-    
-    // Reset select options (keep static ones)
-    const options = select.querySelectorAll('option');
-    options.forEach((opt, index) => { if(index > 1) opt.remove(); });
+// ----- Calendar Template Picker (Double-click popup) -----
+let calPickerSelectedTemplate = null;
+let calPickerTargetDates = [];
 
-    bizTemplates.forEach(t => {
-        const item = document.createElement('div');
-        item.className = 'template-item';
-        item.innerHTML = `<h5>${t.name}</h5><p>${t.theme || 'Sans thème'}</p>`;
-        list.appendChild(item);
-        
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.name;
-        select.appendChild(opt);
-    });
+function handleCalendarDblClick(dateStr) {
+    // Add the date to selection if not already
+    if (!selectedDates.has(dateStr)) {
+        selectedDates.add(dateStr);
+    }
+    calPickerTargetDates = Array.from(selectedDates);
+    
+    const subtitle = document.getElementById('cal-picker-subtitle');
+    if (selectedDates.size === 1) {
+        subtitle.textContent = `Appliquer un template au ${dateStr.split('-').reverse().join('/')}`;
+    } else {
+        subtitle.textContent = `Appliquer un template à ${selectedDates.size} jours sélectionnés`;
+    }
+    
+    calPickerSelectedTemplate = null;
+    document.getElementById('cal-picker-search').value = '';
+    renderCalendarPickerList('');
+    document.getElementById('cal-template-picker').classList.add('active');
+    setTimeout(() => document.getElementById('cal-picker-search').focus(), 100);
 }
+
+function filterCalendarTemplates() {
+    const query = document.getElementById('cal-picker-search').value.trim().toLowerCase();
+    renderCalendarPickerList(query);
+}
+
+function renderCalendarPickerList(query) {
+    const list = document.getElementById('cal-picker-list');
+    if (!list) return;
+    
+    // Combine all available templates (announcement templates + biz templates)
+    let allTemplates = [];
+    
+    if (announcementTemplates && announcementTemplates.length > 0) {
+        announcementTemplates.forEach(t => {
+            allTemplates.push({ id: t.id, name: t.partyName || t.name || 'Sans nom', theme: t.partyTheme || '' });
+        });
+    }
+    
+    if (bizTemplates && bizTemplates.length > 0) {
+        bizTemplates.forEach(t => {
+            if (!allTemplates.find(at => at.id === t.id)) {
+                allTemplates.push({ id: t.id, name: t.name || 'Sans nom', theme: t.theme || '' });
+            }
+        });
+    }
+    
+    // Filter: prefix match first, then includes match
+    let filtered;
+    if (query) {
+        // Sort by prefix match first
+        filtered = allTemplates.filter(t => t.name.toLowerCase().includes(query));
+        filtered.sort((a, b) => {
+            const aStart = a.name.toLowerCase().startsWith(query) ? 0 : 1;
+            const bStart = b.name.toLowerCase().startsWith(query) ? 0 : 1;
+            return aStart - bStart;
+        });
+    } else {
+        filtered = allTemplates;
+    }
+    
+    // Always add "Fermé" option
+    let html = `
+        <div class="cal-picker-item closed-opt ${calPickerSelectedTemplate === 'closed' ? 'selected' : ''}" onclick="selectCalPickerItem('closed')">
+            <span class="tpl-dot"></span>
+            🚩 Fermé
+        </div>
+    `;
+    
+    if (filtered.length === 0 && query) {
+        html += `<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 13px;">Aucun template trouvé pour "${query}"</div>`;
+    }
+    
+    filtered.forEach(t => {
+        html += `
+            <div class="cal-picker-item ${calPickerSelectedTemplate === t.id ? 'selected' : ''}" onclick="selectCalPickerItem('${t.id}')">
+                <span class="tpl-dot"></span>
+                <div>
+                    <div style="font-weight: 600;">${t.name}</div>
+                    ${t.theme ? `<div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">${t.theme}</div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    list.innerHTML = html;
+}
+
+function selectCalPickerItem(id) {
+    calPickerSelectedTemplate = id;
+    // Re-render to update selected state
+    const query = document.getElementById('cal-picker-search').value.trim().toLowerCase();
+    renderCalendarPickerList(query);
+}
+
+function closeCalendarPicker() {
+    document.getElementById('cal-template-picker').classList.remove('active');
+    calPickerSelectedTemplate = null;
+}
+
+async function applyCalendarPickerTemplate() {
+    if (!calPickerSelectedTemplate) return;
+    
+    calPickerTargetDates.forEach(dateStr => {
+        bizSchedule[dateStr] = calPickerSelectedTemplate;
+    });
+    
+    currentBusiness.schedule = bizSchedule;
+    selectedDates.clear();
+    
+    closeCalendarPicker();
+    renderCalendar();
+    showSaveToast();
+    
+    await saveBusinessData();
+}
+
+function renderTemplateList() {
+    // No longer uses old sidebar template list — just render calendar
+    renderCalendar();
+}
+
 
 // ----- Template CRUD -----
 function openNewTemplateModal() {
