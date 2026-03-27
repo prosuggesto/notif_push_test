@@ -390,135 +390,10 @@ async function handleBusinessLogin(e) {
     }
 }
 
-let bizTemplates = currentBusiness?.templates || [];
-let bizSchedule = currentBusiness?.schedule || {};
-let calendarDate = new Date();
 let selectedDates = new Set();
-
-let bizRewards = currentBusiness?.rewards || [];
 let lastFoundClient = null;
 
-function showBusinessDashboard() {
-    if (!currentBusiness) return;
-    console.log('Showing Business Dashboard for:', currentBusiness.nom);
-    
-    // UI Elements
-    const authScreen = document.getElementById('business-auth-screen');
-    const dashScreen = document.getElementById('business-dashboard-screen');
-    const clubNameEl = document.getElementById('biz-club-name');
 
-    document.body.classList.add('logged-in-biz');
-
-    if (authScreen) authScreen.style.display = 'none';
-    if (dashScreen) {
-        dashScreen.classList.add('active');
-        dashScreen.style.display = 'flex';
-    }
-    if (clubNameEl) clubNameEl.textContent = currentBusiness.name || currentBusiness.nom;
-    
-    // Fill forms with existing data
-    if (currentBusiness.profile) {
-        if (document.getElementById('biz-club-image')) document.getElementById('biz-club-image').value = currentBusiness.profile.image || '';
-        if (document.getElementById('biz-club-insta')) document.getElementById('biz-club-insta').value = currentBusiness.profile.insta || '';
-        if (document.getElementById('biz-club-desc')) document.getElementById('biz-club-desc').value = currentBusiness.profile.desc || '';
-        if (document.getElementById('biz-party-name')) document.getElementById('biz-party-name').value = currentBusiness.profile.partyName || '';
-        if (document.getElementById('biz-party-theme')) document.getElementById('biz-party-theme').value = currentBusiness.profile.partyTheme || '';
-    }
-
-    // Initialize lists
-    renderCalendar();
-    renderTemplateList();
-    renderRewardsList();
-    renderProductsList();
-    updateStatsUI();
-    
-    if (document.getElementById('annonces-preview-card')) {
-        initAnnouncementEditor();
-    }
-}
-
-// ===== PRODUCTS MODULE =====
-let bizProducts = currentBusiness?.products || [];
-
-function handleProductImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const base64 = e.target.result;
-        document.getElementById('prod-image').value = base64;
-        const preview = document.getElementById('prod-image-preview');
-        preview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
-    };
-    reader.readAsDataURL(file);
-}
-
-function handleCreateProduct(e) {
-    e.preventDefault();
-    const name = document.getElementById('prod-name').value;
-    const price = document.getElementById('prod-price').value;
-    const description = document.getElementById('prod-description').value;
-    const image = document.getElementById('prod-image').value;
-
-    const newProduct = {
-        id: generateUUID(),
-        name,
-        price,
-        description,
-        image: image || 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop'
-    };
-
-    bizProducts.push(newProduct);
-    saveBusinessData();
-    renderProductsList();
-    
-    // Reset form
-    e.target.reset();
-    document.getElementById('prod-image').value = '';
-    document.getElementById('prod-image-preview').innerHTML = `
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span>Ajouter une image</span>`;
-}
-
-function renderProductsList() {
-    const grid = document.getElementById('biz-products-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    if (bizProducts.length === 0) {
-        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun produit créé.</p>';
-        return;
-    }
-
-    bizProducts.forEach(prod => {
-        const card = document.createElement('div');
-        card.className = 'reward-card'; // Reuse reward card style
-        card.innerHTML = `
-            <div class="reward-img-container">
-                <img src="${prod.image}" class="reward-img">
-            </div>
-            <div class="reward-content">
-                <h4 class="reward-name">${prod.name}</h4>
-                <p class="product-card-desc">${prod.description || ''}</p>
-                <div class="reward-footer">
-                    <span class="reward-points">${prod.price}</span>
-                    <button class="btn-delete-rew" onclick="deleteProduct('${prod.id}')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                    </button>
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-function deleteProduct(id) {
-    if (confirm('Supprimer ce produit ?')) {
-        bizProducts = bizProducts.filter(p => p.id !== id);
-        saveBusinessData();
-        renderProductsList();
-    }
-}
 
 // ===== COMMANDE MODULE =====
 let selectedCommandeRewards = [];
@@ -1378,42 +1253,81 @@ function downloadBusinessQR(containerId, filename) {
     link.click();
 }
 
-function updateStatsUI() {
-    const filter = document.getElementById('stats-party-filter').value;
+function updateStats() {
+    const filter = document.getElementById('stats-date-filter').value;
     
-    // Mocking data based on filter
-    const data = {
-        all: { scans: 1280, rewards: 450, avg: 680, m: 45, f: 40, nb: 10, unk: 5 },
-        soirée: { scans: 320, rewards: 110, avg: 320, m: 50, f: 35, nb: 10, unk: 5 }
+    // Mock data logic based on filter
+    const statsData = {
+        always: { clients: 12540, earnings: 42500, cost: 8500, m: 45, f: 42, nb: 8, unk: 5 },
+        year: { clients: 3420, earnings: 12100, cost: 2100, m: 48, f: 40, nb: 7, unk: 5 },
+        quarter: { clients: 850, earnings: 2800, cost: 450, m: 44, f: 44, nb: 8, unk: 4 },
+        month: { clients: 245, earnings: 820, cost: 120, m: 46, f: 43, nb: 6, unk: 5 },
+        week: { clients: 68, earnings: 210, cost: 35, m: 45, f: 45, nb: 5, unk: 5 },
+        today: { clients: 12, earnings: 45, cost: 8, m: 50, f: 40, nb: 5, unk: 5 }
     };
-    
-    const s = data[filter === 'all' ? 'all' : 'soirée'];
-    
-    document.getElementById('stats-total-scans').textContent = s.scans.toLocaleString();
-    document.getElementById('stats-rewards-given').textContent = s.rewards.toLocaleString();
-    document.getElementById('stats-avg-attendance').textContent = s.avg.toLocaleString();
-    
-    // Update Bars
+
+    const s = statsData[filter] || statsData.month;
+
+    // Update Bubble values
+    animateValue('stat-total-clients', s.clients);
+    animateValue('stat-total-earnings', s.earnings, '€');
+    animateValue('stat-rewards-cost', s.cost);
+
+    // Update Gender Bars
     updateBar('m', s.m);
     updateBar('f', s.f);
     updateBar('nb', s.nb);
-    updateBar('unk', s.unk);
-    
-    // Update Rewards List
+
+    // Render Pie Chart (Simple SVG approach)
+    renderStatsPieChart(s);
+
+    // Update Rewards List (Randomized for demo)
     const rewList = document.getElementById('stats-rewards-list');
-    rewList.innerHTML = '';
-    
-    if (bizRewards.length) {
-        bizRewards.forEach(r => {
-            const usage = Math.floor(Math.random() * 50) + 10; // Mock usage
+    if (rewList) {
+        rewList.innerHTML = '';
+        const mockRewards = [
+            { name: 'Shot de bienvenue', use: Math.floor(s.clients * 0.4) },
+            { name: 'Coupe de Bulles', use: Math.floor(s.clients * 0.25) },
+            { name: 'Entrée Gratuite', use: Math.floor(s.clients * 0.1) }
+        ];
+        mockRewards.forEach(r => {
             const row = document.createElement('div');
-            row.style = "display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03);";
-            row.innerHTML = `<span style="font-size: 13px;">${r.name}</span><span style="font-weight: 700; color: var(--primary-light);">${usage}</span>`;
+            row.style = "display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03);";
+            row.innerHTML = `<span style="font-size: 13px;">${r.name}</span><span style="font-weight: 700; color: var(--primary-light);">${r.use}</span>`;
             rewList.appendChild(row);
         });
-    } else {
-        rewList.innerHTML = '<p style="font-size: 12px; color: var(--text-dim);">Aucune récompense configurée.</p>';
     }
+}
+
+function animateValue(id, value, suffix = '') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value.toLocaleString() + suffix;
+}
+
+function renderStatsPieChart(s) {
+    const container = document.querySelector('.pie-chart-container');
+    if (!container) return;
+    
+    // Simple SVG Pie Chart with 3 segments (H/F/NB)
+    const total = s.m + s.f + s.nb;
+    const pM = (s.m / total) * 100;
+    const pF = (s.f / total) * 100;
+    
+    container.innerHTML = `
+        <svg viewBox="0 0 32 32" style="transform: rotate(-90deg); border-radius: 50%;">
+            <circle r="16" cx="16" cy="16" fill="#a855f7" /> <!-- NB (Purple) -->
+            <circle r="16" cx="16" cy="16" fill="transparent"
+                    stroke="#ec4899" 
+                    stroke-width="32" 
+                    stroke-dasharray="${pF} 100" /> <!-- F (Pink) -->
+            <circle r="16" cx="16" cy="16" fill="transparent"
+                    stroke="#3b82f6" 
+                    stroke-width="32" 
+                    stroke-dasharray="${pM} 100"
+                    style="stroke-dashoffset: -${pF}" /> <!-- M (Blue) -->
+        </svg>
+    `;
 }
 
 function updateBar(id, percent) {
@@ -1425,13 +1339,18 @@ function updateBar(id, percent) {
     }
 }
 
-// ----- Calendar Logic — Google Calendar Style -----
+let calendarDate = new Date();
 let calClickTimeout = null;
 
 function renderCalendar() {
     const grid = document.getElementById('biz-calendar-grid');
     const monthLabel = document.getElementById('calendar-month-year');
     if (!grid || !monthLabel) return;
+    
+    // Safety check for global date
+    if (!(calendarDate instanceof Date) || isNaN(calendarDate)) {
+        calendarDate = new Date();
+    }
     
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
@@ -2606,4 +2525,166 @@ async function sendBarOrderDraft(userCode) {
             })
         });
     } catch(e) {}
+}
+// ----- Section Switching -----
+function switchBizSection(sectionId) {
+    console.log('Switching to biz section:', sectionId);
+    
+    // Close sidebar on mobile
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar && sidebar.classList.contains('active')) {
+        toggleSidebar();
+    }
+
+    // Update active states
+    document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(i => i.classList.remove('active'));
+
+    const section = document.getElementById(`biz-section-${sectionId}`);
+    if (section) {
+        section.classList.add('active');
+        
+        // Find corresponding nav item
+        const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+        navItems.forEach(item => {
+            if (item.getAttribute('onclick')?.includes(sectionId)) {
+                item.classList.add('active');
+            }
+        });
+
+        // Initialize section data if needed
+        if (sectionId === 'calendrier') renderCalendar();
+        if (sectionId === 'stats') updateStats();
+        if (sectionId === 'qrcodes') generateBusinessQRCodes();
+        if (sectionId === 'produits') renderProductsList();
+    }
+}
+
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (sidebar) sidebar.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
+}
+
+// ----- Business Dashboard Management -----
+function showBusinessDashboard() {
+    const authScreen = document.getElementById('business-auth-screen');
+    const dashboardScreen = document.getElementById('business-dashboard-screen');
+    
+    if (authScreen) authScreen.classList.remove('active');
+    if (dashboardScreen) dashboardScreen.classList.add('active');
+    
+    if (currentBusiness) {
+        document.getElementById('biz-club-name').textContent = currentBusiness.name || currentBusiness.nom || 'Club';
+        
+        // Sync local arrays with currentBusiness data
+        bizTemplates = currentBusiness.bizTemplates || [];
+        announcementTemplates = currentBusiness.announcementTemplates || [];
+        bizRewards = currentBusiness.rewards || [];
+        bizProducts = currentBusiness.products || [];
+        bizSchedule = currentBusiness.schedule || {};
+    }
+
+    // Default view
+    switchBizSection('annonces');
+}
+
+// ----- Products Management -----
+let bizProducts = [];
+
+function handleCreateProduct() {
+    const name = document.getElementById('product-name').value;
+    const price = document.getElementById('product-price').value;
+    const desc = document.getElementById('product-desc').value;
+    const image = document.getElementById('product-image-input-hidden')?.value || '';
+
+    if (!name || !price) {
+        alert('Veuillez remplir au moins le nom et le prix.');
+        return;
+    }
+
+    const product = {
+        id: 'prod_' + Date.now(),
+        name,
+        price,
+        desc,
+        image
+    };
+
+    bizProducts.push(product);
+    if (currentBusiness) {
+        currentBusiness.products = bizProducts;
+        saveBusinessData();
+    }
+
+    renderProductsList();
+    
+    // Reset form
+    document.getElementById('product-name').value = '';
+    document.getElementById('product-price').value = '';
+    document.getElementById('product-desc').value = '';
+    const placeholder = document.getElementById('product-image-placeholder');
+    if (placeholder) {
+        placeholder.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Ajouter une image</span>`;
+        placeholder.classList.remove('has-image');
+    }
+    
+    showSaveToast();
+}
+
+function handleProductImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // We need a hidden input for the product image too, or just store it in a variable
+        let hiddenInput = document.getElementById('product-image-input-hidden');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'product-image-input-hidden';
+            document.body.appendChild(hiddenInput);
+        }
+        hiddenInput.value = e.target.result;
+
+        const placeholder = document.getElementById('product-image-placeholder');
+        if (placeholder) {
+            placeholder.classList.add('has-image');
+            placeholder.innerHTML = `<img src="${e.target.result}" style="width:100%; height:160px; object-fit:cover;">`;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function renderProductsList() {
+    const grid = document.getElementById('biz-products-grid');
+    if (!grid) return;
+
+    if (bizProducts.length === 0) {
+        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun produit créé.</p>';
+        return;
+    }
+
+    grid.innerHTML = bizProducts.map(p => `
+        <div class="product-card">
+            <div class="product-card-image" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300'}')"></div>
+            <div class="product-card-body">
+                <div class="product-card-name">${p.name}</div>
+                <div class="product-card-price">${p.price}</div>
+                <div class="product-card-desc">${p.desc || ''}</div>
+                <div class="product-card-actions">
+                    <button class="btn-mini btn-delete" style="width: 100%;" onclick="deleteProduct('${p.id}')">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function deleteProduct(id) {
+    if (!confirm('Supprimer ce produit ?')) return;
+    bizProducts = bizProducts.filter(p => p.id !== id);
+    if (currentBusiness) currentBusiness.products = bizProducts;
+    saveBusinessData();
+    renderProductsList();
 }
