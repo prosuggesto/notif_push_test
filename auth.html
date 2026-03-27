@@ -352,27 +352,89 @@
         </main>
 
         <!-- QR Verification View (Hidden by default, shown on scan) -->
+        <!-- QR Verification View (Hidden by default, shown on scan) -->
         <main id="verify-view" class="main-view">
             <div class="verify-container">
-                <div class="verify-card">
+                <!-- 1. ENTRY SCAN FLOW -->
+                <div id="verify-entry-container" class="verify-card" style="display: none;">
                     <div class="verify-club-header">
                         <div class="verify-icon">✨</div>
-                        <h3 id="verify-club-name">Bienvenue</h3>
-                        <p id="verify-scan-type">Scan en cours...</p>
+                        <h3 id="verify-entry-club-name">Bienvenue</h3>
+                        <p>Validation Entrée</p>
                     </div>
 
-                    <div id="logged-flow" style="display: none;">
+                    <!-- Auto Success (Account Found) -->
+                    <div id="entry-auto-success" style="display: none; text-align: center;">
+                        <div class="success-check-anim">
+                            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <h4 style="font-size: 20px; color: white; margin-bottom: 12px;">Entrée validée !</h4>
+                        <p style="color: var(--text-dim);">Tu as gagné +1 point. Passe une excellente soirée 🎉</p>
+                        <button class="btn-primary" onclick="switchMainView('home')" style="margin-top: 24px;">Retour à l'accueil</button>
+                    </div>
+
+                    <!-- Code Required (No auto-detect) -->
+                    <div id="entry-manual-code" style="display: none;">
                         <p class="verify-desc">Entrez votre code personnel pour valider votre entrée.</p>
                         <div class="input-group">
-                            <input type="text" id="verification-code-input" class="big-verify-input" placeholder="CODE" maxlength="6">
+                            <input type="text" id="entry-code-input" class="big-verify-input" placeholder="CODE" maxlength="6">
                         </div>
-                        <button class="btn-primary" onclick="submitVerificationCode()">Valider mon passage</button>
+                        <button class="btn-primary" onclick="submitEntryCode()">Valider mon passage</button>
+                        
+                        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px;">Pas encore de compte ?</p>
+                            <button class="btn-secondary" onclick="handleEntryNoAccount()" style="width: 100%;">Continuer sans code (+1)</button>
+                            <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">Tu gagneras quand même 1 point, et pourras créer ton compte après.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. BAR SCAN FLOW -->
+                <div id="verify-bar-container" class="verify-card" style="display: none; max-width: 500px;">
+                    <div class="verify-club-header">
+                        <div class="verify-icon">🍹</div>
+                        <h3 id="verify-bar-club-name">Le Bar</h3>
+                        <p>Sélectionnez vos récompenses</p>
                     </div>
 
-                    <div id="guest-flow" style="display: none;">
-                        <p class="verify-desc">Vous n'avez pas encore de code ?</p>
-                        <button class="btn-primary" onclick="handleNoCode()">I don't have a code</button>
-                        <p class="verify-hint">En cliquant, vous validerez votre passage (+1) et serez redirigé pour créer votre compte.</p>
+                    <!-- Points Display -->
+                    <div class="bar-user-points" style="background: var(--primary-glow); padding: 12px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span style="font-size: 13px; color: var(--primary-light);">Tes Points :</span>
+                        <strong id="bar-user-points-val" style="font-size: 18px; color: white;">0</strong>
+                    </div>
+
+                    <!-- Products/Rewards Scroll Area -->
+                    <div class="bar-order-area" style="max-height: 400px; overflow-y: auto; padding: 2px;">
+                        <h4 class="section-subtitle">🎁 Tes Récompenses</h4>
+                        <div id="bar-rewards-grid" class="bar-grid">
+                            <!-- Injected by JS -->
+                        </div>
+
+                        <h4 class="section-subtitle" style="margin-top: 24px;">🏷️ Produits de la boîte</h4>
+                        <div id="bar-products-grid" class="bar-grid">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Order Summary Sticky-ish Footer -->
+                    <div id="bar-order-footer" style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                            <span style="color: var(--text-dim);">Total à déduire :</span>
+                            <strong id="bar-total-points-cost" style="color: #ef4444;">0 pts</strong>
+                        </div>
+                        <button class="btn-primary" onclick="generateBarmanCode()">Générer le code barman</button>
+                    </div>
+
+                    <!-- BARMAN CODE DISPLAY (POST-VALIDATION) -->
+                    <div id="barman-code-display" style="display: none; text-align: center;">
+                        <p style="color: var(--text-dim); margin-bottom: 16px;">Montre ce code au barman :</p>
+                        <div class="big-code-box" id="display-barman-code" style="font-size: 40px; letter-spacing: 0.1em; font-family: monospace; color: var(--primary-light); background: rgba(0,0,0,0.3); padding: 24px; border-radius: 16px; border: 1px solid var(--primary-glow);">
+                            ABC123
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;">Le barman validera ta commande sur son écran.</p>
+                        <button class="btn-secondary" onclick="switchMainView('home')" style="margin-top: 32px; width: 100%;">Terminer</button>
                     </div>
                 </div>
             </div>

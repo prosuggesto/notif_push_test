@@ -119,13 +119,21 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                         Rewards
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('give-rewards')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-                        Give Rewards
+                    <button class="nav-item" onclick="switchBizSection('produits')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                        Produits
+                    </button>
+                    <button class="nav-item" onclick="switchBizSection('commandes')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+                        Commande
                     </button>
                     <button class="nav-item" onclick="switchBizSection('stats')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         Stats
+                    </button>
+                    <button class="nav-item" onclick="switchBizSection('qrcodes')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                        Mes QR Codes
                     </button>
                 </nav>
                 <div class="sidebar-footer">
@@ -139,16 +147,14 @@
             <!-- Main Content Area -->
             <main class="biz-content">
             <div class="sidebar-overlay" onclick="toggleSidebar()"></div> 
-            <!-- Mobile Top Bar -->
-            <div class="mobile-top-bar">
-                <button id="sidebar-toggle" class="btn-burger" onclick="toggleSidebar()">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
+            <!-- Floating Burger Button -->
+            <button id="sidebar-toggle" class="btn-burger floating-burger" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
 
             <!-- Section: Mes Annonces -->
             <section id="biz-section-annonces" class="biz-section active">
@@ -310,31 +316,120 @@
                 </section>
 
 
-                <!-- Section: Give Rewards -->
-                <section id="biz-section-give-rewards" class="biz-section">
-                    <div class="section-header">
-                        <h2>Give Rewards</h2>
-                        <p>Saisissez le code client pour afficher ses points et lui donner une récompense.</p>
+                <!-- Section: Produits — Split Layout -->
+                <section id="biz-section-produits" class="biz-section">
+                    <div class="rewards-split-layout">
+                        <!-- Left: Create Product -->
+                        <div class="rewards-create-panel">
+                            <div class="preview-container editor-mode">
+                                <div class="editor-header">
+                                    <h3 class="card-title">Créer un Produit</h3>
+                                    <p class="text-dim" style="font-size: 13px;">Ajoutez un nouveau produit à votre carte.</p>
+                                </div>
+                                <form id="biz-product-form" onsubmit="handleCreateProduct(event)">
+                                    <!-- Image Upload -->
+                                    <div class="rew-image-upload" onclick="document.getElementById('prod-image-input').click()">
+                                        <div id="prod-image-preview" class="rew-image-placeholder">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                            <span>Ajouter une image</span>
+                                        </div>
+                                        <input type="file" id="prod-image-input" accept="image/*" style="display:none" onchange="handleProductImageUpload(event)">
+                                        <input type="hidden" id="prod-image" value="">
+                                    </div>
+                                    <div class="input-group" style="margin-top: 16px;">
+                                        <label>Nom du produit</label>
+                                        <div class="input-wrapper">
+                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                            <input type="text" id="prod-name" placeholder="Ex: Cocktail Maison" required>
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="margin-top: 16px;">
+                                        <label>Prix</label>
+                                        <div class="input-wrapper">
+                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                                            <input type="text" id="prod-price" placeholder="Ex: 12€" required>
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="margin-top: 16px;">
+                                        <label>Description</label>
+                                        <div class="input-wrapper">
+                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            <textarea id="prod-description" placeholder="Description du produit..." style="min-height: 80px; resize: vertical; width: 100%; background: none; border: none; color: white; font-family: inherit; font-size: 14px; outline: none;"></textarea>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn-primary" style="margin-top: 24px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                                        Créer le produit
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Right: Products Grid -->
+                        <div class="rewards-list-panel">
+                            <div class="section-header" style="text-align: center;">
+                                <h3 class="card-title">Mes Produits</h3>
+                                <p class="text-dim" style="font-size: 13px;">Gérez les produits de votre établissement.</p>
+                            </div>
+                            <div id="biz-products-grid" class="rewards-grid">
+                                <!-- Products dynamically added here -->
+                            </div>
+                        </div>
                     </div>
-                    <div class="biz-card" style="max-width: 600px; margin: 0 auto;">
+                </section>
+
+                <!-- Section: Commande (ex Give Rewards) -->
+                <section id="biz-section-commandes" class="biz-section">
+                    <div class="section-header">
+                        <h2>Commande</h2>
+                        <p>Saisissez le code client pour voir sa commande et la valider.</p>
+                    </div>
+                    <div class="biz-card" style="max-width: 700px; margin: 0 auto;">
                         <div class="search-box">
-                            <label>Code Client ou ID</label>
+                            <label>Code Client</label>
                             <div class="input-row" style="display: flex; gap: 12px; margin-top: 8px;">
-                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: 123456">
-                                <button class="btn-primary" onclick="searchClientForReward()" style="width: auto; padding: 0 24px;">Rechercher</button>
+                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: ABC123">
+                                <button class="btn-primary" onclick="searchClientForCommande()" style="width: auto; padding: 0 24px;">Rechercher</button>
                             </div>
                         </div>
 
                         <div id="biz-client-result" class="client-result-card" style="display: none; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border);">
+                            <!-- Client Info Header -->
                             <div class="client-info-header" style="text-align: center; margin-bottom: 24px;">
-                                <div class="client-avatar" style="width: 64px; height: 64px; background: var(--primary-glow); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; color: var(--primary-light);">👤</div>
-                                <h3 id="res-client-name">Nom du Client</h3>
-                                <p id="res-client-points" style="color: var(--primary-light); font-weight: 700; font-size: 18px;">0 Points</p>
+                                <div class="client-avatar" style="width: 72px; height: 72px; background: linear-gradient(135deg, var(--primary), #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px; color: white;">👤</div>
+                                <h3 id="res-client-name" style="font-size: 20px; margin-bottom: 4px;">Nom du Client</h3>
+                                <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--primary-glow); padding: 8px 20px; border-radius: 20px; margin-top: 8px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                                    <span id="res-client-points" style="color: var(--primary-light); font-weight: 800; font-size: 20px;">0</span>
+                                    <span style="color: var(--primary-light); font-weight: 500; font-size: 14px;">Points</span>
+                                </div>
                             </div>
-                            
-                            <div id="biz-available-rewards" class="rewards-redeem-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <!-- Available rewards for this client -->
+
+                            <!-- Rewards taken by client -->
+                            <div style="margin-bottom: 24px;">
+                                <h4 style="font-size: 14px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">🎁 Rewards sélectionnés</h4>
+                                <div id="biz-commande-rewards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <!-- Rewards will be rendered here -->
+                                </div>
                             </div>
+
+                            <!-- Order Summary -->
+                            <div id="biz-commande-summary" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px;">
+                                <h4 style="font-size: 14px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">📋 Récap Commande</h4>
+                                <div id="biz-commande-recap">
+                                    <p style="font-size: 13px; color: var(--text-dim);">Aucune sélection pour le moment.</p>
+                                </div>
+                                <div style="border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 14px; color: var(--text-dim);">Points à déduire</span>
+                                    <strong id="biz-commande-total-pts" style="font-size: 18px; color: #ef4444;">0 pts</strong>
+                                </div>
+                            </div>
+
+                            <!-- Validate Button -->
+                            <button class="btn-primary" onclick="validateCommande()" style="margin-top: 24px; width: 100%; padding: 16px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                Valider la commande
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -408,6 +503,40 @@
                                     <p style="font-size: 12px; color: var(--text-dim);">Aucune donnée pour cette période.</p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: Mes QR Codes -->
+                <section id="biz-section-qrcodes" class="biz-section">
+                    <div class="section-header">
+                        <h2>Mes QR Codes</h2>
+                        <p>Générez et téléchargez les QR codes de votre établissement.</p>
+                    </div>
+                    <div class="qr-cards-grid">
+                        <div class="biz-card qr-card">
+                            <div class="qr-card-header">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                <h3>QR Code Entrée</h3>
+                                <p class="text-dim" style="font-size: 13px;">Scannez pour valider l'entrée des clients.</p>
+                            </div>
+                            <div id="qr-code-entry" class="qr-display-box"></div>
+                            <button class="btn-primary" onclick="downloadBusinessQR('qr-code-entry', 'QR-Entree')" style="margin-top: 16px; width: 100%;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Télécharger
+                            </button>
+                        </div>
+                        <div class="biz-card qr-card">
+                            <div class="qr-card-header">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                                <h3>QR Code Bar</h3>
+                                <p class="text-dim" style="font-size: 13px;">Scannez pour commander au bar.</p>
+                            </div>
+                            <div id="qr-code-bar" class="qr-display-box"></div>
+                            <button class="btn-primary" onclick="downloadBusinessQR('qr-code-bar', 'QR-Bar')" style="margin-top: 16px; width: 100%;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Télécharger
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -511,6 +640,23 @@
             <div class="biz-modal-actions" style="margin-top: 16px;">
                 <button class="btn-secondary" onclick="closeCalendarPicker()">Annuler</button>
                 <button id="cal-picker-apply" class="btn-primary" onclick="applyCalendarPickerTemplate()">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Template Preview Modal -->
+    <div id="cal-preview-modal" class="biz-custom-modal">
+        <div class="biz-modal-overlay" onclick="closeCalPreview()"></div>
+        <div class="biz-modal-content">
+            <h3 id="cal-preview-title">Template</h3>
+            <p id="cal-preview-date">Date</p>
+            <div id="cal-preview-image" style="width: 100%; height: 120px; border-radius: 12px; background-size: cover; background-position: center; background-color: rgba(99,102,241,0.1); margin-bottom: 16px;"></div>
+            <div id="cal-preview-info" style="text-align: left; margin-bottom: 16px;">
+                <p id="cal-preview-theme" style="font-size: 14px; color: var(--text-dim);"></p>
+            </div>
+            <div class="biz-modal-actions">
+                <button class="btn-secondary" onclick="closeCalPreview()">Fermer</button>
+                <button class="btn-primary btn-destructive" onclick="deleteCalendarTemplate()">Supprimer</button>
             </div>
         </div>
     </div>

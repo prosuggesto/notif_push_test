@@ -242,7 +242,7 @@ function switchBizSection(sectionId) {
         s.style.display = 'none'; 
         if (s.id === `biz-section-${sectionId}`) {
             s.classList.add('active');
-            s.style.display = 'block'; 
+        s.style.display = 'block'; 
         }
     });
     
@@ -254,6 +254,13 @@ function switchBizSection(sectionId) {
             item.classList.remove('active');
         }
     });
+
+    // Auto-initialize section data if needed
+    if (sectionId === 'produits') {
+        renderProductsList();
+    } else if (sectionId === 'qrcodes') {
+        generateBusinessQRCodes();
+    }
 
     // Auto-Close Sidebar on selection (Universal)
     const sidebar = document.querySelector('.sidebar');
@@ -392,42 +399,140 @@ let bizRewards = currentBusiness?.rewards || [];
 let lastFoundClient = null;
 
 function showBusinessDashboard() {
+    if (!currentBusiness) return;
+    console.log('Showing Business Dashboard for:', currentBusiness.nom);
+    
+    // UI Elements
     const authScreen = document.getElementById('business-auth-screen');
     const dashScreen = document.getElementById('business-dashboard-screen');
     const clubNameEl = document.getElementById('biz-club-name');
 
     document.body.classList.add('logged-in-biz');
 
-    if (authScreen) {
-        authScreen.classList.remove('active');
-        authScreen.style.display = 'none';
-    }
+    if (authScreen) authScreen.style.display = 'none';
     if (dashScreen) {
         dashScreen.classList.add('active');
         dashScreen.style.display = 'flex';
     }
-    if (clubNameEl && currentBusiness) clubNameEl.textContent = currentBusiness.name;
+    if (clubNameEl) clubNameEl.textContent = currentBusiness.name || currentBusiness.nom;
     
     // Fill forms with existing data
     if (currentBusiness.profile) {
-        document.getElementById('biz-club-image').value = currentBusiness.profile.image || '';
-        document.getElementById('biz-club-insta').value = currentBusiness.profile.insta || '';
-        document.getElementById('biz-club-desc').value = currentBusiness.profile.desc || '';
-        document.getElementById('biz-party-name').value = currentBusiness.profile.partyName || '';
-        document.getElementById('biz-party-theme').value = currentBusiness.profile.partyTheme || '';
+        if (document.getElementById('biz-club-image')) document.getElementById('biz-club-image').value = currentBusiness.profile.image || '';
+        if (document.getElementById('biz-club-insta')) document.getElementById('biz-club-insta').value = currentBusiness.profile.insta || '';
+        if (document.getElementById('biz-club-desc')) document.getElementById('biz-club-desc').value = currentBusiness.profile.desc || '';
+        if (document.getElementById('biz-party-name')) document.getElementById('biz-party-name').value = currentBusiness.profile.partyName || '';
+        if (document.getElementById('biz-party-theme')) document.getElementById('biz-party-theme').value = currentBusiness.profile.partyTheme || '';
     }
 
-    // Re-initialize lists/stats if elements exist
-    if (document.getElementById('biz-calendar-grid')) renderCalendar();
-    if (document.getElementById('biz-template-list')) renderTemplateList();
-    if (document.getElementById('biz-rewards-list')) renderRewardsList();
-    if (document.getElementById('stats-total-scans')) updateStatsUI();
+    // Initialize lists
+    renderCalendar();
+    renderTemplateList();
+    renderRewardsList();
+    renderProductsList();
+    updateStatsUI();
     
-    // Initial preview render
     if (document.getElementById('annonces-preview-card')) {
         initAnnouncementEditor();
     }
 }
+
+// ===== PRODUCTS MODULE =====
+let bizProducts = currentBusiness?.products || [];
+
+function handleProductImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const base64 = e.target.result;
+        document.getElementById('prod-image').value = base64;
+        const preview = document.getElementById('prod-image-preview');
+        preview.innerHTML = `<img src="${base64}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
+    };
+    reader.readAsDataURL(file);
+}
+
+function handleCreateProduct(e) {
+    e.preventDefault();
+    const name = document.getElementById('prod-name').value;
+    const price = document.getElementById('prod-price').value;
+    const description = document.getElementById('prod-description').value;
+    const image = document.getElementById('prod-image').value;
+
+    const newProduct = {
+        id: generateUUID(),
+        name,
+        price,
+        description,
+        image: image || 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop'
+    };
+
+    bizProducts.push(newProduct);
+    saveBusinessData();
+    renderProductsList();
+    
+    // Reset form
+    e.target.reset();
+    document.getElementById('prod-image').value = '';
+    document.getElementById('prod-image-preview').innerHTML = `
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Ajouter une image</span>`;
+}
+
+function renderProductsList() {
+    const grid = document.getElementById('biz-products-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (bizProducts.length === 0) {
+        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun produit créé.</p>';
+        return;
+    }
+
+    bizProducts.forEach(prod => {
+        const card = document.createElement('div');
+        card.className = 'reward-card'; // Reuse reward card style
+        card.innerHTML = `
+            <div class="reward-img-container">
+                <img src="${prod.image}" class="reward-img">
+            </div>
+            <div class="reward-content">
+                <h4 class="reward-name">${prod.name}</h4>
+                <p class="product-card-desc">${prod.description || ''}</p>
+                <div class="reward-footer">
+                    <span class="reward-points">${prod.price}</span>
+                    <button class="btn-delete-rew" onclick="deleteProduct('${prod.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function deleteProduct(id) {
+    if (confirm('Supprimer ce produit ?')) {
+        bizProducts = bizProducts.filter(p => p.id !== id);
+        saveBusinessData();
+        renderProductsList();
+    }
+}
+
+// ===== COMMANDE MODULE =====
+let selectedCommandeRewards = [];
+let selectedCommandeProducts = [];
+
+function searchClientForCommande() {
+    const code = document.getElementById('biz-client-code-search').value.trim();
+    if (!code) return;
+
+    // Reuse search logic but with commande UI
+    searchClientForReward(true); // Flag to indicate commande mode
+}
+
+// Note: searchClientForReward will be updated later to handle both modes
 
 function updateAnnoncesPreview() {
     const previewContainer = document.getElementById('annonces-preview-card');
@@ -1095,14 +1200,14 @@ function deleteReward(id) {
 
 
 // ----- Redemption Logic -----
-async function searchClientForReward() {
-    const code = document.getElementById('biz-client-code-search').value;
+// ----- Redemption & Commande Logic -----
+async function searchClientForReward(isCommandeMode = false) {
+    const code = document.getElementById('biz-client-code-search').value.trim();
     if (!code) return;
 
     const resultDiv = document.getElementById('biz-client-result');
     const nameEl = document.getElementById('res-client-name');
     const pointsEl = document.getElementById('res-client-points');
-    const rewardsEl = document.getElementById('biz-available-rewards');
 
     try {
         const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
@@ -1118,11 +1223,25 @@ async function searchClientForReward() {
             const client = await response.json();
             lastFoundClient = client;
             
-            nameEl.textContent = client.name;
-            pointsEl.textContent = `${client.points} Points`;
+            if (nameEl) nameEl.textContent = client.name;
+            if (pointsEl) pointsEl.textContent = isCommandeMode ? client.points : `${client.points} Points`;
             resultDiv.style.display = 'block';
             
-            renderAvailableRewardsForClient(client.points);
+            if (isCommandeMode) {
+                selectedCommandeRewards = [];
+                selectedCommandeProducts = [];
+                
+                // If the webhook returns a draft order, auto-apply it
+                if (client.draftOrder) {
+                    selectedCommandeRewards = client.draftOrder.rewards || [];
+                    selectedCommandeProducts = client.draftOrder.products || [];
+                }
+
+                renderCommandeRewards(client.points);
+                updateCommandeRecap();
+            } else {
+                renderAvailableRewardsForClient(client.points);
+            }
         } else {
             alert('Client non trouvé');
             resultDiv.style.display = 'none';
@@ -1132,62 +1251,131 @@ async function searchClientForReward() {
     }
 }
 
-function renderAvailableRewardsForClient(points) {
-    const list = document.getElementById('biz-available-rewards');
+function renderCommandeRewards(points) {
+    const list = document.getElementById('biz-commande-rewards');
+    if (!list) return;
     list.innerHTML = '';
     
     if (bizRewards.length === 0) {
-        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim);">Aucune récompense configurée par le club.</p>';
+        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim); grid-column: 1/-1;">Aucun reward.</p>';
         return;
     }
 
     bizRewards.forEach(r => {
         const canAfford = points >= r.points;
+        const isSelected = selectedCommandeRewards.find(sr => sr.id === r.id);
+        
         const item = document.createElement('div');
-        item.style = `background: ${canAfford ? 'var(--surface-hover)' : 'rgba(255,255,255,0.02)'}; padding: 16px; border-radius: 16px; border: 1px solid ${canAfford ? 'var(--primary-glow)' : 'var(--border)'}; text-align: center; opacity: ${canAfford ? '1' : '0.5'}`;
+        item.className = `reward-item-sel ${isSelected ? 'active' : ''}`;
+        item.style = `background: ${canAfford ? 'var(--surface)' : 'rgba(255,255,255,0.02)'}; padding: 12px; border-radius: 12px; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; text-align: center; opacity: ${canAfford ? '1' : '0.5'}; cursor: ${canAfford ? 'pointer' : 'default'}; transition: all 0.2s;`;
+        
         item.innerHTML = `
-            ${r.image ? `<img src="${r.image}" style="width: 60px; height: 60px; border-radius: 12px; object-fit: cover; margin-bottom: 12px;">` : '<div style="width: 60px; height: 60px; background: var(--surface); border-radius: 12px; margin: 0 auto 12px;"></div>'}
-            <h5 style="font-size: 14px; margin-bottom: 4px;">${r.name}</h5>
-            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">${r.points} pts</p>
-            <button class="btn-primary" style="height: 36px; font-size: 12px; width: 100%;" ${canAfford ? '' : 'disabled'} onclick="redeemReward('${r.id}')">
-                ${canAfford ? 'Valider' : 'Points insuffisants'}
-            </button>
+            <h5 style="font-size: 13px; margin-bottom: 2px;">${r.name}</h5>
+            <p style="font-size: 11px; color: var(--primary-light); font-weight: bold;">${r.points} pts</p>
         `;
+        
+        if (canAfford) {
+            item.onclick = () => {
+                const idx = selectedCommandeRewards.findIndex(sr => sr.id === r.id);
+                if (idx > -1) {
+                    selectedCommandeRewards.splice(idx, 1);
+                } else {
+                    selectedCommandeRewards.push(r);
+                }
+                renderCommandeRewards(points);
+                updateCommandeRecap();
+            };
+        }
         list.appendChild(item);
     });
 }
 
-async function redeemReward(rewardId) {
-    const reward = bizRewards.find(r => r.id === rewardId);
-    if (!reward || !lastFoundClient) return;
+function updateCommandeRecap() {
+    const recap = document.getElementById('biz-commande-recap');
+    const totalPtsEl = document.getElementById('biz-commande-total-pts');
+    if (!recap) return;
 
-    if (!confirm(`Confirmer la distribution de "${reward.name}" à ${lastFoundClient.name} ?`)) return;
+    let html = '';
+    let totalPoints = 0;
+
+    selectedCommandeRewards.forEach(r => {
+        html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+                    <span>🎁 ${r.name}</span>
+                    <span style="color:#ef4444;">-${r.points} pts</span>
+                 </div>`;
+        totalPoints += r.points;
+    });
+
+    if (html === '') {
+        html = '<p style="font-size: 13px; color: var(--text-dim);">Aucune sélection.</p>';
+    }
+
+    recap.innerHTML = html;
+    totalPtsEl.textContent = `${totalPoints} pts`;
+}
+
+async function validateCommande() {
+    if (!lastFoundClient) return;
+    
+    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + r.points, 0);
+    
+    if (!confirm(`Valider la commande pour ${lastFoundClient.name} ? (+1 point de visite, -${totalPointsToDeduct} points rewards)`)) return;
 
     try {
         const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: 'redeem_reward',
+                action: 'validate_commande',
                 clientCode: lastFoundClient.code,
-                clubName: currentBusiness.name,
-                rewardId: reward.id,
-                pointsToDeduct: reward.points
+                clubName: currentBusiness.name || currentBusiness.nom,
+                deductPoints: totalPointsToDeduct,
+                incrementVisit: 1,
+                items: selectedCommandeRewards.map(r => r.name)
             })
         });
 
         if (response.ok) {
-            document.getElementById('redeem-reward-name').textContent = reward.name;
-            document.getElementById('redeem-secret-code').textContent = reward.secretCode;
-            document.getElementById('biz-redeem-modal').classList.add('active');
-            
-            searchClientForReward(); // Refresh client view
+            alert('Commande validée !');
+            document.getElementById('biz-client-result').style.display = 'none';
+            document.getElementById('biz-client-code-search').value = '';
+            updateStatsUI();
         } else {
-            alert('Erreur lors de la distribution');
+            alert('Erreur lors de la validation');
         }
     } catch (error) {
-        console.error('Redeem error:', error);
+        console.error('Validation error:', error);
     }
+}
+
+// ===== QR CODES MODULE =====
+function generateBusinessQRCodes() {
+    const entryDiv = document.getElementById('qr-code-entry');
+    const barDiv = document.getElementById('qr-code-bar');
+    if (!entryDiv || !barDiv || !currentBusiness) return;
+
+    entryDiv.innerHTML = '';
+    barDiv.innerHTML = '';
+
+    const clubName = currentBusiness.name || currentBusiness.nom;
+    const baseUrl = window.location.origin + window.location.pathname.replace('entreprise.html', 'auth.html');
+    
+    const entryUrl = `${baseUrl}?action=scan&type=entry&club=${encodeURIComponent(clubName)}`;
+    const barUrl = `${baseUrl}?action=scan&type=bar&club=${encodeURIComponent(clubName)}`;
+
+    new QRCode(entryDiv, { text: entryUrl, width: 200, height: 200 });
+    new QRCode(barDiv, { text: barUrl, width: 200, height: 200 });
+}
+
+function downloadBusinessQR(containerId, filename) {
+    const container = document.getElementById(containerId);
+    const img = container.querySelector('img');
+    if (!img) return;
+
+    const link = document.createElement('a');
+    link.href = img.src;
+    link.download = `${filename}-${currentBusiness.name || 'Club'}.png`;
+    link.click();
 }
 
 function updateStatsUI() {
@@ -1298,7 +1486,7 @@ function renderCalendar() {
             cell.appendChild(eventEl);
         }
         
-        // Click = select, DblClick = open picker
+        // Click = select or preview, DblClick = open picker
         cell.addEventListener('click', (e) => {
             e.preventDefault();
             if (calClickTimeout) {
@@ -1310,7 +1498,14 @@ function renderCalendar() {
             }
             calClickTimeout = setTimeout(() => {
                 calClickTimeout = null;
-                toggleDateSelection(dateStr);
+                // Single Click Logic:
+                // If the date has a template -> Open Preview
+                // If not -> Toggle Selection
+                if (bizSchedule[dateStr]) {
+                    openCalPreview(dateStr);
+                } else {
+                    toggleDateSelection(dateStr);
+                }
             }, 250);
         });
         
@@ -1357,6 +1552,50 @@ function toggleDateSelection(dateStr) {
     } else {
         selectedDates.add(dateStr);
     }
+    renderCalendar();
+}
+
+// ----- Calendar Template Preview & Deletion -----
+let calPreviewDate = null;
+
+function openCalPreview(dateStr) {
+    const scheduleItem = bizSchedule[dateStr];
+    if (!scheduleItem) return;
+
+    calPreviewDate = dateStr;
+    const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
+    
+    document.getElementById('cal-preview-title').textContent = template ? (template.partyName || template.name) : 'Soirée';
+    document.getElementById('cal-preview-date').textContent = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('cal-preview-image').style.backgroundImage = template ? `url(${template.image})` : '';
+    document.getElementById('cal-preview-theme').textContent = template ? (template.partyTheme || '') : '';
+    
+    document.getElementById('cal-preview-modal').classList.add('active');
+}
+
+function closeCalPreview() {
+    document.getElementById('cal-preview-modal').classList.remove('active');
+    calPreviewDate = null;
+}
+
+function deleteCalendarTemplate() {
+    if (!calPreviewDate) return;
+    delete bizSchedule[calPreviewDate];
+    saveBusinessData();
+    closeCalPreview();
+    renderCalendar();
+}
+
+function deleteSelectedTemplates() {
+    if (selectedDates.size === 0) return;
+    if (!confirm(`Supprimer les templates pour les ${selectedDates.size} jours sélectionnés ?`)) return;
+    
+    selectedDates.forEach(dateStr => {
+        delete bizSchedule[dateStr];
+    });
+    
+    selectedDates.clear();
+    saveBusinessData();
     renderCalendar();
 }
 
@@ -1760,7 +1999,15 @@ const nightclubs = [
         instagram: '@macumba_officiel',
         city: 'Genève',
         region: 'Grand Genève',
-        country: 'Suisse'
+        country: 'Suisse',
+        rewards: [
+            { id: 'r1', name: 'Shot Offert', points: 10, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' },
+            { id: 'r2', name: 'Coupe Champagne', points: 30, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' }
+        ],
+        products: [
+            { id: 'p1', name: 'Vodka Redbull', price: '15€', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'p2', name: 'Bière Pression', price: '8€', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=200' }
+        ]
     },
     {
         id: 'club-2',
@@ -1779,7 +2026,13 @@ const nightclubs = [
         instagram: '@atrium_club',
         city: 'Lyon',
         region: 'Rhône-Alpes',
-        country: 'France'
+        country: 'France',
+        rewards: [
+            { id: 'r3', name: 'Entrée Gratuite', points: 50, image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=200' }
+        ],
+        products: [
+            { id: 'p3', name: 'Gin Tonic', price: '12€', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' }
+        ]
     },
     {
         id: 'club-3',
@@ -1798,7 +2051,13 @@ const nightclubs = [
         instagram: '@palace_paris',
         city: 'Paris',
         region: 'Île-de-France',
-        country: 'France'
+        country: 'France',
+        rewards: [
+            { id: 'r4', name: 'Accès VIP', points: 100, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' }
+        ],
+        products: [
+            { id: 'p4', name: 'Cocktail Signature', price: '18€', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' }
+        ]
     }
 ];
 
@@ -2160,97 +2419,191 @@ function downloadQR(containerId) {
     document.body.removeChild(a);
 }
 
-// Intercept Scans on Load
-let currentScanData = null;
+// ----- Client QR Scan Flow (Native Camera Redirect) -----
+let barSelection = { rewards: [], products: [] };
 
 async function handleNativeScan() {
     const params = new URLSearchParams(window.location.search);
-    const clubId = params.get('clubId');
-    const type = params.get('type') || 'entree';
-    const club = nightclubs.find(c => c.id === clubId);
+    const clubName = params.get('club');
+    const type = params.get('type') || 'entry'; // entry or bar
     
-    if (!club) return;
+    if (!clubName) return;
     
-    currentScanData = { club, type };
+    currentScanData = { clubName, type };
     
-    // Nettoyer l'URL
+    // Purge URL params
     window.history.replaceState({}, document.title, window.location.pathname);
     
     const stored = localStorage.getItem('user');
     const user = stored ? JSON.parse(stored) : null;
     
     switchMainView('verify');
-    document.getElementById('verify-club-name').textContent = club.name;
-    document.getElementById('verify-scan-type').textContent = `Validation ${type === 'entree' ? 'Entrée' : 'Bar'}`;
     
-    if (user) {
-        document.getElementById('logged-flow').style.display = 'block';
-        document.getElementById('guest-flow').style.display = 'none';
-        // Auto-fill code if possible for convenience but let them click submit
-        document.getElementById('verification-code-input').value = ''; 
+    if (type === 'entry') {
+        document.getElementById('verify-entry-container').style.display = 'block';
+        document.getElementById('verify-bar-container').style.display = 'none';
+        document.getElementById('verify-entry-club-name').textContent = clubName;
+        
+        if (user) {
+            // AUTO-DETECT FLOW
+            document.getElementById('entry-auto-success').style.display = 'block';
+            document.getElementById('entry-manual-code').style.display = 'none';
+            
+            // Automated Webhook Call
+            sendEntryWebhook(user.uuid, user.name, user.code);
+        } else {
+            // MANUAL FLOW
+            document.getElementById('entry-auto-success').style.display = 'none';
+            document.getElementById('entry-manual-code').style.display = 'block';
+        }
+    } else if (type === 'bar') {
+        document.getElementById('verify-entry-container').style.display = 'none';
+        document.getElementById('verify-bar-container').style.display = 'block';
+        document.getElementById('verify-bar-club-name').textContent = clubName;
+        
+        if (user) {
+            document.getElementById('bar-user-points-val').textContent = user.points || 0;
+            // Fetch club data (rewards/products) via webhook or use global clubs if available
+            fetchClubDataForBar(clubName);
+        } else {
+            alert("Connectez-vous pour profiter de vos points au bar !");
+            switchMainView('home');
+        }
+    }
+}
+
+async function sendEntryWebhook(userId, userName, userCode) {
+    try {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'entry_validation',
+                club_name: currentScanData.clubName,
+                user_id: userId,
+                user_name: userName,
+                user_code: userCode,
+                increment: 1
+            })
+        });
+    } catch (e) {
+        console.error('Entry Webhook Error', e);
+    }
+}
+
+async function submitEntryCode() {
+    const code = document.getElementById('entry-code-input').value.trim().toUpperCase();
+    if (!code) return;
+    
+    // In this demo, we assume code is valid if it exists, 
+    // real app would check against user.code if logged in
+    document.getElementById('entry-manual-code').style.display = 'none';
+    document.getElementById('entry-auto-success').style.display = 'block';
+    
+    sendEntryWebhook(null, "Guest", code);
+}
+
+async function handleEntryNoAccount() {
+    sendEntryWebhook(null, "Guest", "NOCODE");
+    alert("Passage validé (+1 point) ! Inscris-toi pour ne rien rater.");
+    switchMainView('home');
+    switchTab('signup');
+    document.getElementById('auth-screen').classList.add('active');
+    document.getElementById('dashboard-screen').classList.remove('active');
+}
+
+// ----- Bar Flow Logic -----
+async function fetchClubDataForBar(clubName) {
+    // Ideally fetch from webhook, here we simulate with nightclubs data
+    const club = nightclubs.find(c => c.name === clubName);
+    const rewards = club?.rewards || [];
+    const products = club?.products || []; // Assumes products are also in nightclub data
+
+    renderBarGrids(rewards, products);
+}
+
+function renderBarGrids(rewards, products) {
+    const rGrid = document.getElementById('bar-rewards-grid');
+    const pGrid = document.getElementById('bar-products-grid');
+    if (!rGrid || !pGrid) return;
+
+    rGrid.innerHTML = '';
+    pGrid.innerHTML = '';
+
+    rewards.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+            ${r.image ? `<img src="${r.image}" class="bar-item-img">` : '<div class="bar-item-img"></div>'}
+            <div class="bar-item-name">${r.name}</div>
+            <div class="bar-item-cost">${r.points} pts</div>
+        `;
+        item.onclick = () => toggleBarSelection(r, 'reward', item);
+        rGrid.appendChild(item);
+    });
+
+    products.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+            ${p.image ? `<img src="${p.image}" class="bar-item-img">` : '<div class="bar-item-img"></div>'}
+            <div class="bar-item-name">${p.name}</div>
+            <div class="bar-item-cost">Produit</div>
+        `;
+        item.onclick = () => toggleBarSelection(p, 'product', item);
+        pGrid.appendChild(item);
+    });
+}
+
+function toggleBarSelection(item, type, element) {
+    const list = type === 'reward' ? barSelection.rewards : barSelection.products;
+    const idx = list.findIndex(i => i.id === item.id);
+    
+    if (idx > -1) {
+        list.splice(idx, 1);
+        element.classList.remove('selected');
     } else {
-        document.getElementById('logged-flow').style.display = 'none';
-        document.getElementById('guest-flow').style.display = 'block';
+        list.push(item);
+        element.classList.add('selected');
     }
+    
+    updateBarTotal();
 }
 
-async function submitVerificationCode() {
-    const codeInput = document.getElementById('verification-code-input').value.trim().toUpperCase();
-    const userStr = localStorage.getItem('user');
-    const user = JSON.parse(userStr);
-    
-    if (codeInput !== user.code) {
-        alert("Code incorrect. Veuillez vérifier votre code dans la rubrique 'Mon Code'.");
-        return;
-    }
-    
-    const payload = {
-        name: "entree_barre",
-        value: "entree_barre.01",
-        scan_type: currentScanData.type,
-        club_name: currentScanData.club.name,
-        user_id: user.uuid,
-        user_name: user.name,
-        user_code: codeInput,
-        action: "add 1"
-    };
-    
-    try {
-        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        alert(`✅ Validé : Passage enregistré chez ${currentScanData.club.name} !`);
-        switchMainView('home');
-    } catch(e) {
-        console.error('Webhook error', e);
-        alert("Erreur lors de la validation. Réessayez.");
-    }
+function updateBarTotal() {
+    const total = barSelection.rewards.reduce((sum, r) => sum + r.points, 0);
+    document.getElementById('bar-total-points-cost').textContent = `${total} pts`;
 }
 
-async function handleNoCode() {
-    const payload = {
-        name: "entree_barre",
-        value: "entree_barre.01",
-        scan_type: currentScanData.type,
-        club_name: currentScanData.club.name,
-        action: "add 1"
-    };
+function generateBarmanCode() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) return;
+
+    document.getElementById('bar-order-area').style.display = 'none';
+    document.getElementById('bar-order-footer').style.display = 'none';
+    document.querySelector('#verify-bar-container .verify-club-header p').textContent = 'Code Commande';
     
+    const displayCode = document.getElementById('display-barman-code');
+    displayCode.textContent = user.code;
+    
+    document.getElementById('barman-code-display').style.display = 'block';
+    
+    // Optionally pre-send order to webhook so barman sees it instantly
+    sendBarOrderDraft(user.code);
+}
+
+async function sendBarOrderDraft(userCode) {
     try {
-        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/bar_order_draft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                action: 'draft_order',
+                club_name: currentScanData.clubName,
+                clientCode: userCode,
+                rewards: barSelection.rewards.map(r => r.name),
+                products: barSelection.products.map(p => p.name)
+            })
         });
-        alert(`✅ +1 Validé chez ${currentScanData.club.name} !\n\n👉 Créez un compte pour profiter de vos avantages.`);
-        switchMainView('home');
-        switchTab('signup');
-        document.getElementById('auth-screen').classList.add('active');
-        document.getElementById('dashboard-screen').classList.remove('active');
-    } catch(e) {
-        console.error('Webhook error', e);
-        switchMainView('home');
-    }
+    } catch(e) {}
 }
