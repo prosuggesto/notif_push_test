@@ -583,32 +583,41 @@ async function handleSaveTemplate(e) {
 
 async function proceedWithSave(btn, templateName) {
     btn.classList.add('loading');
-    
-    // Collect data
-    const newTemplate = {
-        id: 'ann_' + Date.now(),
+
+    const templateData = {
         image: document.getElementById('biz-club-image').value,
         name: document.getElementById('biz-club-name-hidden').value,
         insta: document.getElementById('biz-club-insta').value,
         description: document.getElementById('biz-club-desc').value,
         price: document.getElementById('biz-club-price').value,
-        partyName: templateName || document.getElementById('biz-party-name').value, // Use custom name
+        partyName: templateName || document.getElementById('biz-party-name').value,
         partyTheme: document.getElementById('biz-party-theme').value,
         timestamp: new Date().toISOString()
     };
 
-    // Fly animation first for visual punch
-    const previewCard = document.getElementById('annonces-preview-card');
-    if (previewCard) {
-        animateCardToGrid(previewCard);
+    if (editingTemplateId) {
+        // Update existing template in place
+        const idx = announcementTemplates.findIndex(t => t.id === editingTemplateId);
+        if (idx > -1) {
+            announcementTemplates[idx] = { ...announcementTemplates[idx], ...templateData };
+        }
+        editingTemplateId = null;
+    } else {
+        // Create new template
+        templateData.id = 'ann_' + Date.now();
+
+        const previewCard = document.getElementById('annonces-preview-card');
+        if (previewCard) {
+            animateCardToGrid(previewCard);
+        }
+
+        announcementTemplates.unshift(templateData);
     }
 
-    announcementTemplates.unshift(newTemplate);
-    
     if (currentBusiness) {
         currentBusiness.announcementTemplates = announcementTemplates;
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-        
+
         try {
             await handleSaveAnnonces();
         } catch (err) {
@@ -855,9 +864,13 @@ function renderTemplatesGrid() {
     `).join('');
 }
 
+let editingTemplateId = null;
+
 function loadAdminTemplate(id) {
     const tpl = announcementTemplates.find(t => t.id === id);
     if (!tpl) return;
+
+    editingTemplateId = id;
 
     // Fill the hidden inputs
     document.getElementById('biz-club-image').value = tpl.image || '';
@@ -870,7 +883,7 @@ function loadAdminTemplate(id) {
 
     // Refresh preview
     updateAnnoncesPreview();
-    
+
     // Save as draft to persist across refreshes
     saveAnnouncementDraft();
 
@@ -897,9 +910,9 @@ function inspireAdminTemplate(id) {
     const tpl = announcementTemplates.find(t => t.id === id);
     if (!tpl) return;
 
-    // Same as load but clearly for new inspiration
     loadAdminTemplate(id);
-    alert('Modification activée. Enregistrez pour créer un nouveau template à partir de celui-ci.');
+    editingTemplateId = null; // Clear so save creates a new template
+    showSaveToast();
 }
 
 function handleClubImageUpload(event) {
@@ -1526,15 +1539,18 @@ function deleteCalendarTemplate() {
 
 function deleteSelectedTemplates() {
     if (selectedDates.size === 0) return;
-    if (!confirm(`Supprimer les templates pour les ${selectedDates.size} jours sélectionnés ?`)) return;
-    
-    selectedDates.forEach(dateStr => {
-        delete bizSchedule[dateStr];
-    });
-    
-    selectedDates.clear();
-    saveBusinessData();
-    renderCalendar();
+    showConfirmModal(
+        'Supprimer la sélection ?',
+        `Supprimer les templates pour les ${selectedDates.size} jour${selectedDates.size > 1 ? 's' : ''} sélectionné${selectedDates.size > 1 ? 's' : ''} ?`,
+        () => {
+            selectedDates.forEach(dateStr => {
+                delete bizSchedule[dateStr];
+            });
+            selectedDates.clear();
+            saveBusinessData();
+            renderCalendar();
+        }
+    );
 }
 
 // ----- Calendar Template Picker (Double-click popup) -----
