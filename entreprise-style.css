@@ -1342,6 +1342,76 @@
     background: rgba(255, 255, 255, 0.02);
 }
 
+/* Category select row */
+.category-select-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-add-category {
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-light);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.btn-add-category:hover {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+/* Product filter bar */
+.product-filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.product-filter-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.product-filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.product-filter-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Product card category badge */
+.product-card-category {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary-light);
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
 /* Remove rogue icons in textareas */
 .biz-section textarea, 
 .biz-section input {

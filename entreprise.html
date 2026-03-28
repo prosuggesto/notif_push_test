@@ -322,13 +322,13 @@
                 <!-- Section: Produits -->
                 <section id="biz-section-produits" class="biz-section">
                     <div class="section-header" style="padding-left: 60px;">
-                        <h2>Mes Produits</h2>
+                        <h2>Créer un nouveau produit</h2>
                         <p>Gérez la carte de votre établissement.</p>
                     </div>
                     <div class="products-split-layout">
                         <div class="products-create-panel">
                             <div class="biz-card">
-                                <h3 style="margin-bottom:16px;">Créer un Produit</h3>
+                                <h3 style="margin-bottom:16px;">Nouveau Produit</h3>
                                 <div class="rew-image-upload product-image-upload" onclick="document.getElementById('product-image-input').click()">
                                     <input type="file" id="product-image-input" style="display:none" accept="image/*" onchange="handleProductImageUpload(event)">
                                     <div id="product-image-placeholder" class="rew-image-placeholder">
@@ -348,6 +348,18 @@
                                     <label>Description</label>
                                     <textarea id="product-desc" placeholder="Description du produit..." class="biz-textarea" style="min-height: 70px;"></textarea>
                                 </div>
+                                <div class="input-group" style="margin-top:12px;">
+                                    <label>Catégorie</label>
+                                    <div class="category-select-row">
+                                        <select id="product-category" class="biz-textarea" style="flex:1;">
+                                            <option value="">-- Choisir --</option>
+                                            <option value="Soft">Soft</option>
+                                            <option value="Alcool">Alcool</option>
+                                            <option value="Snacks">Snacks</option>
+                                        </select>
+                                        <button type="button" class="btn-add-category" onclick="addNewProductCategory()">+ Nouvelle</button>
+                                    </div>
+                                </div>
                                 <button class="btn-primary" style="margin-top:20px; width:100%;" onclick="handleCreateProduct()">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                                     Créer le produit
@@ -360,6 +372,10 @@
                             <div class="section-header" style="text-align: center;">
                                 <h3 class="card-title">Mes Produits</h3>
                                 <p class="text-dim" style="font-size: 13px;">Gérez les produits de votre établissement.</p>
+                            </div>
+                            <div class="product-filter-bar">
+                                <button class="product-filter-btn active" onclick="filterProducts('all')">Tous</button>
+                                <div id="product-category-filters"></div>
                             </div>
                             <div id="biz-products-grid" class="rewards-grid">
                                 <!-- Products dynamically added here -->

@@ -2639,45 +2639,81 @@ function showBusinessDashboard() {
 
 // ----- Products Management -----
 let bizProducts = [];
+let editingProductId = null;
+let productFilterCategory = 'all';
 
 function handleCreateProduct() {
     const name = document.getElementById('product-name').value;
     const price = document.getElementById('product-price').value;
     const desc = document.getElementById('product-desc').value;
+    const category = document.getElementById('product-category').value;
     const image = document.getElementById('product-image-input-hidden')?.value || '';
 
     if (!name || !price) {
-        alert('Veuillez remplir au moins le nom et le prix.');
+        showConfirmModal('Champs requis', 'Veuillez remplir au moins le nom et le prix.', () => {});
         return;
     }
 
-    const product = {
-        id: 'prod_' + Date.now(),
-        name,
-        price,
-        desc,
-        image
-    };
+    if (editingProductId) {
+        const idx = bizProducts.findIndex(p => p.id === editingProductId);
+        if (idx > -1) {
+            bizProducts[idx] = { ...bizProducts[idx], name, price, desc, category, image: image || bizProducts[idx].image };
+        }
+        editingProductId = null;
+    } else {
+        const product = { id: 'prod_' + Date.now(), name, price, desc, category, image };
+        bizProducts.push(product);
+    }
 
-    bizProducts.push(product);
     if (currentBusiness) {
         currentBusiness.products = bizProducts;
         saveBusinessData();
     }
 
     renderProductsList();
-    
-    // Reset form
+    resetProductForm();
+    showSaveToast();
+}
+
+function resetProductForm() {
     document.getElementById('product-name').value = '';
     document.getElementById('product-price').value = '';
     document.getElementById('product-desc').value = '';
+    document.getElementById('product-category').value = '';
+    editingProductId = null;
+    const hiddenInput = document.getElementById('product-image-input-hidden');
+    if (hiddenInput) hiddenInput.value = '';
     const placeholder = document.getElementById('product-image-placeholder');
     if (placeholder) {
         placeholder.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Ajouter une image</span>`;
         placeholder.classList.remove('has-image');
     }
-    
-    showSaveToast();
+}
+
+function loadProductForEdit(id) {
+    const p = bizProducts.find(x => x.id === id);
+    if (!p) return;
+    editingProductId = id;
+    document.getElementById('product-name').value = p.name || '';
+    document.getElementById('product-price').value = p.price || '';
+    document.getElementById('product-desc').value = p.desc || '';
+    document.getElementById('product-category').value = p.category || '';
+    if (p.image) {
+        let hiddenInput = document.getElementById('product-image-input-hidden');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'product-image-input-hidden';
+            document.body.appendChild(hiddenInput);
+        }
+        hiddenInput.value = p.image;
+        const placeholder = document.getElementById('product-image-placeholder');
+        if (placeholder) {
+            placeholder.classList.add('has-image');
+            placeholder.innerHTML = `<img src="${p.image}" style="width:100%; height:120px; object-fit:cover;">`;
+        }
+    }
+    document.querySelector('.products-create-panel')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function handleProductImageUpload(event) {
@@ -2685,7 +2721,6 @@ function handleProductImageUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        // We need a hidden input for the product image too, or just store it in a variable
         let hiddenInput = document.getElementById('product-image-input-hidden');
         if (!hiddenInput) {
             hiddenInput = document.createElement('input');
@@ -2694,34 +2729,80 @@ function handleProductImageUpload(event) {
             document.body.appendChild(hiddenInput);
         }
         hiddenInput.value = e.target.result;
-
         const placeholder = document.getElementById('product-image-placeholder');
         if (placeholder) {
             placeholder.classList.add('has-image');
-            placeholder.innerHTML = `<img src="${e.target.result}" style="width:100%; height:160px; object-fit:cover;">`;
+            placeholder.innerHTML = `<img src="${e.target.result}" style="width:100%; height:120px; object-fit:cover;">`;
         }
     };
     reader.readAsDataURL(file);
+}
+
+function addNewProductCategory() {
+    showPromptModal('Nouvelle catégorie', 'Entrez le nom de la nouvelle catégorie :', (catName) => {
+        const select = document.getElementById('product-category');
+        const exists = Array.from(select.options).some(o => o.value.toLowerCase() === catName.toLowerCase());
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = catName;
+            opt.textContent = catName;
+            select.appendChild(opt);
+        }
+        select.value = catName;
+        renderProductCategoryFilters();
+    });
+}
+
+function filterProducts(category) {
+    productFilterCategory = category;
+    document.querySelectorAll('.product-filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    renderProductsList();
+}
+
+function renderProductCategoryFilters() {
+    const container = document.getElementById('product-category-filters');
+    if (!container) return;
+    const categories = [...new Set(bizProducts.map(p => p.category).filter(Boolean))];
+    // Also include categories from the select dropdown
+    const select = document.getElementById('product-category');
+    if (select) {
+        Array.from(select.options).forEach(o => {
+            if (o.value && !categories.includes(o.value)) categories.push(o.value);
+        });
+    }
+    container.innerHTML = categories.map(c =>
+        `<button class="product-filter-btn ${productFilterCategory === c ? 'active' : ''}" onclick="filterProducts('${c}')">${c}</button>`
+    ).join('');
 }
 
 function renderProductsList() {
     const grid = document.getElementById('biz-products-grid');
     if (!grid) return;
 
-    if (bizProducts.length === 0) {
-        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun produit créé.</p>';
+    renderProductCategoryFilters();
+
+    let filtered = bizProducts;
+    if (productFilterCategory !== 'all') {
+        filtered = bizProducts.filter(p => p.category === productFilterCategory);
+    }
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? 'Aucun produit dans cette catégorie.' : 'Aucun produit créé.'}</p>`;
         return;
     }
 
-    grid.innerHTML = bizProducts.map(p => `
+    grid.innerHTML = filtered.map(p => `
         <div class="product-card">
             <div class="product-card-image" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300'}')"></div>
             <div class="product-card-body">
                 <div class="product-card-name">${p.name}</div>
                 <div class="product-card-price">${p.price}</div>
+                ${p.category ? `<span class="product-card-category">${p.category}</span>` : ''}
                 <div class="product-card-desc">${p.desc || ''}</div>
                 <div class="product-card-actions">
-                    <button class="btn-mini btn-delete" style="width: 100%;" onclick="deleteProduct('${p.id}')">Supprimer</button>
+                    <button class="btn-mini btn-edit" onclick="loadProductForEdit('${p.id}')">Modifier</button>
+                    <button class="btn-mini btn-delete" onclick="deleteProduct('${p.id}')">Supprimer</button>
                 </div>
             </div>
         </div>
@@ -2729,9 +2810,10 @@ function renderProductsList() {
 }
 
 function deleteProduct(id) {
-    if (!confirm('Supprimer ce produit ?')) return;
-    bizProducts = bizProducts.filter(p => p.id !== id);
-    if (currentBusiness) currentBusiness.products = bizProducts;
-    saveBusinessData();
-    renderProductsList();
+    showConfirmModal('Supprimer ce produit ?', 'Cette action est irréversible.', () => {
+        bizProducts = bizProducts.filter(p => p.id !== id);
+        if (currentBusiness) currentBusiness.products = bizProducts;
+        saveBusinessData();
+        renderProductsList();
+    });
 }
