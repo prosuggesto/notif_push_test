@@ -744,6 +744,28 @@
     animation: fadeIn 0.3s ease;
 }
 
+.gcal-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: fadeIn 0.3s ease;
+}
+
+.gcal-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: #f87171;
+}
+
 .gcal-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);

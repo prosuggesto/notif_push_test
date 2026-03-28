@@ -1366,26 +1366,23 @@ function renderCalendar() {
             cell.appendChild(eventEl);
         }
         
-        // Click = select or preview, DblClick = open picker
+        // Single click = toggle selection, Double click = preview or picker
         cell.addEventListener('click', (e) => {
             e.preventDefault();
             if (calClickTimeout) {
                 clearTimeout(calClickTimeout);
                 calClickTimeout = null;
                 // Double click
-                handleCalendarDblClick(dateStr);
+                if (bizSchedule[dateStr]) {
+                    openCalPreview(dateStr);
+                } else {
+                    handleCalendarDblClick(dateStr);
+                }
                 return;
             }
             calClickTimeout = setTimeout(() => {
                 calClickTimeout = null;
-                // Single Click Logic:
-                // If the date has a template -> Open Preview
-                // If not -> Toggle Selection
-                if (bizSchedule[dateStr]) {
-                    openCalPreview(dateStr);
-                } else {
-                    toggleDateSelection(dateStr);
-                }
+                toggleDateSelection(dateStr);
             }, 250);
         });
         
@@ -1407,12 +1404,15 @@ function renderCalendar() {
 
 function updateCalendarSelectionBadge() {
     const badge = document.getElementById('gcal-selected-count');
+    const deleteBtn = document.getElementById('gcal-delete-selected');
     if (!badge) return;
     if (selectedDates.size > 0) {
         badge.style.display = 'inline-block';
         badge.textContent = `${selectedDates.size} sélectionné${selectedDates.size > 1 ? 's' : ''}`;
+        if (deleteBtn) deleteBtn.style.display = 'inline-flex';
     } else {
         badge.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
     }
 }
 
