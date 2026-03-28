@@ -321,14 +321,13 @@
 
                 <!-- Section: Produits -->
                 <section id="biz-section-produits" class="biz-section">
-                    <div class="section-header" style="padding-left: 60px;">
-                        <h2>Créer un nouveau produit</h2>
-                        <p>Gérez la carte de votre établissement.</p>
-                    </div>
                     <div class="products-split-layout">
                         <div class="products-create-panel">
+                            <div class="products-panel-header">
+                                <h3>Créer un nouveau produit</h3>
+                                <p class="text-dim">Ajoutez un produit à votre carte.</p>
+                            </div>
                             <div class="biz-card">
-                                <h3 style="margin-bottom:16px;">Nouveau Produit</h3>
                                 <div class="rew-image-upload product-image-upload" onclick="document.getElementById('product-image-input').click()">
                                     <input type="file" id="product-image-input" style="display:none" accept="image/*" onchange="handleProductImageUpload(event)">
                                     <div id="product-image-placeholder" class="rew-image-placeholder">
@@ -351,12 +350,14 @@
                                 <div class="input-group" style="margin-top:12px;">
                                     <label>Catégorie</label>
                                     <div class="category-select-row">
-                                        <select id="product-category" class="biz-textarea" style="flex:1;">
-                                            <option value="">-- Choisir --</option>
-                                            <option value="Soft">Soft</option>
-                                            <option value="Alcool">Alcool</option>
-                                            <option value="Snacks">Snacks</option>
-                                        </select>
+                                        <div class="liquid-glass-select-wrap" style="flex:1;">
+                                            <select id="product-category" class="liquid-glass-select" style="width:100%;">
+                                                <option value="">-- Choisir --</option>
+                                                <option value="Soft">Soft</option>
+                                                <option value="Alcool">Alcool</option>
+                                                <option value="Snacks">Snacks</option>
+                                            </select>
+                                        </div>
                                         <button type="button" class="btn-add-category" onclick="addNewProductCategory()">+ Nouvelle</button>
                                     </div>
                                 </div>
@@ -369,13 +370,19 @@
 
                         <!-- Right: Products Grid -->
                         <div class="rewards-list-panel">
-                            <div class="section-header" style="text-align: center;">
-                                <h3 class="card-title">Mes Produits</h3>
-                                <p class="text-dim" style="font-size: 13px;">Gérez les produits de votre établissement.</p>
+                            <div class="products-panel-header">
+                                <h3>Mes Produits</h3>
+                                <p class="text-dim">Gérez les produits de votre établissement.</p>
                             </div>
                             <div class="product-filter-bar">
-                                <button class="product-filter-btn active" onclick="filterProducts('all')">Tous</button>
-                                <div id="product-category-filters"></div>
+                                <div class="liquid-glass-select-wrap">
+                                    <select id="product-filter-select" class="liquid-glass-select" onchange="filterProducts(this.value)">
+                                        <option value="all">Toutes les catégories</option>
+                                        <option value="Soft">Soft</option>
+                                        <option value="Alcool">Alcool</option>
+                                        <option value="Snacks">Snacks</option>
+                                    </select>
+                                </div>
                             </div>
                             <div id="biz-products-grid" class="rewards-grid">
                                 <!-- Products dynamically added here -->

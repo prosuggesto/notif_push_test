@@ -1291,13 +1291,39 @@
 }
 
 .products-create-panel {
-    flex: 0 0 380px;
-    position: sticky;
-    top: 20px;
+    flex: 1;
+    min-width: 0;
+}
+
+.products-split-layout .rewards-list-panel {
+    flex: 1;
+    min-width: 0;
+}
+
+.products-panel-header {
+    padding-left: 60px;
+    margin-bottom: 20px;
+}
+
+.products-panel-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.products-panel-header p {
+    font-size: 13px;
+}
+
+@media (min-width: 1025px) {
+    .products-panel-header {
+        padding-left: 0;
+    }
 }
 
 .products-create-panel .biz-card {
-    max-width: 380px;
+    max-width: 420px;
 }
 
 .product-image-upload {
@@ -1319,11 +1345,7 @@
     .products-create-panel,
     .products-split-layout .rewards-list-panel {
         width: 100%;
-        max-width: 500px;
-    }
-    .products-create-panel {
-        flex: none;
-        position: static;
+        max-width: 600px;
     }
     .products-create-panel .biz-card {
         max-width: 100%;
@@ -1369,35 +1391,7 @@
 
 /* Product filter bar */
 .product-filter-bar {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
     margin-bottom: 20px;
-    align-items: center;
-}
-
-.product-filter-btn {
-    padding: 6px 16px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-dim);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.product-filter-btn.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
-
-.product-filter-btn:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Product card category badge */
@@ -1612,6 +1606,12 @@
     appearance: none;
     -webkit-appearance: none;
     width: 180px;
+}
+
+.liquid-glass-select option {
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 8px 12px;
 }
 
 .liquid-glass-select-wrap::after {

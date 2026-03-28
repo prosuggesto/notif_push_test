@@ -2755,25 +2755,32 @@ function addNewProductCategory() {
 
 function filterProducts(category) {
     productFilterCategory = category;
-    document.querySelectorAll('.product-filter-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
     renderProductsList();
 }
 
 function renderProductCategoryFilters() {
-    const container = document.getElementById('product-category-filters');
-    if (!container) return;
+    const filterSelect = document.getElementById('product-filter-select');
+    const createSelect = document.getElementById('product-category');
+    if (!filterSelect) return;
+
+    // Collect all categories from products + create dropdown
     const categories = [...new Set(bizProducts.map(p => p.category).filter(Boolean))];
-    // Also include categories from the select dropdown
-    const select = document.getElementById('product-category');
-    if (select) {
-        Array.from(select.options).forEach(o => {
+    if (createSelect) {
+        Array.from(createSelect.options).forEach(o => {
             if (o.value && !categories.includes(o.value)) categories.push(o.value);
         });
     }
-    container.innerHTML = categories.map(c =>
-        `<button class="product-filter-btn ${productFilterCategory === c ? 'active' : ''}" onclick="filterProducts('${c}')">${c}</button>`
-    ).join('');
+
+    // Rebuild filter dropdown options
+    const currentVal = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">Toutes les catégories</option>';
+    categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        filterSelect.appendChild(opt);
+    });
+    filterSelect.value = currentVal;
 }
 
 function renderProductsList() {
