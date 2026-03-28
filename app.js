@@ -2641,12 +2641,57 @@ function showBusinessDashboard() {
 let bizProducts = [];
 let editingProductId = null;
 let productFilterCategory = 'all';
+let selectedProductCategory = 'Soft';
+
+// Custom select toggle
+function toggleCustomSelect(wrapperId) {
+    const wrapper = document.getElementById(wrapperId);
+    if (!wrapper) return;
+    // Close all other open selects
+    document.querySelectorAll('.custom-select-wrapper.active').forEach(w => {
+        if (w.id !== wrapperId) w.classList.remove('active');
+    });
+    wrapper.classList.toggle('active');
+}
+
+// Close custom selects on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-wrapper.active').forEach(w => w.classList.remove('active'));
+    }
+});
+
+function selectProductCategory(val) {
+    selectedProductCategory = val;
+    const valueEl = document.getElementById('product-category-value');
+    if (valueEl) valueEl.textContent = val;
+    const wrapper = document.getElementById('product-category-wrapper');
+    if (wrapper) {
+        wrapper.classList.remove('active');
+        wrapper.querySelectorAll('.select-option').forEach(o => {
+            o.classList.toggle('selected', o.dataset.value === val);
+        });
+    }
+}
+
+function selectProductFilter(val) {
+    const valueEl = document.getElementById('product-filter-value');
+    if (valueEl) valueEl.textContent = val === 'all' ? 'Toutes les catégories' : val;
+    const wrapper = document.getElementById('product-filter-wrapper');
+    if (wrapper) {
+        wrapper.classList.remove('active');
+        wrapper.querySelectorAll('.select-option').forEach(o => {
+            o.classList.toggle('selected', o.dataset.value === val);
+        });
+    }
+    filterProducts(val);
+}
 
 function handleCreateProduct() {
     const name = document.getElementById('product-name').value;
     const price = document.getElementById('product-price').value;
     const desc = document.getElementById('product-desc').value;
-    const category = document.getElementById('product-category').value;
+    const category = selectedProductCategory;
     const image = document.getElementById('product-image-input-hidden')?.value || '';
 
     if (!name || !price) {
@@ -2679,7 +2724,7 @@ function resetProductForm() {
     document.getElementById('product-name').value = '';
     document.getElementById('product-price').value = '';
     document.getElementById('product-desc').value = '';
-    document.getElementById('product-category').value = 'Soft';
+    selectProductCategory('Soft');
     editingProductId = null;
     const hiddenInput = document.getElementById('product-image-input-hidden');
     if (hiddenInput) hiddenInput.value = '';
@@ -2697,7 +2742,7 @@ function loadProductForEdit(id) {
     document.getElementById('product-name').value = p.name || '';
     document.getElementById('product-price').value = p.price || '';
     document.getElementById('product-desc').value = p.desc || '';
-    document.getElementById('product-category').value = p.category || '';
+    selectProductCategory(p.category || 'Soft');
     if (p.image) {
         let hiddenInput = document.getElementById('product-image-input-hidden');
         if (!hiddenInput) {
@@ -2740,15 +2785,18 @@ function handleProductImageUpload(event) {
 
 function addNewProductCategory() {
     showPromptModal('Nouvelle catégorie', 'Entrez le nom de la nouvelle catégorie :', (catName) => {
-        const select = document.getElementById('product-category');
-        const exists = Array.from(select.options).some(o => o.value.toLowerCase() === catName.toLowerCase());
+        const optionsContainer = document.getElementById('product-category-options');
+        if (!optionsContainer) return;
+        const exists = Array.from(optionsContainer.querySelectorAll('.select-option')).some(o => o.dataset.value.toLowerCase() === catName.toLowerCase());
         if (!exists) {
-            const opt = document.createElement('option');
-            opt.value = catName;
+            const opt = document.createElement('div');
+            opt.className = 'select-option';
+            opt.dataset.value = catName;
             opt.textContent = catName;
-            select.appendChild(opt);
+            opt.onclick = () => selectProductCategory(catName);
+            optionsContainer.appendChild(opt);
         }
-        select.value = catName;
+        selectProductCategory(catName);
         renderProductCategoryFilters();
     });
 }
@@ -2759,28 +2807,29 @@ function filterProducts(category) {
 }
 
 function renderProductCategoryFilters() {
-    const filterSelect = document.getElementById('product-filter-select');
-    const createSelect = document.getElementById('product-category');
-    if (!filterSelect) return;
+    const filterOptions = document.getElementById('product-filter-options');
+    const createOptions = document.getElementById('product-category-options');
+    if (!filterOptions) return;
 
     // Collect all categories from products + create dropdown
     const categories = [...new Set(bizProducts.map(p => p.category).filter(Boolean))];
-    if (createSelect) {
-        Array.from(createSelect.options).forEach(o => {
-            if (o.value && !categories.includes(o.value)) categories.push(o.value);
+    if (createOptions) {
+        createOptions.querySelectorAll('.select-option').forEach(o => {
+            if (o.dataset.value && !categories.includes(o.dataset.value)) categories.push(o.dataset.value);
         });
     }
 
-    // Rebuild filter dropdown options
-    const currentVal = filterSelect.value;
-    filterSelect.innerHTML = '<option value="all">Toutes les catégories</option>';
+    // Rebuild filter dropdown
+    const currentVal = productFilterCategory;
+    filterOptions.innerHTML = '<div class="select-option' + (currentVal === 'all' ? ' selected' : '') + '" data-value="all" onclick="selectProductFilter(\'all\')">Toutes les catégories</div>';
     categories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
+        const opt = document.createElement('div');
+        opt.className = 'select-option' + (currentVal === c ? ' selected' : '');
+        opt.dataset.value = c;
         opt.textContent = c;
-        filterSelect.appendChild(opt);
+        opt.onclick = () => selectProductFilter(c);
+        filterOptions.appendChild(opt);
     });
-    filterSelect.value = currentVal;
 }
 
 function renderProductsList() {

@@ -350,12 +350,16 @@
                                 <div class="input-group" style="margin-top:12px;">
                                     <label>Catégorie</label>
                                     <div class="category-select-row">
-                                        <div class="liquid-glass-select-wrap" style="flex:1;">
-                                            <select id="product-category" class="liquid-glass-select" style="width:100%;">
-                                                <option value="Soft">Soft</option>
-                                                <option value="Alcool">Alcool</option>
-                                                <option value="Snacks">Snacks</option>
-                                            </select>
+                                        <div class="custom-select-wrapper" id="product-category-wrapper" style="flex:1;">
+                                            <div class="select-trigger" onclick="toggleCustomSelect('product-category-wrapper')">
+                                                <span class="select-value" id="product-category-value">Soft</span>
+                                                <span class="dropdown-arrow">▼</span>
+                                            </div>
+                                            <div class="select-options" id="product-category-options">
+                                                <div class="select-option selected" data-value="Soft" onclick="selectProductCategory('Soft')">Soft</div>
+                                                <div class="select-option" data-value="Alcool" onclick="selectProductCategory('Alcool')">Alcool</div>
+                                                <div class="select-option" data-value="Snacks" onclick="selectProductCategory('Snacks')">Snacks</div>
+                                            </div>
                                         </div>
                                         <button type="button" class="btn-add-category" onclick="addNewProductCategory()">+ Nouvelle</button>
                                     </div>
@@ -374,13 +378,17 @@
                                 <p class="text-dim">Gérez les produits de votre établissement.</p>
                             </div>
                             <div class="product-filter-bar">
-                                <div class="liquid-glass-select-wrap">
-                                    <select id="product-filter-select" class="liquid-glass-select" onchange="filterProducts(this.value)">
-                                        <option value="all">Toutes les catégories</option>
-                                        <option value="Soft">Soft</option>
-                                        <option value="Alcool">Alcool</option>
-                                        <option value="Snacks">Snacks</option>
-                                    </select>
+                                <div class="custom-select-wrapper" id="product-filter-wrapper">
+                                    <div class="select-trigger" onclick="toggleCustomSelect('product-filter-wrapper')">
+                                        <span class="select-value" id="product-filter-value">Toutes les catégories</span>
+                                        <span class="dropdown-arrow">▼</span>
+                                    </div>
+                                    <div class="select-options" id="product-filter-options">
+                                        <div class="select-option selected" data-value="all" onclick="selectProductFilter('all')">Toutes les catégories</div>
+                                        <div class="select-option" data-value="Soft" onclick="selectProductFilter('Soft')">Soft</div>
+                                        <div class="select-option" data-value="Alcool" onclick="selectProductFilter('Alcool')">Alcool</div>
+                                        <div class="select-option" data-value="Snacks" onclick="selectProductFilter('Snacks')">Snacks</div>
+                                    </div>
                                 </div>
                             </div>
                             <div id="biz-products-grid" class="rewards-grid">

@@ -1400,6 +1400,21 @@
     background: rgba(99, 102, 241, 0.25);
 }
 
+/* Product custom selects override */
+#biz-section-produits .select-trigger {
+    padding: 0 40px 0 16px !important;
+    min-height: 44px;
+}
+
+#biz-section-produits .custom-select-wrapper {
+    position: relative;
+    z-index: 100;
+}
+
+#biz-section-produits .select-options {
+    z-index: 200;
+}
+
 /* Product filter bar */
 .product-filter-bar {
     margin-bottom: 20px;
