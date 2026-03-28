@@ -2852,9 +2852,11 @@ function renderProductsList() {
         <div class="product-card">
             <div class="product-card-image" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300'}')"></div>
             <div class="product-card-body">
-                <div class="product-card-name">${p.name}</div>
+                <div class="product-card-name-row">
+                    <span class="product-card-name">${p.name}</span>
+                    ${p.category ? `<span class="product-card-category">${p.category}</span>` : ''}
+                </div>
                 <div class="product-card-price">${p.price}</div>
-                ${p.category ? `<span class="product-card-category">${p.category}</span>` : ''}
                 <div class="product-card-desc">${p.desc || ''}</div>
                 <div class="product-card-actions">
                     <button class="btn-mini btn-edit" onclick="loadProductForEdit('${p.id}')">Modifier</button>
