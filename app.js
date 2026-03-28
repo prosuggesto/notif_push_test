@@ -1801,7 +1801,7 @@ function loadBusinessData() {
 
 // Check business session on load
 window.addEventListener('load', () => {
-    if (isBusinessView && currentBusiness) {
+    if (document.body.classList.contains('view-entreprise') && currentBusiness) {
         showBusinessDashboard();
     }
 });
@@ -1908,6 +1908,10 @@ function handleLogout() {
 
 // ===== CHECK SESSION ON LOAD =====
 window.addEventListener('DOMContentLoaded', () => {
+    // Only run fetard-specific init on fetard view
+    const isBusinessView = document.body.classList.contains('view-entreprise');
+    if (isBusinessView) return;
+
     // Initialize filters data
     initFilters();
 
@@ -2188,9 +2192,10 @@ function initFilters() {
     const cities = [...new Set(nightclubs.map(c => c.city))];
     const regions = [...new Set(nightclubs.map(c => c.region))];
     const countries = [...new Set(nightclubs.map(c => c.country))];
-    
+
     const populate = (id, items) => {
         const el = document.getElementById(id);
+        if (!el) return;
         items.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item;
@@ -2198,7 +2203,7 @@ function initFilters() {
             el.appendChild(opt);
         });
     };
-    
+
     populate('filter-city', cities);
     populate('filter-region', regions);
     populate('filter-country', countries);
