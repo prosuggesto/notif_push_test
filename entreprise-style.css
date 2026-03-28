@@ -1287,26 +1287,31 @@
     display: flex;
     gap: 48px;
     align-items: flex-start;
+    justify-content: center;
     padding: 20px 0;
+    max-width: 1000px;
+    margin: 0 auto;
 }
 
 .products-create-panel {
     flex: 1;
     min-width: 0;
+    max-width: 420px;
 }
 
 .products-split-layout .rewards-list-panel {
     flex: 1;
     min-width: 0;
+    max-width: 420px;
 }
 
 .products-panel-header {
-    padding-left: 60px;
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .products-panel-header h3 {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: #fff;
     margin-bottom: 4px;
@@ -1316,14 +1321,9 @@
     font-size: 13px;
 }
 
-@media (min-width: 1025px) {
-    .products-panel-header {
-        padding-left: 0;
-    }
-}
-
 .products-create-panel .biz-card {
     max-width: 420px;
+    margin: 0 auto;
 }
 
 .product-image-upload {
@@ -1336,7 +1336,7 @@
     height: 120px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
     .products-split-layout {
         flex-direction: column;
         align-items: center;
@@ -1345,7 +1345,7 @@
     .products-create-panel,
     .products-split-layout .rewards-list-panel {
         width: 100%;
-        max-width: 600px;
+        max-width: 420px;
     }
     .products-create-panel .biz-card {
         max-width: 100%;
@@ -1383,6 +1383,9 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
 }
 
 .btn-add-category:hover {

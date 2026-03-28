@@ -2679,7 +2679,7 @@ function resetProductForm() {
     document.getElementById('product-name').value = '';
     document.getElementById('product-price').value = '';
     document.getElementById('product-desc').value = '';
-    document.getElementById('product-category').value = '';
+    document.getElementById('product-category').value = 'Soft';
     editingProductId = null;
     const hiddenInput = document.getElementById('product-image-input-hidden');
     if (hiddenInput) hiddenInput.value = '';
