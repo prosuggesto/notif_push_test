@@ -233,45 +233,6 @@ function toggleSidebar() {
     }
 }
 
-function switchBizSection(sectionId) {
-    const sections = document.querySelectorAll('.biz-section');
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    sections.forEach(s => {
-        s.classList.remove('active');
-        s.style.display = 'none'; 
-        if (s.id === `biz-section-${sectionId}`) {
-            s.classList.add('active');
-        s.style.display = 'block'; 
-        }
-    });
-    
-    navItems.forEach(item => {
-        const onClickAttr = item.getAttribute('onclick') || '';
-        if (onClickAttr.includes(`'${sectionId}'`)) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-
-    // Auto-initialize section data if needed
-    if (sectionId === 'produits') {
-        renderProductsList();
-    } else if (sectionId === 'qrcodes') {
-        generateBusinessQRCodes();
-    }
-
-    // Auto-Close Sidebar on selection (Universal)
-    const sidebar = document.querySelector('.sidebar');
-    const burger = document.getElementById('sidebar-toggle');
-    const overlay = document.querySelector('.sidebar-overlay');
-    
-    sidebar?.classList.remove('active');
-    burger?.classList.remove('active');
-    overlay?.classList.remove('active');
-}
-
 function handleBusinessLogout() {
     localStorage.removeItem('businessUser');
     document.body.classList.remove('logged-in-biz');
@@ -1483,12 +1444,70 @@ function openCalPreview(dateStr) {
 
     calPreviewDate = dateStr;
     const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
-    
-    document.getElementById('cal-preview-title').textContent = template ? (template.partyName || template.name) : 'Soirée';
-    document.getElementById('cal-preview-date').textContent = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    document.getElementById('cal-preview-image').style.backgroundImage = template ? `url(${template.image})` : '';
-    document.getElementById('cal-preview-theme').textContent = template ? (template.partyTheme || '') : '';
-    
+    if (!template) return;
+
+    const clubName = template.name || (currentBusiness ? currentBusiness.name : 'Mon Club');
+    const image = template.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
+    const desc = template.description || 'Aucune description fournie.';
+    const insta = template.insta || '@votreclub';
+    const price = template.price || '20€';
+    const partyName = template.partyName || template.name || 'Soirée Spéciale';
+    const partyTheme = template.partyTheme || template.theme || 'Ambiance & Cocktails';
+    const dateLabel = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    const stats = { vibe: 'TRENDY', count: 110, men: 45, women: 40, nb: 15 };
+
+    const cardContainer = document.getElementById('cal-preview-card');
+    cardContainer.innerHTML = `
+        <div class="modal-club-hero" style="background-image: url('${image}')">
+            <div class="hero-overlay">
+                <span class="vibe-badge">${stats.vibe}</span>
+            </div>
+            <div class="club-hero-name">${clubName}</div>
+        </div>
+        <div class="modal-content-inner">
+            <div class="detail-section">
+                <h4>À propos de l'établissement</h4>
+                <p class="text-dim">${desc}</p>
+                <div class="insta-link-wrapper">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    <span>${insta}</span>
+                </div>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Entrée</span>
+                    <span class="detail-val">${price}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Public (Live)</span>
+                    <span class="detail-val">${stats.count} pers.</span>
+                </div>
+            </div>
+            <div class="gender-breakdown" style="padding: 0;">
+                <div class="gender-bar">
+                    <div class="bar-segment men" style="width: ${stats.men}%"></div>
+                    <div class="bar-segment women" style="width: ${stats.women}%"></div>
+                    <div class="bar-segment nb" style="width: ${stats.nb}%"></div>
+                </div>
+                <div class="gender-labels">
+                    <span>♂ ${stats.men}%</span>
+                    <span>♀ ${stats.women}%</span>
+                    <span>⚧ ${stats.nb}%</span>
+                </div>
+            </div>
+            <hr class="modal-hr">
+            <div class="detail-section">
+                <div class="theme-header">
+                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <h4>${partyName}</h4>
+                </div>
+                <p class="text-small">${partyTheme}</p>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('cal-preview-date-label').textContent = dateLabel;
     document.getElementById('cal-preview-modal').classList.add('active');
 }
 
@@ -2571,9 +2590,15 @@ function toggleSidebar() {
 function showBusinessDashboard() {
     const authScreen = document.getElementById('business-auth-screen');
     const dashboardScreen = document.getElementById('business-dashboard-screen');
-    
-    if (authScreen) authScreen.classList.remove('active');
-    if (dashboardScreen) dashboardScreen.classList.add('active');
+
+    if (authScreen) {
+        authScreen.classList.remove('active');
+        authScreen.style.display = 'none';
+    }
+    if (dashboardScreen) {
+        dashboardScreen.classList.add('active');
+        dashboardScreen.style.display = 'block';
+    }
     
     if (currentBusiness) {
         document.getElementById('biz-club-name').textContent = currentBusiness.name || currentBusiness.nom || 'Club';
