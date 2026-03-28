@@ -2572,6 +2572,7 @@ function switchBizSection(sectionId) {
         });
 
         // Initialize section data if needed
+        if (sectionId === 'annonces') initAnnouncementEditor();
         if (sectionId === 'calendrier') renderCalendar();
         if (sectionId === 'stats') updateStats();
         if (sectionId === 'qrcodes') generateBusinessQRCodes();
