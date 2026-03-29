@@ -2181,3 +2181,70 @@ input[type="number"] {
     font-size: 12px;
     color: var(--text-dim);
 }
+
+/* ===== BARMAN ORDER VIEW ===== */
+.barman-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.barman-badge {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+
+.barman-header h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.barman-client-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.barman-client-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.barman-client-row:not(:last-child) {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.barman-client-row span {
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+.barman-client-row strong {
+    font-size: 16px;
+    color: #fff;
+}
+
+.barman-validate-btn {
+    width: 100%;
+    padding: 18px !important;
+    font-size: 18px !important;
+    border-radius: 14px !important;
+    margin-top: 8px;
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    border: none;
+    font-weight: 700;
+}
+
+.barman-validate-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d) !important;
+}
+
+.barman-validate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

@@ -517,9 +517,80 @@
                     </div>
 
                 </div>
-            </div>
-        </main>
-    </div>
+
+                <!-- 3. BARMAN ORDER VALIDATION -->
+                <div id="verify-barman-container" class="verify-card kiosk-view" style="display: none; max-width: 600px;">
+
+                    <!-- Barman: Order Review -->
+                    <div id="barman-review-page">
+                        <div class="barman-header">
+                            <div class="barman-badge">&#x1F9FE;</div>
+                            <h3>Validation Commande</h3>
+                            <p id="barman-club-name" class="kiosk-club-name"></p>
+                        </div>
+
+                        <!-- Client Info -->
+                        <div class="barman-client-card">
+                            <div class="barman-client-row">
+                                <span>Client</span>
+                                <strong id="barman-client-name">-</strong>
+                            </div>
+                            <div class="barman-client-row">
+                                <span>Code</span>
+                                <strong id="barman-client-code" style="color: var(--primary-light);">-</strong>
+                            </div>
+                        </div>
+
+                        <!-- Rewards -->
+                        <div id="barman-rewards-section" class="kiosk-summary-section" style="display: none;">
+                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <div id="barman-rewards-list" class="kiosk-summary-list"></div>
+                            <div class="kiosk-summary-subtotal">
+                                <span>Points déduits</span>
+                                <strong id="barman-rewards-pts">0 pts</strong>
+                            </div>
+                        </div>
+
+                        <!-- Products -->
+                        <div id="barman-products-section" class="kiosk-summary-section" style="display: none;">
+                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <div id="barman-products-list" class="kiosk-summary-list"></div>
+                            <div class="kiosk-summary-subtotal">
+                                <span>Sous-total produits</span>
+                                <strong id="barman-products-total">0.00 &euro;</strong>
+                            </div>
+                        </div>
+
+                        <!-- Totals -->
+                        <div class="kiosk-totals-card">
+                            <div class="kiosk-total-row">
+                                <span>Total sans récompenses</span>
+                                <span id="barman-total-no-rewards">0.00 &euro;</span>
+                            </div>
+                            <div class="kiosk-total-row kiosk-total-final">
+                                <span>Total à encaisser</span>
+                                <strong id="barman-total-final">0.00 &euro;</strong>
+                            </div>
+                            <div class="kiosk-total-row kiosk-pts-row">
+                                <span>Points utilisés par le client</span>
+                                <span id="barman-pts-used">0 pts</span>
+                            </div>
+                        </div>
+
+                        <!-- Validate Button -->
+                        <button class="btn-primary barman-validate-btn" onclick="validateBarmanOrder()">
+                            &#x2705; Commande payée
+                        </button>
+                    </div>
+
+                    <!-- Barman: Success -->
+                    <div id="barman-success-page" style="display: none; text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">&#x1F389;</div>
+                        <h3 style="font-size: 22px; color: #fff; margin-bottom: 8px;">Commande validée !</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 32px;">Les données ont été envoyées au système.</p>
+                        <button class="btn-secondary" onclick="window.location.reload()" style="width: 100%;">Nouvelle commande</button>
+                    </div>
+                </div>
 
     <!-- ==================== CLUB INFO MODAL ==================== -->
     <div id="club-modal" class="modal-overlay" onclick="closeModal(event, 'club-modal')">

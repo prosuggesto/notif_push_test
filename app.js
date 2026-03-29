@@ -1946,25 +1946,35 @@ const nightclubs = [
         image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80',
         status: 'open',
         count: 450,
-        vibe: '🔥 Incroyable',
+        vibe: '\uD83D\uDD25 Incroyable',
         menRatio: 45,
         womenRatio: 50,
         nbRatio: 5,
-        price: '25€ (avec conso)',
-        theme: 'Années 80 Full Red',
-        nightDesc: 'Soirée spéciale revival avec DJ Guest de Londres. Spectacle pyrotechnique à minuit.',
-        generalDesc: 'La plus grande boîte de nuit de la région avec 3 salles, 5 bars et un carré VIP exclusif.',
+        price: '25\u20AC (avec conso)',
+        theme: 'Ann\u00e9es 80 Full Red',
+        nightDesc: 'Soir\u00e9e sp\u00e9ciale revival avec DJ Guest de Londres. Spectacle pyrotechnique \u00e0 minuit.',
+        generalDesc: 'La plus grande bo\u00eete de nuit de la r\u00e9gion avec 3 salles, 5 bars et un carr\u00e9 VIP exclusif.',
         instagram: '@macumba_officiel',
-        city: 'Genève',
-        region: 'Grand Genève',
+        city: 'Gen\u00e8ve',
+        region: 'Grand Gen\u00e8ve',
         country: 'Suisse',
         rewards: [
             { id: 'r1', name: 'Shot Offert', points: 10, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' },
-            { id: 'r2', name: 'Coupe Champagne', points: 30, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' }
+            { id: 'r2', name: 'Coupe Champagne', points: 30, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
+            { id: 'r5', name: 'Cocktail Maison Offert', points: 20, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'r6', name: 'Acc\u00e8s Carr\u00e9 VIP 1h', points: 50, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' }
         ],
         products: [
-            { id: 'p1', name: 'Vodka Redbull', price: '15€', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
-            { id: 'p2', name: 'Bière Pression', price: '8€', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=200' }
+            { id: 'p1', name: 'Vodka Redbull', price: '15\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'p2', name: 'Bi\u00e8re Pression', price: '8\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=200' },
+            { id: 'p5', name: 'Mojito', price: '14\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
+            { id: 'p6', name: 'Gin Tonic', price: '13\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' },
+            { id: 'p7', name: 'Whisky Coca', price: '12\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=200' },
+            { id: 'p8', name: 'Coca-Cola', price: '5\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=200' },
+            { id: 'p9', name: 'Red Bull', price: '6\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1613225755222-3552bcd2cece?w=200' },
+            { id: 'p10', name: 'Eau Min\u00e9rale', price: '3\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1564419320461-6262a0d4ceec?w=200' },
+            { id: 'p11', name: 'Nachos & Salsa', price: '9\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=200' },
+            { id: 'p12', name: 'Planche Mixte', price: '16\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=200' }
         ]
     },
     {
@@ -1973,23 +1983,26 @@ const nightclubs = [
         image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
         status: 'closed',
         count: 0,
-        vibe: '💤 Calme',
+        vibe: '\uD83D\uDCA4 Calme',
         menRatio: 55,
         womenRatio: 40,
         nbRatio: 5,
-        price: '15€',
+        price: '15\u20AC',
         theme: 'Deep Into Detroit',
-        nightDesc: 'Pas d\'événements prévus ce soir. Ouverture demain 23h.',
-        generalDesc: 'Club intimiste spécialisé dans la musique électronique underground et techno mélodique.',
+        nightDesc: 'Pas d\'\u00e9v\u00e9nements pr\u00e9vus ce soir. Ouverture demain 23h.',
+        generalDesc: 'Club intimiste sp\u00e9cialis\u00e9 dans la musique \u00e9lectronique underground et techno m\u00e9lodique.',
         instagram: '@atrium_club',
         city: 'Lyon',
-        region: 'Rhône-Alpes',
+        region: 'Rh\u00f4ne-Alpes',
         country: 'France',
         rewards: [
-            { id: 'r3', name: 'Entrée Gratuite', points: 50, image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=200' }
+            { id: 'r3', name: 'Entr\u00e9e Gratuite', points: 50, image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=200' },
+            { id: 'r7', name: 'Shot Tequila', points: 15, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' }
         ],
         products: [
-            { id: 'p3', name: 'Gin Tonic', price: '12€', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' }
+            { id: 'p3', name: 'Gin Tonic', price: '12\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' },
+            { id: 'p13', name: 'Margarita', price: '14\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
+            { id: 'p14', name: 'Jus d\'Orange', price: '5\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=200' }
         ]
     },
     {
@@ -1998,23 +2011,30 @@ const nightclubs = [
         image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=500&q=80',
         status: 'open',
         count: 850,
-        vibe: '🎉 Plein à craquer',
+        vibe: '\uD83C\uDF89 Plein \u00e0 craquer',
         menRatio: 48,
         womenRatio: 48,
         nbRatio: 4,
-        price: '30€',
+        price: '30\u20AC',
         theme: 'Gala de Printemps',
-        nightDesc: 'Dress code élégant exigé. Champagne offert aux groupes de 5 femmes avant minuit.',
-        generalDesc: 'Lieu historique de la nuit parisienne, réputé pour son acoustique et ses soirées mondaines.',
+        nightDesc: 'Dress code \u00e9l\u00e9gant exig\u00e9. Champagne offert aux groupes de 5 femmes avant minuit.',
+        generalDesc: 'Lieu historique de la nuit parisienne, r\u00e9put\u00e9 pour son acoustique et ses soir\u00e9es mondaines.',
         instagram: '@palace_paris',
         city: 'Paris',
-        region: 'Île-de-France',
+        region: '\u00cele-de-France',
         country: 'France',
         rewards: [
-            { id: 'r4', name: 'Accès VIP', points: 100, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' }
+            { id: 'r4', name: 'Acc\u00e8s VIP', points: 100, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' },
+            { id: 'r8', name: 'Bouteille Champagne', points: 80, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
+            { id: 'r9', name: 'Cocktail Signature', points: 25, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' }
         ],
         products: [
-            { id: 'p4', name: 'Cocktail Signature', price: '18€', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' }
+            { id: 'p4', name: 'Cocktail Signature', price: '18\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'p15', name: 'Champagne Coupe', price: '22\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
+            { id: 'p16', name: 'Espresso Martini', price: '16\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=200' },
+            { id: 'p17', name: 'Perrier', price: '4\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1564419320461-6262a0d4ceec?w=200' },
+            { id: 'p18', name: 'Virgin Mojito', price: '10\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
+            { id: 'p19', name: 'Bruschetta', price: '11\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=200' }
         ]
     }
 ];
@@ -2382,13 +2402,26 @@ function downloadQR(containerId) {
 
 async function handleNativeScan() {
     const params = new URLSearchParams(window.location.search);
+    const type = params.get('type') || 'entry';
+
+    // Handle barman order scan (QR from customer)
+    if (type === 'barman_order') {
+        const dataStr = params.get('data');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (dataStr) {
+            try {
+                const orderData = JSON.parse(decodeURIComponent(dataStr));
+                showBarmanOrderReview(orderData);
+            } catch(e) { console.error('Invalid order QR data', e); }
+        }
+        return;
+    }
+
     const clubName = params.get('club');
-    const type = params.get('type') || 'entry'; // entry or bar
-    
     if (!clubName) return;
-    
+
     currentScanData = { clubName, type };
-    
+
     // Purge URL params
     window.history.replaceState({}, document.title, window.location.pathname);
     
@@ -2680,8 +2713,8 @@ function generateOrderQR() {
     const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
     const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
 
-    // Build QR data payload
-    const qrPayload = JSON.stringify({
+    // Build order payload
+    const orderData = {
         action: 'bar_order',
         clientCode: user.code,
         clientName: user.name,
@@ -2691,7 +2724,11 @@ function generateOrderQR() {
         totalWithoutRewards: totalProducts,
         totalWithRewards: totalProducts,
         pointsUsed: totalPts
-    });
+    };
+
+    // Encode as URL for barman to scan
+    const baseUrl = window.location.origin + window.location.pathname;
+    const qrUrl = baseUrl + '?action=scan&type=barman_order&data=' + encodeURIComponent(JSON.stringify(orderData));
 
     showKioskPage('qr');
 
@@ -2699,7 +2736,7 @@ function generateOrderQR() {
     const qrBox = document.getElementById('kiosk-qr-code');
     qrBox.innerHTML = '';
     if (typeof QRCode !== 'undefined') {
-        new QRCode(qrBox, { text: qrPayload, width: 220, height: 220, colorDark: '#ffffff', colorLight: 'transparent' });
+        new QRCode(qrBox, { text: qrUrl, width: 220, height: 220, colorDark: '#ffffff', colorLight: 'transparent' });
     } else {
         qrBox.innerHTML = '<p style="color: var(--text-dim);">QR Code generation unavailable</p>';
     }
@@ -2708,7 +2745,7 @@ function generateOrderQR() {
     document.getElementById('qr-recap-pts').textContent = totalPts + ' pts';
 
     // Send draft to webhook
-    sendBarOrderDraft(user.code, qrPayload);
+    sendBarOrderDraft(user.code, JSON.stringify(orderData));
 }
 
 async function sendBarOrderDraft(userCode, payload) {
@@ -2726,6 +2763,107 @@ async function sendBarOrderDraft(userCode, payload) {
         });
     } catch(e) {}
 }
+
+// ----- Barman Order Validation -----
+let currentBarmanOrder = null;
+
+function showBarmanOrderReview(orderData) {
+    currentBarmanOrder = orderData;
+
+    // Ensure dashboard is visible (barman may not be logged in as fétard)
+    const authScreen = document.getElementById('auth-screen');
+    const dashScreen = document.getElementById('dashboard-screen');
+    if (authScreen) authScreen.classList.remove('active');
+    if (dashScreen) dashScreen.classList.add('active');
+
+    // Hide all other containers, show barman container
+    document.querySelectorAll('.verify-card').forEach(c => c.style.display = 'none');
+    const barmanContainer = document.getElementById('verify-barman-container');
+    barmanContainer.style.display = 'block';
+
+    // Switch to verify view
+    switchMainView('verify');
+
+    // Fill in data
+    document.getElementById('barman-club-name').textContent = orderData.clubName || '';
+    document.getElementById('barman-client-name').textContent = orderData.clientName || '-';
+    document.getElementById('barman-client-code').textContent = orderData.clientCode || '-';
+
+    // Show review, hide success
+    document.getElementById('barman-review-page').style.display = 'block';
+    document.getElementById('barman-success-page').style.display = 'none';
+
+    // Rewards
+    const rSection = document.getElementById('barman-rewards-section');
+    const rList = document.getElementById('barman-rewards-list');
+    if (orderData.rewards && orderData.rewards.length > 0) {
+        rSection.style.display = 'block';
+        rList.innerHTML = orderData.rewards.map(r => `
+            <div class="kiosk-summary-item">
+                <span>${r.name}</span>
+                <span class="kiosk-summary-item-cost">-${r.points} pts</span>
+            </div>
+        `).join('');
+        document.getElementById('barman-rewards-pts').textContent = '-' + orderData.pointsUsed + ' pts';
+    } else {
+        rSection.style.display = 'none';
+    }
+
+    // Products
+    const pSection = document.getElementById('barman-products-section');
+    const pList = document.getElementById('barman-products-list');
+    if (orderData.products && orderData.products.length > 0) {
+        pSection.style.display = 'block';
+        pList.innerHTML = orderData.products.map(p => `
+            <div class="kiosk-summary-item">
+                <span>${p.name} x${p.qty}</span>
+                <span class="kiosk-summary-item-cost">${p.total.toFixed(2)} \u20AC</span>
+            </div>
+        `).join('');
+        const prodTotal = orderData.products.reduce((s, p) => s + p.total, 0);
+        document.getElementById('barman-products-total').textContent = prodTotal.toFixed(2) + ' \u20AC';
+    } else {
+        pSection.style.display = 'none';
+    }
+
+    // Totals
+    document.getElementById('barman-total-no-rewards').textContent = (orderData.totalWithoutRewards || 0).toFixed(2) + ' \u20AC';
+    document.getElementById('barman-total-final').textContent = (orderData.totalWithRewards || 0).toFixed(2) + ' \u20AC';
+    document.getElementById('barman-pts-used').textContent = (orderData.pointsUsed || 0) + ' pts';
+}
+
+async function validateBarmanOrder() {
+    if (!currentBarmanOrder) return;
+
+    const btn = document.querySelector('.barman-validate-btn');
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+
+    try {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'validate_bar_order',
+                clientCode: currentBarmanOrder.clientCode,
+                clientName: currentBarmanOrder.clientName,
+                clubName: currentBarmanOrder.clubName,
+                totalWithoutRewards: currentBarmanOrder.totalWithoutRewards,
+                totalWithRewards: currentBarmanOrder.totalWithRewards,
+                pointsUsed: currentBarmanOrder.pointsUsed,
+                products: currentBarmanOrder.products,
+                rewards: currentBarmanOrder.rewards
+            })
+        });
+    } catch(e) {
+        console.error('Barman validation webhook error', e);
+    }
+
+    // Show success
+    document.getElementById('barman-review-page').style.display = 'none';
+    document.getElementById('barman-success-page').style.display = 'block';
+}
+
 // ----- Section Switching -----
 function switchBizSection(sectionId) {
     console.log('Switching to biz section:', sectionId);
