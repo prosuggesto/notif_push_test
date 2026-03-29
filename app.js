@@ -2379,7 +2379,6 @@ function downloadQR(containerId) {
 }
 
 // ----- Client QR Scan Flow (Native Camera Redirect) -----
-let barSelection = { rewards: [], products: [] };
 
 async function handleNativeScan() {
     const params = new URLSearchParams(window.location.search);
@@ -2419,11 +2418,10 @@ async function handleNativeScan() {
         document.getElementById('verify-entry-container').style.display = 'none';
         document.getElementById('verify-bar-container').style.display = 'block';
         document.getElementById('verify-bar-club-name').textContent = clubName;
-        
+
         if (user) {
             document.getElementById('bar-user-points-val').textContent = user.points || 0;
-            // Fetch club data (rewards/products) via webhook or use global clubs if available
-            fetchClubDataForBar(clubName);
+            initKiosk(clubName);
         } else {
             alert("Connectez-vous pour profiter de vos points au bar !");
             switchMainView('home');
@@ -2471,97 +2469,259 @@ async function handleEntryNoAccount() {
     document.getElementById('dashboard-screen').classList.remove('active');
 }
 
-// ----- Bar Flow Logic -----
-async function fetchClubDataForBar(clubName) {
-    // Ideally fetch from webhook, here we simulate with nightclubs data
-    const club = nightclubs.find(c => c.name === clubName);
-    const rewards = club?.rewards || [];
-    const products = club?.products || []; // Assumes products are also in nightclub data
+// ----- Bar Flow Logic (Kiosk E-Commerce) -----
+let barCart = { rewards: [], products: [] }; // products: [{...item, qty: N}]
 
-    renderBarGrids(rewards, products);
+function initKiosk(clubName) {
+    barCart = { rewards: [], products: [] };
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user) {
+        const avatar = document.getElementById('kiosk-avatar');
+        if (avatar) avatar.textContent = (user.name || '?')[0].toUpperCase();
+        const nameEl = document.getElementById('kiosk-user-name');
+        if (nameEl) nameEl.textContent = user.name || 'Utilisateur';
+    }
+    // Show order page, hide others
+    showKioskPage('order');
+    fetchClubDataForBar(clubName);
 }
 
-function renderBarGrids(rewards, products) {
+function showKioskPage(page) {
+    const pages = { order: 'kiosk-order-page', summary: 'kiosk-summary-page', qr: 'kiosk-qr-page' };
+    Object.values(pages).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const target = document.getElementById(pages[page]);
+    if (target) target.style.display = 'block';
+}
+
+async function fetchClubDataForBar(clubName) {
+    const club = nightclubs.find(c => c.name === clubName);
+    const rewards = club?.rewards || [];
+    const products = club?.products || [];
+    renderKioskGrids(rewards, products);
+}
+
+function renderKioskGrids(rewards, products) {
     const rGrid = document.getElementById('bar-rewards-grid');
     const pGrid = document.getElementById('bar-products-grid');
     if (!rGrid || !pGrid) return;
 
-    rGrid.innerHTML = '';
-    pGrid.innerHTML = '';
+    const userPts = parseInt(document.getElementById('bar-user-points-val')?.textContent) || 0;
+
+    rGrid.innerHTML = rewards.length === 0
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucune récompense disponible.</p>'
+        : '';
 
     rewards.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'bar-item';
-        item.innerHTML = `
-            ${r.image ? `<img src="${r.image}" class="bar-item-img">` : '<div class="bar-item-img"></div>'}
-            <div class="bar-item-name">${r.name}</div>
-            <div class="bar-item-cost">${r.points} pts</div>
+        const affordable = userPts >= (r.points || 0);
+        const div = document.createElement('div');
+        div.className = 'kiosk-item' + (affordable ? '' : ' kiosk-item-disabled');
+        div.innerHTML = `
+            <div class="kiosk-item-img" style="background-image: url('${r.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200'}')"></div>
+            <div class="kiosk-item-body">
+                <div class="kiosk-item-name">${r.name}</div>
+                <div class="kiosk-item-price">${r.points} pts</div>
+            </div>
+            <div class="kiosk-item-action">${affordable ? '<button class="kiosk-add-btn" data-id="' + r.id + '">+</button>' : '<span class="kiosk-locked">Pas assez de pts</span>'}</div>
         `;
-        item.onclick = () => toggleBarSelection(r, 'reward', item);
-        rGrid.appendChild(item);
+        if (affordable) {
+            div.querySelector('.kiosk-add-btn').onclick = (e) => { e.stopPropagation(); toggleRewardInCart(r, div); };
+        }
+        rGrid.appendChild(div);
     });
+
+    pGrid.innerHTML = products.length === 0
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucun produit disponible.</p>'
+        : '';
 
     products.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'bar-item';
-        item.innerHTML = `
-            ${p.image ? `<img src="${p.image}" class="bar-item-img">` : '<div class="bar-item-img"></div>'}
-            <div class="bar-item-name">${p.name}</div>
-            <div class="bar-item-cost">Produit</div>
+        const priceNum = parseFloat(String(p.price).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+        const div = document.createElement('div');
+        div.className = 'kiosk-item';
+        div.dataset.productId = p.id;
+        div.innerHTML = `
+            <div class="kiosk-item-img" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200'}')"></div>
+            <div class="kiosk-item-body">
+                <div class="kiosk-item-name">${p.name}</div>
+                ${p.category ? '<span class="kiosk-item-cat">' + p.category + '</span>' : ''}
+                <div class="kiosk-item-price">${priceNum.toFixed(2)} &euro;</div>
+            </div>
+            <div class="kiosk-item-action">
+                <div class="kiosk-qty-ctrl" style="display:none;">
+                    <button class="kiosk-qty-btn" onclick="event.stopPropagation(); changeProductQty('${p.id}', -1)">-</button>
+                    <span class="kiosk-qty-val" id="qty-${p.id}">0</span>
+                    <button class="kiosk-qty-btn" onclick="event.stopPropagation(); changeProductQty('${p.id}', 1)">+</button>
+                </div>
+                <button class="kiosk-add-btn kiosk-add-product" onclick="event.stopPropagation(); changeProductQty('${p.id}', 1)" data-price="${priceNum}" data-name="${p.name}">+</button>
+            </div>
         `;
-        item.onclick = () => toggleBarSelection(p, 'product', item);
-        pGrid.appendChild(item);
+        pGrid.appendChild(div);
     });
 }
 
-function toggleBarSelection(item, type, element) {
-    const list = type === 'reward' ? barSelection.rewards : barSelection.products;
-    const idx = list.findIndex(i => i.id === item.id);
-    
+function toggleRewardInCart(reward, element) {
+    const idx = barCart.rewards.findIndex(r => r.id === reward.id);
     if (idx > -1) {
-        list.splice(idx, 1);
-        element.classList.remove('selected');
+        barCart.rewards.splice(idx, 1);
+        element.classList.remove('kiosk-item-selected');
     } else {
-        list.push(item);
-        element.classList.add('selected');
+        barCart.rewards.push(reward);
+        element.classList.add('kiosk-item-selected');
     }
-    
-    updateBarTotal();
+    updateKioskCart();
 }
 
-function updateBarTotal() {
-    const total = barSelection.rewards.reduce((sum, r) => sum + r.points, 0);
-    document.getElementById('bar-total-points-cost').textContent = `${total} pts`;
+function changeProductQty(productId, delta) {
+    const existing = barCart.products.find(p => p.id === productId);
+    const itemEl = document.querySelector(`.kiosk-item[data-product-id="${productId}"]`);
+    if (!itemEl) return;
+
+    if (existing) {
+        existing.qty += delta;
+        if (existing.qty <= 0) {
+            barCart.products = barCart.products.filter(p => p.id !== productId);
+            itemEl.classList.remove('kiosk-item-selected');
+            itemEl.querySelector('.kiosk-qty-ctrl').style.display = 'none';
+            itemEl.querySelector('.kiosk-add-product').style.display = '';
+        }
+    } else if (delta > 0) {
+        // Get info from the button
+        const btn = itemEl.querySelector('.kiosk-add-product');
+        const price = parseFloat(btn.dataset.price) || 0;
+        const name = btn.dataset.name || '';
+        // Get product from nightclubs data
+        const club = nightclubs.find(c => c.name === currentScanData?.clubName);
+        const prod = club?.products?.find(p => p.id === productId) || { id: productId, name, price };
+        barCart.products.push({ ...prod, priceNum: price, qty: 1 });
+        itemEl.classList.add('kiosk-item-selected');
+    }
+
+    // Update qty display
+    const qtyEl = document.getElementById('qty-' + productId);
+    const cartItem = barCart.products.find(p => p.id === productId);
+    if (qtyEl) qtyEl.textContent = cartItem ? cartItem.qty : 0;
+
+    // Show/hide qty controls
+    if (cartItem && cartItem.qty > 0) {
+        itemEl.querySelector('.kiosk-qty-ctrl').style.display = 'flex';
+        itemEl.querySelector('.kiosk-add-product').style.display = 'none';
+    }
+
+    updateKioskCart();
 }
 
-function generateBarmanCode() {
+function updateKioskCart() {
+    const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+    const totalItems = barCart.rewards.length + barCart.products.reduce((s, p) => s + p.qty, 0);
+    const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+
+    document.getElementById('kiosk-cart-count').textContent = totalItems;
+    document.getElementById('kiosk-cart-total').textContent = totalProducts.toFixed(2);
+
+    const footer = document.getElementById('kiosk-cart-footer');
+    if (footer) footer.style.display = totalItems > 0 ? 'flex' : 'none';
+}
+
+function showOrderSummary() {
+    showKioskPage('summary');
+
+    // Rewards
+    const rSection = document.getElementById('summary-rewards-section');
+    const rList = document.getElementById('summary-rewards-list');
+    if (barCart.rewards.length > 0) {
+        rSection.style.display = 'block';
+        rList.innerHTML = barCart.rewards.map(r => `
+            <div class="kiosk-summary-item">
+                <span>${r.name}</span>
+                <span class="kiosk-summary-item-cost">-${r.points} pts</span>
+            </div>
+        `).join('');
+        const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+        document.getElementById('summary-rewards-pts').textContent = '-' + totalPts + ' pts';
+    } else {
+        rSection.style.display = 'none';
+    }
+
+    // Products
+    const pSection = document.getElementById('summary-products-section');
+    const pList = document.getElementById('summary-products-list');
+    if (barCart.products.length > 0) {
+        pSection.style.display = 'block';
+        pList.innerHTML = barCart.products.map(p => `
+            <div class="kiosk-summary-item">
+                <span>${p.name} x${p.qty}</span>
+                <span class="kiosk-summary-item-cost">${(p.priceNum * p.qty).toFixed(2)} &euro;</span>
+            </div>
+        `).join('');
+        const totalProd = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+        document.getElementById('summary-products-total').textContent = totalProd.toFixed(2) + ' \u20AC';
+    } else {
+        pSection.style.display = 'none';
+    }
+
+    // Totals
+    const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+    const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+    document.getElementById('summary-total-no-rewards').textContent = totalProducts.toFixed(2) + ' \u20AC';
+    document.getElementById('summary-total-final').textContent = totalProducts.toFixed(2) + ' \u20AC';
+    document.getElementById('summary-pts-used').textContent = totalPts + ' pts';
+}
+
+function backToKiosk() {
+    showKioskPage('order');
+}
+
+function generateOrderQR() {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) return;
 
-    document.getElementById('bar-order-area').style.display = 'none';
-    document.getElementById('bar-order-footer').style.display = 'none';
-    document.querySelector('#verify-bar-container .verify-club-header p').textContent = 'Code Commande';
-    
-    const displayCode = document.getElementById('display-barman-code');
-    displayCode.textContent = user.code;
-    
-    document.getElementById('barman-code-display').style.display = 'block';
-    
-    // Optionally pre-send order to webhook so barman sees it instantly
-    sendBarOrderDraft(user.code);
+    const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+    const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+
+    // Build QR data payload
+    const qrPayload = JSON.stringify({
+        action: 'bar_order',
+        clientCode: user.code,
+        clientName: user.name,
+        clubName: currentScanData?.clubName || '',
+        rewards: barCart.rewards.map(r => ({ name: r.name, points: r.points })),
+        products: barCart.products.map(p => ({ name: p.name, qty: p.qty, unitPrice: p.priceNum, total: p.priceNum * p.qty })),
+        totalWithoutRewards: totalProducts,
+        totalWithRewards: totalProducts,
+        pointsUsed: totalPts
+    });
+
+    showKioskPage('qr');
+
+    // Generate QR
+    const qrBox = document.getElementById('kiosk-qr-code');
+    qrBox.innerHTML = '';
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(qrBox, { text: qrPayload, width: 220, height: 220, colorDark: '#ffffff', colorLight: 'transparent' });
+    } else {
+        qrBox.innerHTML = '<p style="color: var(--text-dim);">QR Code generation unavailable</p>';
+    }
+
+    document.getElementById('qr-recap-total').textContent = totalProducts.toFixed(2) + ' \u20AC';
+    document.getElementById('qr-recap-pts').textContent = totalPts + ' pts';
+
+    // Send draft to webhook
+    sendBarOrderDraft(user.code, qrPayload);
 }
 
-async function sendBarOrderDraft(userCode) {
+async function sendBarOrderDraft(userCode, payload) {
     try {
         await fetch('https://n8n.srv862127.hstgr.cloud/webhook/bar_order_draft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: payload || JSON.stringify({
                 action: 'draft_order',
-                club_name: currentScanData.clubName,
+                club_name: currentScanData?.clubName,
                 clientCode: userCode,
-                rewards: barSelection.rewards.map(r => r.name),
-                products: barSelection.products.map(p => p.name)
+                rewards: barCart.rewards.map(r => r.name),
+                products: barCart.products.map(p => ({ name: p.name, qty: p.qty }))
             })
         });
     } catch(e) {}
