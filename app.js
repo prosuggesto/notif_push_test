@@ -242,12 +242,14 @@ function handleBusinessLogout() {
 async function handleBusinessSignup(e) {
     e.preventDefault();
     const name = document.getElementById('biz-signup-name').value.trim();
+    const bizCity = document.getElementById('biz-signup-city')?.value.trim() || '';
+    const bizCountry = document.getElementById('biz-signup-country')?.value.trim() || '';
     const password = document.getElementById('biz-signup-password').value.trim();
-    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz'; // Fallback for backend requirement
+    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz';
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
-    if (!name || !password) {
+    if (!name || !password || !bizCity || !bizCountry) {
         showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -274,7 +276,8 @@ async function handleBusinessSignup(e) {
                 role: 'business',
                 age: 'N/A',
                 sexe: 'Autre',
-                ville: 'N/A'
+                ville: bizCity,
+                pays: bizCountry
             })
         });
 
@@ -286,6 +289,8 @@ async function handleBusinessSignup(e) {
                 name: name,
                 uuid: uuid,
                 user_code: userCode,
+                city: bizCity,
+                country: bizCountry,
                 ...data
             };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
@@ -1813,9 +1818,10 @@ async function handleSignup(e) {
     const age = document.getElementById('signup-age').value.trim();
     const sexe = document.getElementById('signup-sexe').value;
     const city = document.getElementById('signup-city').value.trim();
+    const country = document.getElementById('signup-country')?.value.trim() || '';
     const password = document.getElementById('signup-password').value.trim();
 
-    if (!name || !password || !age || !sexe || !city) {
+    if (!name || !password || !age || !sexe || !city || !country) {
         showMessage('signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -1840,7 +1846,8 @@ async function handleSignup(e) {
                 user_code: userCode,
                 age: age,
                 sexe: sexe,
-                ville: city
+                ville: city,
+                pays: country
             })
         });
 
@@ -1853,18 +1860,19 @@ async function handleSignup(e) {
             showMessage('signup-message', data.phrase || 'Inscription refusée.', 'error');
         } else {
             showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
-            
+
             if (window.OneSignal) {
                 OneSignal.login(uuid);
             }
 
-            const userData = { 
-                name: name, 
-                uuid: uuid, 
+            const userData = {
+                name: name,
+                uuid: uuid,
                 code: userCode,
                 age: age,
                 sexe: sexe,
-                city: city
+                city: city,
+                country: country
             };
             localStorage.setItem('user', JSON.stringify(userData));
             setTimeout(() => { showDashboard(name); }, 800);
@@ -1882,9 +1890,9 @@ function showDashboard(username) {
     document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('dashboard-screen').classList.add('active');
     document.getElementById('user-display').textContent = username;
-    
-    // Render clubs
-    renderClubs();
+
+    // Render local clubs for home view
+    renderLocalClubs();
 }
 
 // ===== LOGOUT =====
@@ -2056,16 +2064,20 @@ function switchMainView(viewId) {
     const link = document.getElementById(`link-${viewId}`);
     if (link) link.classList.add('active');
     
-    let title = 'Boîtes Partenaires';
+    let title = 'Accueil';
+    if (viewId === 'search') title = 'Recherche ta boîte';
+    if (viewId === 'favorites') title = 'Mes Favoris';
     if (viewId === 'qr') title = 'Générateur QR';
-    if (viewId === 'code') title = 'Profil Client';
+    if (viewId === 'code') title = 'Mon Code';
     if (viewId === 'verify') title = 'Vérification';
-    
-    document.getElementById('header-title').textContent = title;
-    
-    if (viewId === 'code') {
-        renderProfile();
-    }
+
+    const headerTitle = document.getElementById('header-title');
+    if (headerTitle) headerTitle.textContent = title;
+
+    if (viewId === 'code') renderProfile();
+    if (viewId === 'home') renderLocalClubs();
+    if (viewId === 'search') { renderClubs(); initFilters(); }
+    if (viewId === 'favorites') renderFavoritesView();
     
     // Fermer le menu si ouvert
     const menu = document.getElementById('side-menu');
@@ -2112,73 +2124,15 @@ function renderProfile() {
 function renderClubs(filteredList = null) {
     const list = filteredList || nightclubs;
     const container = document.getElementById('clubs-container');
+    if (!container) return;
     container.innerHTML = '';
-    
     list.forEach(club => {
-        const isFav = favorites.includes(club.id);
-        const statusText = club.status === 'open' ? 'Ouvert' : 'Fermé';
-        
-        container.innerHTML += `
-            <div class="club-card" onclick="openClubModal('${club.id}')">
-                <button class="btn-fav ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${club.id}')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                </button>
-                <img src="${club.image}" class="club-img" alt="${club.name}">
-                <div class="club-info">
-                    <div class="club-header">
-                        <h3 class="club-name">${club.name}</h3>
-                        <div class="club-status status-${club.status}">
-                            <div class="status-dot"></div>
-                            ${statusText}
-                        </div>
-                    </div>
-                    <div class="club-stats">
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                            ${club.count} pers.
-                        </div>
-                        <div class="stat-item">
-                            ${club.vibe}
-                        </div>
-                    </div>
-                    <div class="club-location">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        ${club.city}, ${club.country}
-                    </div>
-                </div>
-            </div>
-        `;
+        container.innerHTML += buildClubCard(club);
     });
-
-    renderFavorites();
 }
 
 function renderFavorites() {
-    const section = document.getElementById('favorites-section');
-    const container = document.getElementById('favorites-container');
-    
-    if (favorites.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
-    
-    section.style.display = 'block';
-    container.innerHTML = '';
-    
-    favorites.forEach(id => {
-        const club = nightclubs.find(c => c.id === id);
-        if (!club) return;
-        
-        container.innerHTML += `
-            <div class="fav-mini-card" onclick="openClubModal('${club.id}')">
-                <img src="${club.image}" alt="${club.name}">
-                <div class="fav-mini-info">
-                    <h4>${club.name}</h4>
-                    <span>${club.vibe}</span>
-                </div>
-            </div>
-        `;
-    });
+    // No longer shows in home view - favorites have their own view now
 }
 
 function toggleFavorite(clubId) {
@@ -2192,41 +2146,87 @@ function toggleFavorite(clubId) {
 }
 
 function filterClubs() {
-    const search = document.getElementById('club-search').value.toLowerCase();
-    const city = document.getElementById('filter-city').value;
-    const region = document.getElementById('filter-region').value;
-    const country = document.getElementById('filter-country').value;
-    
+    const searchEl = document.getElementById('club-search');
+    const search = searchEl ? searchEl.value.toLowerCase() : '';
+
     const filtered = nightclubs.filter(c => {
-        const matchesSearch = c.name.toLowerCase().includes(search) || c.generalDesc.toLowerCase().includes(search);
-        const matchesCity = !city || c.city === city;
-        const matchesRegion = !region || c.region === region;
-        const matchesCountry = !country || c.country === country;
-        return matchesSearch && matchesCity && matchesRegion && matchesCountry;
+        const text = (c.name + ' ' + c.city + ' ' + c.country + ' ' + c.region).toLowerCase();
+        return text.includes(search);
     });
-    
+
     renderClubs(filtered);
 }
 
 function initFilters() {
-    const cities = [...new Set(nightclubs.map(c => c.city))];
-    const regions = [...new Set(nightclubs.map(c => c.region))];
-    const countries = [...new Set(nightclubs.map(c => c.country))];
+    // No longer needed for separate filter dropdowns - search does it all
+}
 
-    const populate = (id, items) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        items.forEach(item => {
-            const opt = document.createElement('option');
-            opt.value = item;
-            opt.textContent = item;
-            el.appendChild(opt);
-        });
-    };
+function renderLocalClubs() {
+    const container = document.getElementById('local-clubs-container');
+    const noLocal = document.getElementById('no-local-clubs');
+    const titleEl = document.getElementById('local-clubs-title');
+    if (!container) return;
 
-    populate('filter-city', cities);
-    populate('filter-region', regions);
-    populate('filter-country', countries);
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userCity = user?.city || '';
+
+    if (titleEl && userCity) {
+        titleEl.textContent = 'Boîtes à ' + userCity;
+    }
+
+    const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];
+
+    if (local.length === 0) {
+        container.innerHTML = '';
+        if (noLocal) noLocal.style.display = 'block';
+        return;
+    }
+
+    if (noLocal) noLocal.style.display = 'none';
+    container.innerHTML = '';
+    local.forEach(club => {
+        container.innerHTML += buildClubCard(club);
+    });
+}
+
+function renderFavoritesView() {
+    const container = document.getElementById('favorites-grid-container');
+    const noFavs = document.getElementById('no-favorites');
+    if (!container) return;
+
+    const favClubs = nightclubs.filter(c => favorites.includes(c.id));
+
+    if (favClubs.length === 0) {
+        container.innerHTML = '';
+        if (noFavs) noFavs.style.display = 'block';
+        return;
+    }
+
+    if (noFavs) noFavs.style.display = 'none';
+    container.innerHTML = '';
+    favClubs.forEach(club => {
+        container.innerHTML += buildClubCard(club);
+    });
+}
+
+function buildClubCard(club) {
+    const isFav = favorites.includes(club.id);
+    const statusText = club.status === 'open' ? 'Ouvert' : 'Ferm\u00e9';
+    return '<div class="club-card" onclick="openClubModal(\'' + club.id + '\')">'
+        + '<button class="btn-fav ' + (isFav ? 'active' : '') + '" onclick="event.stopPropagation(); toggleFavorite(\'' + club.id + '\')">'
+        + '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>'
+        + '</button>'
+        + '<img src="' + club.image + '" class="club-img" alt="' + club.name + '">'
+        + '<div class="club-info">'
+        + '<div class="club-header"><h3 class="club-name">' + club.name + '</h3>'
+        + '<div class="club-status status-' + club.status + '"><div class="status-dot"></div>' + statusText + '</div></div>'
+        + '<div class="club-stats">'
+        + '<div class="stat-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> ' + club.count + ' pers.</div>'
+        + '<div class="stat-item">' + club.vibe + '</div>'
+        + '</div>'
+        + '<div class="club-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + club.city + ', ' + club.country + '</div>'
+        + '</div></div>';
 }
 
 function openClubModal(clubId) {
@@ -2303,10 +2303,65 @@ function openClubModal(clubId) {
                     </div>
                 </div>
             </div>
+
+            <button class="btn-primary btn-rewards-modal" onclick="openRewardsPopup('${club.id}')" style="width:100%; margin-top:20px;">
+                \u{1F381} Voir les rewards disponibles
+            </button>
         </div>
     `;
-    
+
     document.getElementById('club-modal').classList.add('active');
+}
+
+function openRewardsPopup(clubId) {
+    const club = nightclubs.find(c => c.id === clubId);
+    if (!club) return;
+
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userPoints = user?.points || 0;
+
+    const rewards = club.rewards || [];
+    const affordable = rewards.filter(r => userPoints >= r.points);
+
+    let html = '<div class="rewards-popup-header"><div class="rewards-popup-points">'
+        + '<span>\u{1F48E}</span><strong>' + userPoints + '</strong><span>points</span>'
+        + '</div></div>';
+
+    if (affordable.length > 0) {
+        html += '<h4 class="rewards-popup-subtitle">Tu peux obtenir :</h4>';
+        html += '<div class="rewards-popup-grid">';
+        affordable.forEach(function(r) {
+            html += '<div class="rewards-popup-item affordable">'
+                + '<div class="rewards-popup-img" style="background-image: url(\'' + (r.image || '') + '\')"></div>'
+                + '<div class="rewards-popup-info"><span class="rewards-popup-name">' + r.name + '</span>'
+                + '<span class="rewards-popup-cost">' + r.points + ' pts</span></div>'
+                + '<span class="rewards-popup-check">\u2705</span></div>';
+        });
+        html += '</div>';
+    }
+
+    const notAffordable = rewards.filter(r => userPoints < r.points);
+    if (notAffordable.length > 0) {
+        html += '<h4 class="rewards-popup-subtitle" style="margin-top:16px;">Toutes les rewards de la bo\u00eete :</h4>';
+        html += '<div class="rewards-popup-grid">';
+        notAffordable.forEach(function(r) {
+            html += '<div class="rewards-popup-item locked">'
+                + '<div class="rewards-popup-img" style="background-image: url(\'' + (r.image || '') + '\')"></div>'
+                + '<div class="rewards-popup-info"><span class="rewards-popup-name">' + r.name + '</span>'
+                + '<span class="rewards-popup-cost">' + r.points + ' pts</span></div>'
+                + '<span class="rewards-popup-lock">\u{1F512} ' + (r.points - userPoints) + ' pts manquants</span></div>';
+        });
+        html += '</div>';
+    }
+
+    if (rewards.length === 0) {
+        html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">Aucune reward disponible pour cette bo\u00eete.</p>';
+    }
+
+    var rewardsBody = document.querySelector('#rewards-popup-modal .modal-body');
+    rewardsBody.innerHTML = html;
+    document.getElementById('rewards-popup-modal').classList.add('active');
 }
 
 function saveThreshold(clubId, value) {
