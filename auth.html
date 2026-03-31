@@ -149,6 +149,14 @@
                 </div>
 
                 <div class="input-group">
+                    <label for="signup-country">Pays</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                        <input type="text" id="signup-country" placeholder="Votre pays" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
                     <label for="signup-password">Mot de passe</label>
                     <div class="input-wrapper">
                         <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -178,11 +186,15 @@
         <div class="menu-links">
             <button class="menu-link active" onclick="switchMainView('home')" id="link-home">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                Accueil Boîtes
+                Accueil
             </button>
-            <button class="menu-link" onclick="switchMainView('qr')" id="link-qr">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
-                QR Boîtes
+            <button class="menu-link" onclick="switchMainView('search')" id="link-search">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Recherche ta boîte
+            </button>
+            <button class="menu-link" onclick="switchMainView('favorites')" id="link-favorites">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                Mes Favoris
             </button>
             <button class="menu-link" onclick="switchMainView('code')" id="link-code">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
@@ -225,36 +237,42 @@
             </div>
         </header>
 
-        <!-- Home View: Nightclubs -->
+        <!-- Home View: Local clubs (user's city) -->
         <main id="home-view" class="main-view active">
+            <h3 class="section-title" id="local-clubs-title">Boîtes près de chez toi</h3>
+            <div class="clubs-grid" id="local-clubs-container">
+                <!-- Local club cards injected here -->
+            </div>
+            <div id="no-local-clubs" style="display:none; text-align:center; padding:40px 20px;">
+                <p style="font-size: 48px; margin-bottom: 16px;">&#x1F30D;</p>
+                <p style="color: var(--text-dim); font-size: 15px;">Aucune boîte trouvée dans ta ville.</p>
+                <button class="btn-primary" style="margin-top: 16px; width: auto; padding: 10px 24px;" onclick="switchMainView('search')">Rechercher une boîte</button>
+            </div>
+        </main>
+
+        <!-- Search View: Find any club -->
+        <main id="search-view" class="main-view">
             <div class="search-filter-container">
                 <div class="search-bar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="club-search" placeholder="Rechercher une boîte..." oninput="filterClubs()">
-                </div>
-                <div class="filters-row">
-                    <select id="filter-city" onchange="filterClubs()">
-                        <option value="">Toutes les villes</option>
-                    </select>
-                    <select id="filter-region" onchange="filterClubs()">
-                        <option value="">Toutes les régions</option>
-                    </select>
-                    <select id="filter-country" onchange="filterClubs()">
-                        <option value="">Tous les pays</option>
-                    </select>
+                    <input type="text" id="club-search" placeholder="Rechercher par nom, ville, pays..." oninput="filterClubs()">
                 </div>
             </div>
-
-            <section id="favorites-section" style="display: none; margin-bottom: 40px;">
-                <h3 class="section-title">Mes Boîtes Préférées</h3>
-                <div class="favorites-slider" id="favorites-container">
-                    <!-- Favorite cards injected here -->
-                </div>
-            </section>
-
             <h3 class="section-title">Toutes les Boîtes</h3>
             <div class="clubs-grid" id="clubs-container">
                 <!-- Cards injected here via app.js -->
+            </div>
+        </main>
+
+        <!-- Favorites View -->
+        <main id="favorites-view" class="main-view">
+            <div class="clubs-grid" id="favorites-grid-container">
+                <!-- Favorite cards injected here -->
+            </div>
+            <div id="no-favorites" style="display:none; text-align:center; padding:60px 20px;">
+                <p style="font-size: 48px; margin-bottom: 16px;">&#x2764;&#xFE0F;</p>
+                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;">Tu n'as pas encore de boîte favorite.</p>
+                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')">Découvrir des boîtes</button>
             </div>
         </main>
 
@@ -391,52 +409,207 @@
                     </div>
                 </div>
 
-                <!-- 2. BAR SCAN FLOW -->
-                <div id="verify-bar-container" class="verify-card" style="display: none; max-width: 500px;">
-                    <div class="verify-club-header">
-                        <div class="verify-icon">🍹</div>
-                        <h3 id="verify-bar-club-name">Le Bar</h3>
-                        <p>Sélectionnez vos récompenses</p>
-                    </div>
+                <!-- 2. BAR SCAN FLOW - E-Commerce Kiosk -->
+                <div id="verify-bar-container" class="verify-card kiosk-view" style="display: none; max-width: 600px;">
 
-                    <!-- Points Display -->
-                    <div class="bar-user-points" style="background: var(--primary-glow); padding: 12px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span style="font-size: 13px; color: var(--primary-light);">Tes Points :</span>
-                        <strong id="bar-user-points-val" style="font-size: 18px; color: white;">0</strong>
-                    </div>
-
-                    <!-- Products/Rewards Scroll Area -->
-                    <div class="bar-order-area" style="max-height: 400px; overflow-y: auto; padding: 2px;">
-                        <h4 class="section-subtitle">🎁 Tes Récompenses</h4>
-                        <div id="bar-rewards-grid" class="bar-grid">
-                            <!-- Injected by JS -->
+                    <!-- STEP 1: Kiosk Ordering Page -->
+                    <div id="kiosk-order-page">
+                        <!-- User Header -->
+                        <div class="kiosk-user-header">
+                            <div class="kiosk-user-avatar" id="kiosk-avatar">?</div>
+                            <div class="kiosk-user-info">
+                                <h3 id="kiosk-user-name">Utilisateur</h3>
+                                <span class="kiosk-club-name" id="verify-bar-club-name">Le Bar</span>
+                            </div>
+                            <div class="kiosk-points-badge">
+                                <span class="kiosk-pts-icon">&#x1F48E;</span>
+                                <strong id="bar-user-points-val">0</strong>
+                                <span>pts</span>
+                            </div>
                         </div>
 
-                        <h4 class="section-subtitle" style="margin-top: 24px;">🏷️ Produits de la boîte</h4>
-                        <div id="bar-products-grid" class="bar-grid">
-                            <!-- Injected by JS -->
+                        <!-- Rewards Section -->
+                        <div class="kiosk-section">
+                            <div class="kiosk-section-title">
+                                <span>&#x1F381; Récompenses disponibles</span>
+                                <span class="kiosk-section-subtitle">Utilisez vos points</span>
+                            </div>
+                            <div id="bar-rewards-grid" class="kiosk-grid">
+                                <!-- Injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Products Section -->
+                        <div class="kiosk-section">
+                            <div class="kiosk-section-title">
+                                <span>&#x1F378; Carte du bar</span>
+                                <span class="kiosk-section-subtitle">Ajoutez à votre commande</span>
+                            </div>
+                            <div id="bar-products-grid" class="kiosk-grid">
+                                <!-- Injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Floating Cart Footer -->
+                        <div id="kiosk-cart-footer" class="kiosk-cart-footer" style="display: none;">
+                            <div class="kiosk-cart-summary">
+                                <div class="kiosk-cart-count"><span id="kiosk-cart-count">0</span> article(s)</div>
+                                <div class="kiosk-cart-total"><span id="kiosk-cart-total">0.00</span> &euro;</div>
+                            </div>
+                            <button class="btn-primary kiosk-btn-order" onclick="showOrderSummary()">Voir ma commande</button>
                         </div>
                     </div>
 
-                    <!-- Order Summary Sticky-ish Footer -->
-                    <div id="bar-order-footer" style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
-                            <span style="color: var(--text-dim);">Total à déduire :</span>
-                            <strong id="bar-total-points-cost" style="color: #ef4444;">0 pts</strong>
+                    <!-- STEP 2: Order Summary + QR Code -->
+                    <div id="kiosk-summary-page" style="display: none;">
+                        <div class="kiosk-summary-header">
+                            <button class="kiosk-back-btn" onclick="backToKiosk()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                                Retour
+                            </button>
+                            <h3>Ma Commande</h3>
                         </div>
-                        <button class="btn-primary" onclick="generateBarmanCode()">Générer le code barman</button>
+
+                        <!-- Rewards in order -->
+                        <div id="summary-rewards-section" class="kiosk-summary-section" style="display: none;">
+                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <div id="summary-rewards-list" class="kiosk-summary-list"></div>
+                            <div class="kiosk-summary-subtotal">
+                                <span>Points déduits</span>
+                                <strong id="summary-rewards-pts">0 pts</strong>
+                            </div>
+                        </div>
+
+                        <!-- Products in order -->
+                        <div id="summary-products-section" class="kiosk-summary-section" style="display: none;">
+                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <div id="summary-products-list" class="kiosk-summary-list"></div>
+                            <div class="kiosk-summary-subtotal">
+                                <span>Sous-total produits</span>
+                                <strong id="summary-products-total">0.00 &euro;</strong>
+                            </div>
+                        </div>
+
+                        <!-- Totals -->
+                        <div class="kiosk-totals-card">
+                            <div class="kiosk-total-row">
+                                <span>Total sans récompenses</span>
+                                <span id="summary-total-no-rewards">0.00 &euro;</span>
+                            </div>
+                            <div class="kiosk-total-row kiosk-total-final">
+                                <span>Total à payer</span>
+                                <strong id="summary-total-final">0.00 &euro;</strong>
+                            </div>
+                            <div class="kiosk-total-row kiosk-pts-row">
+                                <span>Points utilisés</span>
+                                <span id="summary-pts-used">0 pts</span>
+                            </div>
+                        </div>
+
+                        <!-- Generate QR Button -->
+                        <button class="btn-primary kiosk-btn-generate" onclick="generateOrderQR()">
+                            Confirmer &amp; Générer le QR
+                        </button>
                     </div>
 
-                    <!-- BARMAN CODE DISPLAY (POST-VALIDATION) -->
-                    <div id="barman-code-display" style="display: none; text-align: center;">
-                        <p style="color: var(--text-dim); margin-bottom: 16px;">Montre ce code au barman :</p>
-                        <div class="big-code-box" id="display-barman-code" style="font-size: 40px; letter-spacing: 0.1em; font-family: monospace; color: var(--primary-light); background: rgba(0,0,0,0.3); padding: 24px; border-radius: 16px; border: 1px solid var(--primary-glow);">
-                            ABC123
+                    <!-- STEP 3: QR Code Display -->
+                    <div id="kiosk-qr-page" style="display: none;">
+                        <div class="kiosk-qr-header">
+                            <div class="kiosk-qr-check">&#x2705;</div>
+                            <h3>Commande prête !</h3>
+                            <p>Présente ce QR code au barman</p>
                         </div>
-                        <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;">Le barman validera ta commande sur son écran.</p>
-                        <button class="btn-secondary" onclick="switchMainView('home')" style="margin-top: 32px; width: 100%;">Terminer</button>
+                        <div id="kiosk-qr-code" class="kiosk-qr-box"></div>
+                        <div class="kiosk-qr-recap">
+                            <div class="kiosk-qr-recap-row">
+                                <span>Total</span>
+                                <strong id="qr-recap-total">0.00 &euro;</strong>
+                            </div>
+                            <div class="kiosk-qr-recap-row">
+                                <span>Points</span>
+                                <strong id="qr-recap-pts">0 pts</strong>
+                            </div>
+                        </div>
+                        <p class="kiosk-qr-hint">Le barman scannera ce code pour valider ta commande.</p>
+                        <button class="btn-secondary" onclick="switchMainView('home')" style="width: 100%; margin-top: 24px;">Terminer</button>
+                    </div>
+
+                </div>
+
+                <!-- 3. BARMAN ORDER VALIDATION -->
+                <div id="verify-barman-container" class="verify-card kiosk-view" style="display: none; max-width: 600px;">
+
+                    <!-- Barman: Order Review -->
+                    <div id="barman-review-page">
+                        <div class="barman-header">
+                            <div class="barman-badge">&#x1F9FE;</div>
+                            <h3>Validation Commande</h3>
+                            <p id="barman-club-name" class="kiosk-club-name"></p>
+                        </div>
+
+                        <!-- Client Info -->
+                        <div class="barman-client-card">
+                            <div class="barman-client-row">
+                                <span>Client</span>
+                                <strong id="barman-client-name">-</strong>
+                            </div>
+                            <div class="barman-client-row">
+                                <span>Code</span>
+                                <strong id="barman-client-code" style="color: var(--primary-light);">-</strong>
+                            </div>
+                        </div>
+
+                        <!-- Rewards -->
+                        <div id="barman-rewards-section" class="kiosk-summary-section" style="display: none;">
+                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <div id="barman-rewards-list" class="kiosk-summary-list"></div>
+                            <div class="kiosk-summary-subtotal">
+                                <span>Points déduits</span>
+                                <strong id="barman-rewards-pts">0 pts</strong>
+                            </div>
+                        </div>
+
+                        <!-- Products -->
+                        <div id="barman-products-section" class="kiosk-summary-section" style="display: none;">
+                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <div id="barman-products-list" class="kiosk-summary-list"></div>
+                            <div class="kiosk-summary-subtotal">
+                                <span>Sous-total produits</span>
+                                <strong id="barman-products-total">0.00 &euro;</strong>
+                            </div>
+                        </div>
+
+                        <!-- Totals -->
+                        <div class="kiosk-totals-card">
+                            <div class="kiosk-total-row">
+                                <span>Total sans récompenses</span>
+                                <span id="barman-total-no-rewards">0.00 &euro;</span>
+                            </div>
+                            <div class="kiosk-total-row kiosk-total-final">
+                                <span>Total à encaisser</span>
+                                <strong id="barman-total-final">0.00 &euro;</strong>
+                            </div>
+                            <div class="kiosk-total-row kiosk-pts-row">
+                                <span>Points utilisés par le client</span>
+                                <span id="barman-pts-used">0 pts</span>
+                            </div>
+                        </div>
+
+                        <!-- Validate Button -->
+                        <button class="btn-primary barman-validate-btn" onclick="validateBarmanOrder()">
+                            &#x2705; Commande payée
+                        </button>
+                    </div>
+
+                    <!-- Barman: Success -->
+                    <div id="barman-success-page" style="display: none; text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 16px;">&#x1F389;</div>
+                        <h3 style="font-size: 22px; color: #fff; margin-bottom: 8px;">Commande validée !</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 32px;">Les données ont été envoyées au système.</p>
+                        <button class="btn-secondary" onclick="window.location.reload()" style="width: 100%;">Nouvelle commande</button>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
@@ -488,7 +661,18 @@
 
     </div> <!-- End fetars-view -->
 
-    </div> <!-- End fetars-view -->
+    <!-- ==================== REWARDS POPUP MODAL ==================== -->
+    <div id="rewards-popup-modal" class="modal-overlay" onclick="closeModal(event, 'rewards-popup-modal')">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>Rewards disponibles</h3>
+                <button class="btn-close" onclick="closeModal(null, 'rewards-popup-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Injected by openRewardsPopup -->
+            </div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
