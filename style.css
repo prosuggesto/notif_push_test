@@ -449,6 +449,31 @@ body {
     font-size: 18px;
     font-weight: 700;
 }
+
+@media (max-width: 480px) {
+    .clubs-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .club-img {
+        height: 120px;
+    }
+    .club-info {
+        padding: 12px;
+        gap: 6px;
+    }
+    .club-name {
+        font-size: 15px;
+    }
+    .club-status {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    .club-stats {
+        gap: 12px;
+        font-size: 12px;
+    }
+}
 .club-status {
     font-size: 12px;
     font-weight: 600;
