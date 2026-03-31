@@ -266,16 +266,13 @@
 
         <!-- Favorites View -->
         <main id="favorites-view" class="main-view">
-            <div class="favorites-header-row">
-                <h3 class="section-title" style="margin-bottom:0;">Mes Boîtes Favorites</h3>
-                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')" style="display:none;">Découvrir des boîtes</button>
-            </div>
             <div class="clubs-grid" id="favorites-grid-container">
                 <!-- Favorite cards injected here -->
             </div>
-            <div id="no-favorites" style="display:none; text-align:center; padding:40px 20px;">
+            <div id="no-favorites" style="display:none; text-align:center; padding:60px 20px;">
                 <p style="font-size: 48px; margin-bottom: 16px;">&#x2764;&#xFE0F;</p>
-                <p style="color: var(--text-dim); font-size: 15px;">Tu n'as pas encore de boîte favorite.</p>
+                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;">Tu n'as pas encore de boîte favorite.</p>
+                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')">Découvrir des boîtes</button>
             </div>
         </main>
 

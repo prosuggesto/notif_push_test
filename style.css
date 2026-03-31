@@ -2352,22 +2352,14 @@ input[type="number"] {
 }
 
 /* ===== FAVORITES VIEW ===== */
-.favorites-header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
 .btn-discover {
-    padding: 10px 20px;
-    border-radius: 12px;
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 14px;
     border: 1px solid var(--primary);
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(99, 102, 241, 0.12);
     color: var(--primary-light);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -2378,18 +2370,5 @@ input[type="number"] {
 
 .btn-discover:active {
     transform: scale(0.95);
-    background: rgba(99, 102, 241, 0.2);
-}
-
-@media (max-width: 480px) {
-    .favorites-header-row {
-        gap: 10px;
-    }
-    .favorites-header-row .section-title {
-        font-size: 16px;
-    }
-    .btn-discover {
-        padding: 8px 14px;
-        font-size: 12px;
-    }
+    background: rgba(99, 102, 241, 0.25);
 }

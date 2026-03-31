@@ -2206,7 +2206,6 @@ function renderLocalClubs() {
 function renderFavoritesView() {
     const container = document.getElementById('favorites-grid-container');
     const noFavs = document.getElementById('no-favorites');
-    const discoverBtn = document.getElementById('btn-discover-clubs');
     if (!container) return;
 
     const favClubs = nightclubs.filter(c => favorites.includes(c.id));
@@ -2214,12 +2213,10 @@ function renderFavoritesView() {
     if (favClubs.length === 0) {
         container.innerHTML = '';
         if (noFavs) noFavs.style.display = 'block';
-        if (discoverBtn) discoverBtn.style.display = '';
         return;
     }
 
     if (noFavs) noFavs.style.display = 'none';
-    if (discoverBtn) discoverBtn.style.display = 'none';
     container.innerHTML = '';
     favClubs.forEach(club => {
         container.innerHTML += buildClubCard(club);
