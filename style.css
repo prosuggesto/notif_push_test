@@ -743,6 +743,7 @@ body {
     left: -280px;
     width: 280px;
     height: 100vh;
+    height: 100dvh;
     background: rgba(15, 15, 35, 0.95);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border);
@@ -773,6 +774,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
 }
 .menu-link {
     display: flex;
