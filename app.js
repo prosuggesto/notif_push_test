@@ -2064,7 +2064,7 @@ function switchMainView(viewId) {
     const link = document.getElementById(`link-${viewId}`);
     if (link) link.classList.add('active');
     
-    let title = 'Accueil';
+    let title = 'Boîtes près de chez toi';
     if (viewId === 'search') title = 'Recherche ta boîte';
     if (viewId === 'favorites') title = 'Mes Favoris';
     if (viewId === 'qr') title = 'Générateur QR';

@@ -186,7 +186,7 @@
         <div class="menu-links">
             <button class="menu-link active" onclick="switchMainView('home')" id="link-home">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                Accueil
+                Boîtes près de chez toi
             </button>
             <button class="menu-link" onclick="switchMainView('search')" id="link-search">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -239,14 +239,13 @@
 
         <!-- Home View: Local clubs (user's city) -->
         <main id="home-view" class="main-view active">
-            <h3 class="section-title" id="local-clubs-title">Boîtes près de chez toi</h3>
             <div class="clubs-grid" id="local-clubs-container">
                 <!-- Local club cards injected here -->
             </div>
-            <div id="no-local-clubs" style="display:none; text-align:center; padding:40px 20px;">
+            <div id="no-local-clubs" style="display:none; text-align:center; padding:60px 20px;">
                 <p style="font-size: 48px; margin-bottom: 16px;">&#x1F30D;</p>
-                <p style="color: var(--text-dim); font-size: 15px;">Aucune boîte trouvée dans ta ville.</p>
-                <button class="btn-primary" style="margin-top: 16px; width: auto; padding: 10px 24px;" onclick="switchMainView('search')">Rechercher une boîte</button>
+                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;">Aucune boîte trouvée dans ta ville.</p>
+                <button class="btn-discover" onclick="switchMainView('search')">Rechercher une boîte</button>
             </div>
         </main>
 
