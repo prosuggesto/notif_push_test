@@ -449,6 +449,31 @@ body {
     font-size: 18px;
     font-weight: 700;
 }
+
+@media (max-width: 480px) {
+    .clubs-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .club-img {
+        height: 120px;
+    }
+    .club-info {
+        padding: 12px;
+        gap: 6px;
+    }
+    .club-name {
+        font-size: 15px;
+    }
+    .club-status {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    .club-stats {
+        gap: 12px;
+        font-size: 12px;
+    }
+}
 .club-status {
     font-size: 12px;
     font-weight: 600;
@@ -718,6 +743,7 @@ body {
     left: -280px;
     width: 280px;
     height: 100vh;
+    height: 100dvh;
     background: rgba(15, 15, 35, 0.95);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border);
@@ -748,6 +774,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
 }
 .menu-link {
     display: flex;
