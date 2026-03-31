@@ -2142,7 +2142,20 @@ function toggleFavorite(clubId) {
         favorites.push(clubId);
     }
     localStorage.setItem('favorites', JSON.stringify(favorites));
-    filterClubs(); // Re-render everything
+
+    // Re-render the current active view
+    const favView = document.getElementById('favorites-view');
+    if (favView && favView.classList.contains('active')) {
+        renderFavoritesView();
+    }
+    const homeView = document.getElementById('home-view');
+    if (homeView && homeView.classList.contains('active')) {
+        renderLocalClubs();
+    }
+    const searchView = document.getElementById('search-view');
+    if (searchView && searchView.classList.contains('active')) {
+        filterClubs();
+    }
 }
 
 function filterClubs() {
@@ -2193,6 +2206,7 @@ function renderLocalClubs() {
 function renderFavoritesView() {
     const container = document.getElementById('favorites-grid-container');
     const noFavs = document.getElementById('no-favorites');
+    const discoverBtn = document.getElementById('btn-discover-clubs');
     if (!container) return;
 
     const favClubs = nightclubs.filter(c => favorites.includes(c.id));
@@ -2200,10 +2214,12 @@ function renderFavoritesView() {
     if (favClubs.length === 0) {
         container.innerHTML = '';
         if (noFavs) noFavs.style.display = 'block';
+        if (discoverBtn) discoverBtn.style.display = '';
         return;
     }
 
     if (noFavs) noFavs.style.display = 'none';
+    if (discoverBtn) discoverBtn.style.display = 'none';
     container.innerHTML = '';
     favClubs.forEach(club => {
         container.innerHTML += buildClubCard(club);

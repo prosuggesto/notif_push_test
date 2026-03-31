@@ -2350,3 +2350,46 @@ input[type="number"] {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* ===== FAVORITES VIEW ===== */
+.favorites-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-discover {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-light);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: background 0.2s, transform 0.15s;
+    backdrop-filter: blur(10px);
+}
+
+.btn-discover:active {
+    transform: scale(0.95);
+    background: rgba(99, 102, 241, 0.2);
+}
+
+@media (max-width: 480px) {
+    .favorites-header-row {
+        gap: 10px;
+    }
+    .favorites-header-row .section-title {
+        font-size: 16px;
+    }
+    .btn-discover {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+}
