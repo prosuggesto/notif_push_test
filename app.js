@@ -238,45 +238,6 @@ function toggleSidebar() {
     }
 }
 
-function switchBizSection(sectionId) {
-    const sections = document.querySelectorAll('.biz-section');
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    sections.forEach(s => {
-        s.classList.remove('active');
-        s.style.display = 'none'; 
-        if (s.id === `biz-section-${sectionId}`) {
-            s.classList.add('active');
-        s.style.display = 'block'; 
-        }
-    });
-    
-    navItems.forEach(item => {
-        const onClickAttr = item.getAttribute('onclick') || '';
-        if (onClickAttr.includes(`'${sectionId}'`)) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-
-    // Auto-initialize section data if needed
-    if (sectionId === 'produits') {
-        renderProductsList();
-    } else if (sectionId === 'qrcodes') {
-        generateBusinessQRCodes();
-    }
-
-    // Auto-Close Sidebar on selection (Universal)
-    const sidebar = document.querySelector('.sidebar');
-    const burger = document.getElementById('sidebar-toggle');
-    const overlay = document.querySelector('.sidebar-overlay');
-    
-    sidebar?.classList.remove('active');
-    burger?.classList.remove('active');
-    overlay?.classList.remove('active');
-}
-
 function handleBusinessLogout() {
     localStorage.removeItem('businessUser');
     document.body.classList.remove('logged-in-biz');
@@ -286,8 +247,10 @@ function handleBusinessLogout() {
 async function handleBusinessSignup(e) {
     e.preventDefault();
     const name = document.getElementById('biz-signup-name').value.trim();
+    const bizCity = document.getElementById('biz-signup-city')?.value.trim() || '';
+    const bizCountry = document.getElementById('biz-signup-country')?.value.trim() || '';
     const password = document.getElementById('biz-signup-password').value.trim();
-    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz'; // Fallback for backend requirement
+    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz';
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
@@ -318,7 +281,8 @@ async function handleBusinessSignup(e) {
                 role: 'business',
                 age: 'N/A',
                 sexe: 'Autre',
-                ville: 'N/A'
+                ville: bizCity,
+                pays: bizCountry
             })
         });
 
@@ -330,6 +294,8 @@ async function handleBusinessSignup(e) {
                 name: name,
                 uuid: uuid,
                 user_code: userCode,
+                city: bizCity,
+                country: bizCountry,
                 ...data
             };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
@@ -625,32 +591,41 @@ async function handleSaveTemplate(e) {
 
 async function proceedWithSave(btn, templateName) {
     btn.classList.add('loading');
-    
-    // Collect data
-    const newTemplate = {
-        id: 'ann_' + Date.now(),
+
+    const templateData = {
         image: document.getElementById('biz-club-image').value,
         name: document.getElementById('biz-club-name-hidden').value,
         insta: document.getElementById('biz-club-insta').value,
         description: document.getElementById('biz-club-desc').value,
         price: document.getElementById('biz-club-price').value,
-        partyName: templateName || document.getElementById('biz-party-name').value, // Use custom name
+        partyName: templateName || document.getElementById('biz-party-name').value,
         partyTheme: document.getElementById('biz-party-theme').value,
         timestamp: new Date().toISOString()
     };
 
-    // Fly animation first for visual punch
-    const previewCard = document.getElementById('annonces-preview-card');
-    if (previewCard) {
-        animateCardToGrid(previewCard);
+    if (editingTemplateId) {
+        // Update existing template in place
+        const idx = announcementTemplates.findIndex(t => t.id === editingTemplateId);
+        if (idx > -1) {
+            announcementTemplates[idx] = { ...announcementTemplates[idx], ...templateData };
+        }
+        editingTemplateId = null;
+    } else {
+        // Create new template
+        templateData.id = 'ann_' + Date.now();
+
+        const previewCard = document.getElementById('annonces-preview-card');
+        if (previewCard) {
+            animateCardToGrid(previewCard);
+        }
+
+        announcementTemplates.unshift(templateData);
     }
 
-    announcementTemplates.unshift(newTemplate);
-    
     if (currentBusiness) {
         currentBusiness.announcementTemplates = announcementTemplates;
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-        
+
         try {
             await handleSaveAnnonces();
         } catch (err) {
@@ -897,9 +872,13 @@ function renderTemplatesGrid() {
     `).join('');
 }
 
+let editingTemplateId = null;
+
 function loadAdminTemplate(id) {
     const tpl = announcementTemplates.find(t => t.id === id);
     if (!tpl) return;
+
+    editingTemplateId = id;
 
     // Fill the hidden inputs
     document.getElementById('biz-club-image').value = tpl.image || '';
@@ -912,7 +891,7 @@ function loadAdminTemplate(id) {
 
     // Refresh preview
     updateAnnoncesPreview();
-    
+
     // Save as draft to persist across refreshes
     saveAnnouncementDraft();
 
@@ -939,9 +918,9 @@ function inspireAdminTemplate(id) {
     const tpl = announcementTemplates.find(t => t.id === id);
     if (!tpl) return;
 
-    // Same as load but clearly for new inspiration
     loadAdminTemplate(id);
-    alert('Modification activée. Enregistrez pour créer un nouveau template à partir de celui-ci.');
+    editingTemplateId = null; // Clear so save creates a new template
+    showSaveToast();
 }
 
 function handleClubImageUpload(event) {
@@ -1407,26 +1386,23 @@ function renderCalendar() {
             cell.appendChild(eventEl);
         }
         
-        // Click = select or preview, DblClick = open picker
+        // Single click = toggle selection, Double click = preview or picker
         cell.addEventListener('click', (e) => {
             e.preventDefault();
             if (calClickTimeout) {
                 clearTimeout(calClickTimeout);
                 calClickTimeout = null;
                 // Double click
-                handleCalendarDblClick(dateStr);
+                if (bizSchedule[dateStr]) {
+                    openCalPreview(dateStr);
+                } else {
+                    handleCalendarDblClick(dateStr);
+                }
                 return;
             }
             calClickTimeout = setTimeout(() => {
                 calClickTimeout = null;
-                // Single Click Logic:
-                // If the date has a template -> Open Preview
-                // If not -> Toggle Selection
-                if (bizSchedule[dateStr]) {
-                    openCalPreview(dateStr);
-                } else {
-                    toggleDateSelection(dateStr);
-                }
+                toggleDateSelection(dateStr);
             }, 250);
         });
         
@@ -1448,12 +1424,15 @@ function renderCalendar() {
 
 function updateCalendarSelectionBadge() {
     const badge = document.getElementById('gcal-selected-count');
+    const deleteBtn = document.getElementById('gcal-delete-selected');
     if (!badge) return;
     if (selectedDates.size > 0) {
         badge.style.display = 'inline-block';
         badge.textContent = `${selectedDates.size} sélectionné${selectedDates.size > 1 ? 's' : ''}`;
+        if (deleteBtn) deleteBtn.style.display = 'inline-flex';
     } else {
         badge.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
     }
 }
 
@@ -1485,12 +1464,70 @@ function openCalPreview(dateStr) {
 
     calPreviewDate = dateStr;
     const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
-    
-    document.getElementById('cal-preview-title').textContent = template ? (template.partyName || template.name) : 'Soirée';
-    document.getElementById('cal-preview-date').textContent = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    document.getElementById('cal-preview-image').style.backgroundImage = template ? `url(${template.image})` : '';
-    document.getElementById('cal-preview-theme').textContent = template ? (template.partyTheme || '') : '';
-    
+    if (!template) return;
+
+    const clubName = template.name || (currentBusiness ? currentBusiness.name : 'Mon Club');
+    const image = template.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
+    const desc = template.description || 'Aucune description fournie.';
+    const insta = template.insta || '@votreclub';
+    const price = template.price || '20€';
+    const partyName = template.partyName || template.name || 'Soirée Spéciale';
+    const partyTheme = template.partyTheme || template.theme || 'Ambiance & Cocktails';
+    const dateLabel = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    const stats = { vibe: 'TRENDY', count: 110, men: 45, women: 40, nb: 15 };
+
+    const cardContainer = document.getElementById('cal-preview-card');
+    cardContainer.innerHTML = `
+        <div class="modal-club-hero" style="background-image: url('${image}')">
+            <div class="hero-overlay">
+                <span class="vibe-badge">${stats.vibe}</span>
+            </div>
+            <div class="club-hero-name">${clubName}</div>
+        </div>
+        <div class="modal-content-inner">
+            <div class="detail-section">
+                <h4>À propos de l'établissement</h4>
+                <p class="text-dim">${desc}</p>
+                <div class="insta-link-wrapper">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    <span>${insta}</span>
+                </div>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Entrée</span>
+                    <span class="detail-val">${price}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Public (Live)</span>
+                    <span class="detail-val">${stats.count} pers.</span>
+                </div>
+            </div>
+            <div class="gender-breakdown" style="padding: 0;">
+                <div class="gender-bar">
+                    <div class="bar-segment men" style="width: ${stats.men}%"></div>
+                    <div class="bar-segment women" style="width: ${stats.women}%"></div>
+                    <div class="bar-segment nb" style="width: ${stats.nb}%"></div>
+                </div>
+                <div class="gender-labels">
+                    <span>♂ ${stats.men}%</span>
+                    <span>♀ ${stats.women}%</span>
+                    <span>⚧ ${stats.nb}%</span>
+                </div>
+            </div>
+            <hr class="modal-hr">
+            <div class="detail-section">
+                <div class="theme-header">
+                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <h4>${partyName}</h4>
+                </div>
+                <p class="text-small">${partyTheme}</p>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('cal-preview-date-label').textContent = dateLabel;
     document.getElementById('cal-preview-modal').classList.add('active');
 }
 
@@ -1509,15 +1546,18 @@ function deleteCalendarTemplate() {
 
 function deleteSelectedTemplates() {
     if (selectedDates.size === 0) return;
-    if (!confirm(`Supprimer les templates pour les ${selectedDates.size} jours sélectionnés ?`)) return;
-    
-    selectedDates.forEach(dateStr => {
-        delete bizSchedule[dateStr];
-    });
-    
-    selectedDates.clear();
-    saveBusinessData();
-    renderCalendar();
+    showConfirmModal(
+        'Supprimer la sélection ?',
+        `Supprimer les templates pour les ${selectedDates.size} jour${selectedDates.size > 1 ? 's' : ''} sélectionné${selectedDates.size > 1 ? 's' : ''} ?`,
+        () => {
+            selectedDates.forEach(dateStr => {
+                delete bizSchedule[dateStr];
+            });
+            selectedDates.clear();
+            saveBusinessData();
+            renderCalendar();
+        }
+    );
 }
 
 // ----- Calendar Template Picker (Double-click popup) -----
@@ -1768,7 +1808,7 @@ function loadBusinessData() {
 
 // Check business session on load
 window.addEventListener('load', () => {
-    if (isBusinessView && currentBusiness) {
+    if (document.body.classList.contains('view-entreprise') && currentBusiness) {
         showBusinessDashboard();
     }
 });
@@ -1780,9 +1820,10 @@ async function handleSignup(e) {
     const age = document.getElementById('signup-age').value.trim();
     const sexe = document.getElementById('signup-sexe').value;
     const city = document.getElementById('signup-city').value.trim();
+    const country = document.getElementById('signup-country')?.value.trim() || '';
     const password = document.getElementById('signup-password').value.trim();
 
-    if (!name || !password || !age || !sexe || !city) {
+    if (!name || !password || !age || !sexe || !city || !country) {
         showMessage('signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -1807,7 +1848,8 @@ async function handleSignup(e) {
                 user_code: userCode,
                 age: age,
                 sexe: sexe,
-                ville: city
+                ville: city,
+                pays: country
             })
         });
 
@@ -1820,18 +1862,19 @@ async function handleSignup(e) {
             showMessage('signup-message', data.phrase || 'Inscription refusée.', 'error');
         } else {
             showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
-            
+
             if (window.OneSignal) {
                 OneSignal.login(uuid);
             }
 
-            const userData = { 
-                name: name, 
-                uuid: uuid, 
+            const userData = {
+                name: name,
+                uuid: uuid,
                 code: userCode,
                 age: age,
                 sexe: sexe,
-                city: city
+                city: city,
+                country: country
             };
             localStorage.setItem('user', JSON.stringify(userData));
             setTimeout(() => { showDashboard(name); }, 800);
@@ -1849,9 +1892,9 @@ function showDashboard(username) {
     document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('dashboard-screen').classList.add('active');
     document.getElementById('user-display').textContent = username;
-    
-    // Render clubs
-    renderClubs();
+
+    // Render local clubs for home view
+    renderLocalClubs();
 }
 
 // ===== LOGOUT =====
@@ -1875,6 +1918,10 @@ function handleLogout() {
 
 // ===== CHECK SESSION ON LOAD =====
 window.addEventListener('DOMContentLoaded', () => {
+    // Only run fetard-specific init on fetard view
+    const isBusinessView = document.body.classList.contains('view-entreprise');
+    if (isBusinessView) return;
+
     // Initialize filters data
     initFilters();
 
@@ -1909,25 +1956,35 @@ const nightclubs = [
         image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80',
         status: 'open',
         count: 450,
-        vibe: '🔥 Incroyable',
+        vibe: '\uD83D\uDD25 Incroyable',
         menRatio: 45,
         womenRatio: 50,
         nbRatio: 5,
-        price: '25€ (avec conso)',
-        theme: 'Années 80 Full Red',
-        nightDesc: 'Soirée spéciale revival avec DJ Guest de Londres. Spectacle pyrotechnique à minuit.',
-        generalDesc: 'La plus grande boîte de nuit de la région avec 3 salles, 5 bars et un carré VIP exclusif.',
+        price: '25\u20AC (avec conso)',
+        theme: 'Ann\u00e9es 80 Full Red',
+        nightDesc: 'Soir\u00e9e sp\u00e9ciale revival avec DJ Guest de Londres. Spectacle pyrotechnique \u00e0 minuit.',
+        generalDesc: 'La plus grande bo\u00eete de nuit de la r\u00e9gion avec 3 salles, 5 bars et un carr\u00e9 VIP exclusif.',
         instagram: '@macumba_officiel',
-        city: 'Genève',
-        region: 'Grand Genève',
+        city: 'Gen\u00e8ve',
+        region: 'Grand Gen\u00e8ve',
         country: 'Suisse',
         rewards: [
             { id: 'r1', name: 'Shot Offert', points: 10, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' },
-            { id: 'r2', name: 'Coupe Champagne', points: 30, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' }
+            { id: 'r2', name: 'Coupe Champagne', points: 30, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
+            { id: 'r5', name: 'Cocktail Maison Offert', points: 20, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'r6', name: 'Acc\u00e8s Carr\u00e9 VIP 1h', points: 50, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' }
         ],
         products: [
-            { id: 'p1', name: 'Vodka Redbull', price: '15€', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
-            { id: 'p2', name: 'Bière Pression', price: '8€', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=200' }
+            { id: 'p1', name: 'Vodka Redbull', price: '15\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'p2', name: 'Bi\u00e8re Pression', price: '8\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=200' },
+            { id: 'p5', name: 'Mojito', price: '14\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
+            { id: 'p6', name: 'Gin Tonic', price: '13\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' },
+            { id: 'p7', name: 'Whisky Coca', price: '12\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=200' },
+            { id: 'p8', name: 'Coca-Cola', price: '5\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=200' },
+            { id: 'p9', name: 'Red Bull', price: '6\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1613225755222-3552bcd2cece?w=200' },
+            { id: 'p10', name: 'Eau Min\u00e9rale', price: '3\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1564419320461-6262a0d4ceec?w=200' },
+            { id: 'p11', name: 'Nachos & Salsa', price: '9\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=200' },
+            { id: 'p12', name: 'Planche Mixte', price: '16\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=200' }
         ]
     },
     {
@@ -1936,23 +1993,26 @@ const nightclubs = [
         image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
         status: 'closed',
         count: 0,
-        vibe: '💤 Calme',
+        vibe: '\uD83D\uDCA4 Calme',
         menRatio: 55,
         womenRatio: 40,
         nbRatio: 5,
-        price: '15€',
+        price: '15\u20AC',
         theme: 'Deep Into Detroit',
-        nightDesc: 'Pas d\'événements prévus ce soir. Ouverture demain 23h.',
-        generalDesc: 'Club intimiste spécialisé dans la musique électronique underground et techno mélodique.',
+        nightDesc: 'Pas d\'\u00e9v\u00e9nements pr\u00e9vus ce soir. Ouverture demain 23h.',
+        generalDesc: 'Club intimiste sp\u00e9cialis\u00e9 dans la musique \u00e9lectronique underground et techno m\u00e9lodique.',
         instagram: '@atrium_club',
         city: 'Lyon',
-        region: 'Rhône-Alpes',
+        region: 'Rh\u00f4ne-Alpes',
         country: 'France',
         rewards: [
-            { id: 'r3', name: 'Entrée Gratuite', points: 50, image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=200' }
+            { id: 'r3', name: 'Entr\u00e9e Gratuite', points: 50, image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=200' },
+            { id: 'r7', name: 'Shot Tequila', points: 15, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' }
         ],
         products: [
-            { id: 'p3', name: 'Gin Tonic', price: '12€', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' }
+            { id: 'p3', name: 'Gin Tonic', price: '12\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' },
+            { id: 'p13', name: 'Margarita', price: '14\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
+            { id: 'p14', name: 'Jus d\'Orange', price: '5\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=200' }
         ]
     },
     {
@@ -1961,23 +2021,30 @@ const nightclubs = [
         image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=500&q=80',
         status: 'open',
         count: 850,
-        vibe: '🎉 Plein à craquer',
+        vibe: '\uD83C\uDF89 Plein \u00e0 craquer',
         menRatio: 48,
         womenRatio: 48,
         nbRatio: 4,
-        price: '30€',
+        price: '30\u20AC',
         theme: 'Gala de Printemps',
-        nightDesc: 'Dress code élégant exigé. Champagne offert aux groupes de 5 femmes avant minuit.',
-        generalDesc: 'Lieu historique de la nuit parisienne, réputé pour son acoustique et ses soirées mondaines.',
+        nightDesc: 'Dress code \u00e9l\u00e9gant exig\u00e9. Champagne offert aux groupes de 5 femmes avant minuit.',
+        generalDesc: 'Lieu historique de la nuit parisienne, r\u00e9put\u00e9 pour son acoustique et ses soir\u00e9es mondaines.',
         instagram: '@palace_paris',
         city: 'Paris',
-        region: 'Île-de-France',
+        region: '\u00cele-de-France',
         country: 'France',
         rewards: [
-            { id: 'r4', name: 'Accès VIP', points: 100, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' }
+            { id: 'r4', name: 'Acc\u00e8s VIP', points: 100, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' },
+            { id: 'r8', name: 'Bouteille Champagne', points: 80, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
+            { id: 'r9', name: 'Cocktail Signature', points: 25, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' }
         ],
         products: [
-            { id: 'p4', name: 'Cocktail Signature', price: '18€', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' }
+            { id: 'p4', name: 'Cocktail Signature', price: '18\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
+            { id: 'p15', name: 'Champagne Coupe', price: '22\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
+            { id: 'p16', name: 'Espresso Martini', price: '16\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=200' },
+            { id: 'p17', name: 'Perrier', price: '4\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1564419320461-6262a0d4ceec?w=200' },
+            { id: 'p18', name: 'Virgin Mojito', price: '10\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
+            { id: 'p19', name: 'Bruschetta', price: '11\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=200' }
         ]
     }
 ];
@@ -1999,16 +2066,20 @@ function switchMainView(viewId) {
     const link = document.getElementById(`link-${viewId}`);
     if (link) link.classList.add('active');
     
-    let title = 'Boîtes Partenaires';
+    let title = 'Boîtes près de chez toi';
+    if (viewId === 'search') title = 'Recherche ta boîte';
+    if (viewId === 'favorites') title = 'Mes Favoris';
     if (viewId === 'qr') title = 'Générateur QR';
-    if (viewId === 'code') title = 'Profil Client';
+    if (viewId === 'code') title = 'Mon Code';
     if (viewId === 'verify') title = 'Vérification';
-    
-    document.getElementById('header-title').textContent = title;
-    
-    if (viewId === 'code') {
-        renderProfile();
-    }
+
+    const headerTitle = document.getElementById('header-title');
+    if (headerTitle) headerTitle.textContent = title;
+
+    if (viewId === 'code') renderProfile();
+    if (viewId === 'home') renderLocalClubs();
+    if (viewId === 'search') { renderClubs(); initFilters(); }
+    if (viewId === 'favorites') renderFavoritesView();
     
     // Fermer le menu si ouvert
     const menu = document.getElementById('side-menu');
@@ -2055,73 +2126,15 @@ function renderProfile() {
 function renderClubs(filteredList = null) {
     const list = filteredList || nightclubs;
     const container = document.getElementById('clubs-container');
+    if (!container) return;
     container.innerHTML = '';
-    
     list.forEach(club => {
-        const isFav = favorites.includes(club.id);
-        const statusText = club.status === 'open' ? 'Ouvert' : 'Fermé';
-        
-        container.innerHTML += `
-            <div class="club-card" onclick="openClubModal('${club.id}')">
-                <button class="btn-fav ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('${club.id}')">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                </button>
-                <img src="${club.image}" class="club-img" alt="${club.name}">
-                <div class="club-info">
-                    <div class="club-header">
-                        <h3 class="club-name">${club.name}</h3>
-                        <div class="club-status status-${club.status}">
-                            <div class="status-dot"></div>
-                            ${statusText}
-                        </div>
-                    </div>
-                    <div class="club-stats">
-                        <div class="stat-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                            ${club.count} pers.
-                        </div>
-                        <div class="stat-item">
-                            ${club.vibe}
-                        </div>
-                    </div>
-                    <div class="club-location">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        ${club.city}, ${club.country}
-                    </div>
-                </div>
-            </div>
-        `;
+        container.innerHTML += buildClubCard(club);
     });
-
-    renderFavorites();
 }
 
 function renderFavorites() {
-    const section = document.getElementById('favorites-section');
-    const container = document.getElementById('favorites-container');
-    
-    if (favorites.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
-    
-    section.style.display = 'block';
-    container.innerHTML = '';
-    
-    favorites.forEach(id => {
-        const club = nightclubs.find(c => c.id === id);
-        if (!club) return;
-        
-        container.innerHTML += `
-            <div class="fav-mini-card" onclick="openClubModal('${club.id}')">
-                <img src="${club.image}" alt="${club.name}">
-                <div class="fav-mini-info">
-                    <h4>${club.name}</h4>
-                    <span>${club.vibe}</span>
-                </div>
-            </div>
-        `;
-    });
+    // No longer shows in home view - favorites have their own view now
 }
 
 function toggleFavorite(clubId) {
@@ -2131,44 +2144,104 @@ function toggleFavorite(clubId) {
         favorites.push(clubId);
     }
     localStorage.setItem('favorites', JSON.stringify(favorites));
-    filterClubs(); // Re-render everything
+
+    // Re-render the current active view
+    const favView = document.getElementById('favorites-view');
+    if (favView && favView.classList.contains('active')) {
+        renderFavoritesView();
+    }
+    const homeView = document.getElementById('home-view');
+    if (homeView && homeView.classList.contains('active')) {
+        renderLocalClubs();
+    }
+    const searchView = document.getElementById('search-view');
+    if (searchView && searchView.classList.contains('active')) {
+        filterClubs();
+    }
 }
 
 function filterClubs() {
-    const search = document.getElementById('club-search').value.toLowerCase();
-    const city = document.getElementById('filter-city').value;
-    const region = document.getElementById('filter-region').value;
-    const country = document.getElementById('filter-country').value;
-    
+    const searchEl = document.getElementById('club-search');
+    const search = searchEl ? searchEl.value.toLowerCase() : '';
+
     const filtered = nightclubs.filter(c => {
-        const matchesSearch = c.name.toLowerCase().includes(search) || c.generalDesc.toLowerCase().includes(search);
-        const matchesCity = !city || c.city === city;
-        const matchesRegion = !region || c.region === region;
-        const matchesCountry = !country || c.country === country;
-        return matchesSearch && matchesCity && matchesRegion && matchesCountry;
+        const text = (c.name + ' ' + c.city + ' ' + c.country + ' ' + c.region).toLowerCase();
+        return text.includes(search);
     });
-    
+
     renderClubs(filtered);
 }
 
 function initFilters() {
-    const cities = [...new Set(nightclubs.map(c => c.city))];
-    const regions = [...new Set(nightclubs.map(c => c.region))];
-    const countries = [...new Set(nightclubs.map(c => c.country))];
-    
-    const populate = (id, items) => {
-        const el = document.getElementById(id);
-        items.forEach(item => {
-            const opt = document.createElement('option');
-            opt.value = item;
-            opt.textContent = item;
-            el.appendChild(opt);
-        });
-    };
-    
-    populate('filter-city', cities);
-    populate('filter-region', regions);
-    populate('filter-country', countries);
+    // No longer needed for separate filter dropdowns - search does it all
+}
+
+function renderLocalClubs() {
+    const container = document.getElementById('local-clubs-container');
+    const noLocal = document.getElementById('no-local-clubs');
+    const titleEl = document.getElementById('local-clubs-title');
+    if (!container) return;
+
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userCity = user?.city || '';
+
+    if (titleEl && userCity) {
+        titleEl.textContent = 'Boîtes à ' + userCity;
+    }
+
+    const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];
+
+    if (local.length === 0) {
+        container.innerHTML = '';
+        if (noLocal) noLocal.style.display = 'block';
+        return;
+    }
+
+    if (noLocal) noLocal.style.display = 'none';
+    container.innerHTML = '';
+    local.forEach(club => {
+        container.innerHTML += buildClubCard(club);
+    });
+}
+
+function renderFavoritesView() {
+    const container = document.getElementById('favorites-grid-container');
+    const noFavs = document.getElementById('no-favorites');
+    if (!container) return;
+
+    const favClubs = nightclubs.filter(c => favorites.includes(c.id));
+
+    if (favClubs.length === 0) {
+        container.innerHTML = '';
+        if (noFavs) noFavs.style.display = 'block';
+        return;
+    }
+
+    if (noFavs) noFavs.style.display = 'none';
+    container.innerHTML = '';
+    favClubs.forEach(club => {
+        container.innerHTML += buildClubCard(club);
+    });
+}
+
+function buildClubCard(club) {
+    const isFav = favorites.includes(club.id);
+    const statusText = club.status === 'open' ? 'Ouvert' : 'Ferm\u00e9';
+    return '<div class="club-card" onclick="openClubModal(\'' + club.id + '\')">'
+        + '<button class="btn-fav ' + (isFav ? 'active' : '') + '" onclick="event.stopPropagation(); toggleFavorite(\'' + club.id + '\')">'
+        + '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>'
+        + '</button>'
+        + '<img src="' + club.image + '" class="club-img" alt="' + club.name + '">'
+        + '<div class="club-info">'
+        + '<div class="club-header"><h3 class="club-name">' + club.name + '</h3>'
+        + '<div class="club-status status-' + club.status + '"><div class="status-dot"></div>' + statusText + '</div></div>'
+        + '<div class="club-stats">'
+        + '<div class="stat-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> ' + club.count + ' pers.</div>'
+        + '<div class="stat-item">' + club.vibe + '</div>'
+        + '</div>'
+        + '<div class="club-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + club.city + ', ' + club.country + '</div>'
+        + '</div></div>';
 }
 
 function openClubModal(clubId) {
@@ -2245,10 +2318,65 @@ function openClubModal(clubId) {
                     </div>
                 </div>
             </div>
+
+            <button class="btn-primary btn-rewards-modal" onclick="openRewardsPopup('${club.id}')" style="width:100%; margin-top:20px;">
+                \u{1F381} Voir les rewards disponibles
+            </button>
         </div>
     `;
-    
+
     document.getElementById('club-modal').classList.add('active');
+}
+
+function openRewardsPopup(clubId) {
+    const club = nightclubs.find(c => c.id === clubId);
+    if (!club) return;
+
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userPoints = user?.points || 0;
+
+    const rewards = club.rewards || [];
+    const affordable = rewards.filter(r => userPoints >= r.points);
+
+    let html = '<div class="rewards-popup-header"><div class="rewards-popup-points">'
+        + '<span>\u{1F48E}</span><strong>' + userPoints + '</strong><span>points</span>'
+        + '</div></div>';
+
+    if (affordable.length > 0) {
+        html += '<h4 class="rewards-popup-subtitle">Tu peux obtenir :</h4>';
+        html += '<div class="rewards-popup-grid">';
+        affordable.forEach(function(r) {
+            html += '<div class="rewards-popup-item affordable">'
+                + '<div class="rewards-popup-img" style="background-image: url(\'' + (r.image || '') + '\')"></div>'
+                + '<div class="rewards-popup-info"><span class="rewards-popup-name">' + r.name + '</span>'
+                + '<span class="rewards-popup-cost">' + r.points + ' pts</span></div>'
+                + '<span class="rewards-popup-check">\u2705</span></div>';
+        });
+        html += '</div>';
+    }
+
+    const notAffordable = rewards.filter(r => userPoints < r.points);
+    if (notAffordable.length > 0) {
+        html += '<h4 class="rewards-popup-subtitle" style="margin-top:16px;">Toutes les rewards de la bo\u00eete :</h4>';
+        html += '<div class="rewards-popup-grid">';
+        notAffordable.forEach(function(r) {
+            html += '<div class="rewards-popup-item locked">'
+                + '<div class="rewards-popup-img" style="background-image: url(\'' + (r.image || '') + '\')"></div>'
+                + '<div class="rewards-popup-info"><span class="rewards-popup-name">' + r.name + '</span>'
+                + '<span class="rewards-popup-cost">' + r.points + ' pts</span></div>'
+                + '<span class="rewards-popup-lock">\u{1F512} ' + (r.points - userPoints) + ' pts manquants</span></div>';
+        });
+        html += '</div>';
+    }
+
+    if (rewards.length === 0) {
+        html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">Aucune reward disponible pour cette bo\u00eete.</p>';
+    }
+
+    var rewardsBody = document.querySelector('#rewards-popup-modal .modal-body');
+    rewardsBody.innerHTML = html;
+    document.getElementById('rewards-popup-modal').classList.add('active');
 }
 
 function saveThreshold(clubId, value) {
@@ -2341,17 +2469,29 @@ function downloadQR(containerId) {
 }
 
 // ----- Client QR Scan Flow (Native Camera Redirect) -----
-let barSelection = { rewards: [], products: [] };
 
 async function handleNativeScan() {
     const params = new URLSearchParams(window.location.search);
+    const type = params.get('type') || 'entry';
+
+    // Handle barman order scan (QR from customer)
+    if (type === 'barman_order') {
+        const dataStr = params.get('data');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (dataStr) {
+            try {
+                const orderData = JSON.parse(decodeURIComponent(dataStr));
+                showBarmanOrderReview(orderData);
+            } catch(e) { console.error('Invalid order QR data', e); }
+        }
+        return;
+    }
+
     const clubName = params.get('club');
-    const type = params.get('type') || 'entry'; // entry or bar
-    
     if (!clubName) return;
-    
+
     currentScanData = { clubName, type };
-    
+
     // Purge URL params
     window.history.replaceState({}, document.title, window.location.pathname);
     
@@ -2381,11 +2521,10 @@ async function handleNativeScan() {
         document.getElementById('verify-entry-container').style.display = 'none';
         document.getElementById('verify-bar-container').style.display = 'block';
         document.getElementById('verify-bar-club-name').textContent = clubName;
-        
+
         if (user) {
             document.getElementById('bar-user-points-val').textContent = user.points || 0;
-            // Fetch club data (rewards/products) via webhook or use global clubs if available
-            fetchClubDataForBar(clubName);
+            initKiosk(clubName);
         } else {
             alert("Connectez-vous pour profiter de vos points au bar !");
             switchMainView('home');
@@ -2433,101 +2572,368 @@ async function handleEntryNoAccount() {
     document.getElementById('dashboard-screen').classList.remove('active');
 }
 
-// ----- Bar Flow Logic -----
-async function fetchClubDataForBar(clubName) {
-    // Ideally fetch from webhook, here we simulate with nightclubs data
-    const club = nightclubs.find(c => c.name === clubName);
-    const rewards = club?.rewards || [];
-    const products = club?.products || []; // Assumes products are also in nightclub data
+// ----- Bar Flow Logic (Kiosk E-Commerce) -----
+let barCart = { rewards: [], products: [] }; // products: [{...item, qty: N}]
 
-    renderBarGrids(rewards, products);
+function initKiosk(clubName) {
+    barCart = { rewards: [], products: [] };
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user) {
+        const avatar = document.getElementById('kiosk-avatar');
+        if (avatar) avatar.textContent = (user.name || '?')[0].toUpperCase();
+        const nameEl = document.getElementById('kiosk-user-name');
+        if (nameEl) nameEl.textContent = user.name || 'Utilisateur';
+    }
+    // Show order page, hide others
+    showKioskPage('order');
+    fetchClubDataForBar(clubName);
 }
 
-function renderBarGrids(rewards, products) {
+function showKioskPage(page) {
+    const pages = { order: 'kiosk-order-page', summary: 'kiosk-summary-page', qr: 'kiosk-qr-page' };
+    Object.values(pages).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const target = document.getElementById(pages[page]);
+    if (target) target.style.display = 'block';
+}
+
+async function fetchClubDataForBar(clubName) {
+    const club = nightclubs.find(c => c.name === clubName);
+    const rewards = club?.rewards || [];
+    const products = club?.products || [];
+    renderKioskGrids(rewards, products);
+}
+
+function renderKioskGrids(rewards, products) {
     const rGrid = document.getElementById('bar-rewards-grid');
     const pGrid = document.getElementById('bar-products-grid');
     if (!rGrid || !pGrid) return;
 
-    rGrid.innerHTML = '';
-    pGrid.innerHTML = '';
+    const userPts = parseInt(document.getElementById('bar-user-points-val')?.textContent) || 0;
+
+    rGrid.innerHTML = rewards.length === 0
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucune récompense disponible.</p>'
+        : '';
 
     rewards.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'bar-item';
-        item.innerHTML = `
-            ${r.image ? `<img src="${r.image}" class="bar-item-img">` : '<div class="bar-item-img"></div>'}
-            <div class="bar-item-name">${r.name}</div>
-            <div class="bar-item-cost">${r.points} pts</div>
+        const affordable = userPts >= (r.points || 0);
+        const div = document.createElement('div');
+        div.className = 'kiosk-item' + (affordable ? '' : ' kiosk-item-disabled');
+        div.innerHTML = `
+            <div class="kiosk-item-img" style="background-image: url('${r.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200'}')"></div>
+            <div class="kiosk-item-body">
+                <div class="kiosk-item-name">${r.name}</div>
+                <div class="kiosk-item-price">${r.points} pts</div>
+            </div>
+            <div class="kiosk-item-action">${affordable ? '<button class="kiosk-add-btn" data-id="' + r.id + '">+</button>' : '<span class="kiosk-locked">Pas assez de pts</span>'}</div>
         `;
-        item.onclick = () => toggleBarSelection(r, 'reward', item);
-        rGrid.appendChild(item);
+        if (affordable) {
+            div.querySelector('.kiosk-add-btn').onclick = (e) => { e.stopPropagation(); toggleRewardInCart(r, div); };
+        }
+        rGrid.appendChild(div);
     });
+
+    pGrid.innerHTML = products.length === 0
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucun produit disponible.</p>'
+        : '';
 
     products.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'bar-item';
-        item.innerHTML = `
-            ${p.image ? `<img src="${p.image}" class="bar-item-img">` : '<div class="bar-item-img"></div>'}
-            <div class="bar-item-name">${p.name}</div>
-            <div class="bar-item-cost">Produit</div>
+        const priceNum = parseFloat(String(p.price).replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+        const div = document.createElement('div');
+        div.className = 'kiosk-item';
+        div.dataset.productId = p.id;
+        div.innerHTML = `
+            <div class="kiosk-item-img" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200'}')"></div>
+            <div class="kiosk-item-body">
+                <div class="kiosk-item-name">${p.name}</div>
+                ${p.category ? '<span class="kiosk-item-cat">' + p.category + '</span>' : ''}
+                <div class="kiosk-item-price">${priceNum.toFixed(2)} &euro;</div>
+            </div>
+            <div class="kiosk-item-action">
+                <div class="kiosk-qty-ctrl" style="display:none;">
+                    <button class="kiosk-qty-btn" onclick="event.stopPropagation(); changeProductQty('${p.id}', -1)">-</button>
+                    <span class="kiosk-qty-val" id="qty-${p.id}">0</span>
+                    <button class="kiosk-qty-btn" onclick="event.stopPropagation(); changeProductQty('${p.id}', 1)">+</button>
+                </div>
+                <button class="kiosk-add-btn kiosk-add-product" onclick="event.stopPropagation(); changeProductQty('${p.id}', 1)" data-price="${priceNum}" data-name="${p.name}">+</button>
+            </div>
         `;
-        item.onclick = () => toggleBarSelection(p, 'product', item);
-        pGrid.appendChild(item);
+        pGrid.appendChild(div);
     });
 }
 
-function toggleBarSelection(item, type, element) {
-    const list = type === 'reward' ? barSelection.rewards : barSelection.products;
-    const idx = list.findIndex(i => i.id === item.id);
-    
+function toggleRewardInCart(reward, element) {
+    const idx = barCart.rewards.findIndex(r => r.id === reward.id);
     if (idx > -1) {
-        list.splice(idx, 1);
-        element.classList.remove('selected');
+        barCart.rewards.splice(idx, 1);
+        element.classList.remove('kiosk-item-selected');
     } else {
-        list.push(item);
-        element.classList.add('selected');
+        barCart.rewards.push(reward);
+        element.classList.add('kiosk-item-selected');
     }
-    
-    updateBarTotal();
+    updateKioskCart();
 }
 
-function updateBarTotal() {
-    const total = barSelection.rewards.reduce((sum, r) => sum + r.points, 0);
-    document.getElementById('bar-total-points-cost').textContent = `${total} pts`;
+function changeProductQty(productId, delta) {
+    const existing = barCart.products.find(p => p.id === productId);
+    const itemEl = document.querySelector(`.kiosk-item[data-product-id="${productId}"]`);
+    if (!itemEl) return;
+
+    if (existing) {
+        existing.qty += delta;
+        if (existing.qty <= 0) {
+            barCart.products = barCart.products.filter(p => p.id !== productId);
+            itemEl.classList.remove('kiosk-item-selected');
+            itemEl.querySelector('.kiosk-qty-ctrl').style.display = 'none';
+            itemEl.querySelector('.kiosk-add-product').style.display = '';
+        }
+    } else if (delta > 0) {
+        // Get info from the button
+        const btn = itemEl.querySelector('.kiosk-add-product');
+        const price = parseFloat(btn.dataset.price) || 0;
+        const name = btn.dataset.name || '';
+        // Get product from nightclubs data
+        const club = nightclubs.find(c => c.name === currentScanData?.clubName);
+        const prod = club?.products?.find(p => p.id === productId) || { id: productId, name, price };
+        barCart.products.push({ ...prod, priceNum: price, qty: 1 });
+        itemEl.classList.add('kiosk-item-selected');
+    }
+
+    // Update qty display
+    const qtyEl = document.getElementById('qty-' + productId);
+    const cartItem = barCart.products.find(p => p.id === productId);
+    if (qtyEl) qtyEl.textContent = cartItem ? cartItem.qty : 0;
+
+    // Show/hide qty controls
+    if (cartItem && cartItem.qty > 0) {
+        itemEl.querySelector('.kiosk-qty-ctrl').style.display = 'flex';
+        itemEl.querySelector('.kiosk-add-product').style.display = 'none';
+    }
+
+    updateKioskCart();
 }
 
-function generateBarmanCode() {
+function updateKioskCart() {
+    const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+    const totalItems = barCart.rewards.length + barCart.products.reduce((s, p) => s + p.qty, 0);
+    const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+
+    document.getElementById('kiosk-cart-count').textContent = totalItems;
+    document.getElementById('kiosk-cart-total').textContent = totalProducts.toFixed(2);
+
+    const footer = document.getElementById('kiosk-cart-footer');
+    if (footer) footer.style.display = totalItems > 0 ? 'flex' : 'none';
+}
+
+function showOrderSummary() {
+    showKioskPage('summary');
+
+    // Rewards
+    const rSection = document.getElementById('summary-rewards-section');
+    const rList = document.getElementById('summary-rewards-list');
+    if (barCart.rewards.length > 0) {
+        rSection.style.display = 'block';
+        rList.innerHTML = barCart.rewards.map(r => `
+            <div class="kiosk-summary-item">
+                <span>${r.name}</span>
+                <span class="kiosk-summary-item-cost">-${r.points} pts</span>
+            </div>
+        `).join('');
+        const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+        document.getElementById('summary-rewards-pts').textContent = '-' + totalPts + ' pts';
+    } else {
+        rSection.style.display = 'none';
+    }
+
+    // Products
+    const pSection = document.getElementById('summary-products-section');
+    const pList = document.getElementById('summary-products-list');
+    if (barCart.products.length > 0) {
+        pSection.style.display = 'block';
+        pList.innerHTML = barCart.products.map(p => `
+            <div class="kiosk-summary-item">
+                <span>${p.name} x${p.qty}</span>
+                <span class="kiosk-summary-item-cost">${(p.priceNum * p.qty).toFixed(2)} &euro;</span>
+            </div>
+        `).join('');
+        const totalProd = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+        document.getElementById('summary-products-total').textContent = totalProd.toFixed(2) + ' \u20AC';
+    } else {
+        pSection.style.display = 'none';
+    }
+
+    // Totals
+    const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+    const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+    document.getElementById('summary-total-no-rewards').textContent = totalProducts.toFixed(2) + ' \u20AC';
+    document.getElementById('summary-total-final').textContent = totalProducts.toFixed(2) + ' \u20AC';
+    document.getElementById('summary-pts-used').textContent = totalPts + ' pts';
+}
+
+function backToKiosk() {
+    showKioskPage('order');
+}
+
+function generateOrderQR() {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) return;
 
-    document.getElementById('bar-order-area').style.display = 'none';
-    document.getElementById('bar-order-footer').style.display = 'none';
-    document.querySelector('#verify-bar-container .verify-club-header p').textContent = 'Code Commande';
-    
-    const displayCode = document.getElementById('display-barman-code');
-    displayCode.textContent = user.code;
-    
-    document.getElementById('barman-code-display').style.display = 'block';
-    
-    // Optionally pre-send order to webhook so barman sees it instantly
-    sendBarOrderDraft(user.code);
+    const totalProducts = barCart.products.reduce((s, p) => s + (p.priceNum * p.qty), 0);
+    const totalPts = barCart.rewards.reduce((s, r) => s + (r.points || 0), 0);
+
+    // Build order payload
+    const orderData = {
+        action: 'bar_order',
+        clientCode: user.code,
+        clientName: user.name,
+        clubName: currentScanData?.clubName || '',
+        rewards: barCart.rewards.map(r => ({ name: r.name, points: r.points })),
+        products: barCart.products.map(p => ({ name: p.name, qty: p.qty, unitPrice: p.priceNum, total: p.priceNum * p.qty })),
+        totalWithoutRewards: totalProducts,
+        totalWithRewards: totalProducts,
+        pointsUsed: totalPts
+    };
+
+    // Encode as URL for barman to scan
+    const baseUrl = window.location.origin + window.location.pathname;
+    const qrUrl = baseUrl + '?action=scan&type=barman_order&data=' + encodeURIComponent(JSON.stringify(orderData));
+
+    showKioskPage('qr');
+
+    // Generate QR
+    const qrBox = document.getElementById('kiosk-qr-code');
+    qrBox.innerHTML = '';
+    if (typeof QRCode !== 'undefined') {
+        new QRCode(qrBox, { text: qrUrl, width: 220, height: 220, colorDark: '#ffffff', colorLight: 'transparent' });
+    } else {
+        qrBox.innerHTML = '<p style="color: var(--text-dim);">QR Code generation unavailable</p>';
+    }
+
+    document.getElementById('qr-recap-total').textContent = totalProducts.toFixed(2) + ' \u20AC';
+    document.getElementById('qr-recap-pts').textContent = totalPts + ' pts';
+
+    // Send draft to webhook
+    sendBarOrderDraft(user.code, JSON.stringify(orderData));
 }
 
-async function sendBarOrderDraft(userCode) {
+async function sendBarOrderDraft(userCode, payload) {
     try {
         await fetch('https://n8n.srv862127.hstgr.cloud/webhook/bar_order_draft', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: payload || JSON.stringify({
                 action: 'draft_order',
-                club_name: currentScanData.clubName,
+                club_name: currentScanData?.clubName,
                 clientCode: userCode,
-                rewards: barSelection.rewards.map(r => r.name),
-                products: barSelection.products.map(p => p.name)
+                rewards: barCart.rewards.map(r => r.name),
+                products: barCart.products.map(p => ({ name: p.name, qty: p.qty }))
             })
         });
     } catch(e) {}
 }
+
+// ----- Barman Order Validation -----
+let currentBarmanOrder = null;
+
+function showBarmanOrderReview(orderData) {
+    currentBarmanOrder = orderData;
+
+    // Ensure dashboard is visible (barman may not be logged in as fétard)
+    const authScreen = document.getElementById('auth-screen');
+    const dashScreen = document.getElementById('dashboard-screen');
+    if (authScreen) authScreen.classList.remove('active');
+    if (dashScreen) dashScreen.classList.add('active');
+
+    // Hide all other containers, show barman container
+    document.querySelectorAll('.verify-card').forEach(c => c.style.display = 'none');
+    const barmanContainer = document.getElementById('verify-barman-container');
+    barmanContainer.style.display = 'block';
+
+    // Switch to verify view
+    switchMainView('verify');
+
+    // Fill in data
+    document.getElementById('barman-club-name').textContent = orderData.clubName || '';
+    document.getElementById('barman-client-name').textContent = orderData.clientName || '-';
+    document.getElementById('barman-client-code').textContent = orderData.clientCode || '-';
+
+    // Show review, hide success
+    document.getElementById('barman-review-page').style.display = 'block';
+    document.getElementById('barman-success-page').style.display = 'none';
+
+    // Rewards
+    const rSection = document.getElementById('barman-rewards-section');
+    const rList = document.getElementById('barman-rewards-list');
+    if (orderData.rewards && orderData.rewards.length > 0) {
+        rSection.style.display = 'block';
+        rList.innerHTML = orderData.rewards.map(r => `
+            <div class="kiosk-summary-item">
+                <span>${r.name}</span>
+                <span class="kiosk-summary-item-cost">-${r.points} pts</span>
+            </div>
+        `).join('');
+        document.getElementById('barman-rewards-pts').textContent = '-' + orderData.pointsUsed + ' pts';
+    } else {
+        rSection.style.display = 'none';
+    }
+
+    // Products
+    const pSection = document.getElementById('barman-products-section');
+    const pList = document.getElementById('barman-products-list');
+    if (orderData.products && orderData.products.length > 0) {
+        pSection.style.display = 'block';
+        pList.innerHTML = orderData.products.map(p => `
+            <div class="kiosk-summary-item">
+                <span>${p.name} x${p.qty}</span>
+                <span class="kiosk-summary-item-cost">${p.total.toFixed(2)} \u20AC</span>
+            </div>
+        `).join('');
+        const prodTotal = orderData.products.reduce((s, p) => s + p.total, 0);
+        document.getElementById('barman-products-total').textContent = prodTotal.toFixed(2) + ' \u20AC';
+    } else {
+        pSection.style.display = 'none';
+    }
+
+    // Totals
+    document.getElementById('barman-total-no-rewards').textContent = (orderData.totalWithoutRewards || 0).toFixed(2) + ' \u20AC';
+    document.getElementById('barman-total-final').textContent = (orderData.totalWithRewards || 0).toFixed(2) + ' \u20AC';
+    document.getElementById('barman-pts-used').textContent = (orderData.pointsUsed || 0) + ' pts';
+}
+
+async function validateBarmanOrder() {
+    if (!currentBarmanOrder) return;
+
+    const btn = document.querySelector('.barman-validate-btn');
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+
+    try {
+        await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'validate_bar_order',
+                clientCode: currentBarmanOrder.clientCode,
+                clientName: currentBarmanOrder.clientName,
+                clubName: currentBarmanOrder.clubName,
+                totalWithoutRewards: currentBarmanOrder.totalWithoutRewards,
+                totalWithRewards: currentBarmanOrder.totalWithRewards,
+                pointsUsed: currentBarmanOrder.pointsUsed,
+                products: currentBarmanOrder.products,
+                rewards: currentBarmanOrder.rewards
+            })
+        });
+    } catch(e) {
+        console.error('Barman validation webhook error', e);
+    }
+
+    // Show success
+    document.getElementById('barman-review-page').style.display = 'none';
+    document.getElementById('barman-success-page').style.display = 'block';
+}
+
 // ----- Section Switching -----
 function switchBizSection(sectionId) {
     console.log('Switching to biz section:', sectionId);
@@ -2555,6 +2961,7 @@ function switchBizSection(sectionId) {
         });
 
         // Initialize section data if needed
+        if (sectionId === 'annonces') initAnnouncementEditor();
         if (sectionId === 'calendrier') renderCalendar();
         if (sectionId === 'stats') updateStats();
         if (sectionId === 'qrcodes') generateBusinessQRCodes();
@@ -2573,9 +2980,15 @@ function toggleSidebar() {
 function showBusinessDashboard() {
     const authScreen = document.getElementById('business-auth-screen');
     const dashboardScreen = document.getElementById('business-dashboard-screen');
-    
-    if (authScreen) authScreen.classList.remove('active');
-    if (dashboardScreen) dashboardScreen.classList.add('active');
+
+    if (authScreen) {
+        authScreen.classList.remove('active');
+        authScreen.style.display = 'none';
+    }
+    if (dashboardScreen) {
+        dashboardScreen.classList.add('active');
+        dashboardScreen.style.display = 'block';
+    }
     
     if (currentBusiness) {
         document.getElementById('biz-club-name').textContent = currentBusiness.name || currentBusiness.nom || 'Club';
@@ -2594,45 +3007,126 @@ function showBusinessDashboard() {
 
 // ----- Products Management -----
 let bizProducts = [];
+let editingProductId = null;
+let productFilterCategory = 'all';
+let selectedProductCategory = 'Soft';
+
+// Custom select toggle
+function toggleCustomSelect(wrapperId) {
+    const wrapper = document.getElementById(wrapperId);
+    if (!wrapper) return;
+    // Close all other open selects
+    document.querySelectorAll('.custom-select-wrapper.active').forEach(w => {
+        if (w.id !== wrapperId) w.classList.remove('active');
+    });
+    wrapper.classList.toggle('active');
+}
+
+// Close custom selects on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        document.querySelectorAll('.custom-select-wrapper.active').forEach(w => w.classList.remove('active'));
+    }
+});
+
+function selectProductCategory(val) {
+    selectedProductCategory = val;
+    const valueEl = document.getElementById('product-category-value');
+    if (valueEl) valueEl.textContent = val;
+    const wrapper = document.getElementById('product-category-wrapper');
+    if (wrapper) {
+        wrapper.classList.remove('active');
+        wrapper.querySelectorAll('.select-option').forEach(o => {
+            o.classList.toggle('selected', o.dataset.value === val);
+        });
+    }
+}
+
+function selectProductFilter(val) {
+    const valueEl = document.getElementById('product-filter-value');
+    if (valueEl) valueEl.textContent = val === 'all' ? 'Toutes les catégories' : val;
+    const wrapper = document.getElementById('product-filter-wrapper');
+    if (wrapper) {
+        wrapper.classList.remove('active');
+        wrapper.querySelectorAll('.select-option').forEach(o => {
+            o.classList.toggle('selected', o.dataset.value === val);
+        });
+    }
+    filterProducts(val);
+}
 
 function handleCreateProduct() {
     const name = document.getElementById('product-name').value;
     const price = document.getElementById('product-price').value;
     const desc = document.getElementById('product-desc').value;
+    const category = selectedProductCategory;
     const image = document.getElementById('product-image-input-hidden')?.value || '';
 
     if (!name || !price) {
-        alert('Veuillez remplir au moins le nom et le prix.');
+        showConfirmModal('Champs requis', 'Veuillez remplir au moins le nom et le prix.', () => {});
         return;
     }
 
-    const product = {
-        id: 'prod_' + Date.now(),
-        name,
-        price,
-        desc,
-        image
-    };
+    if (editingProductId) {
+        const idx = bizProducts.findIndex(p => p.id === editingProductId);
+        if (idx > -1) {
+            bizProducts[idx] = { ...bizProducts[idx], name, price, desc, category, image: image || bizProducts[idx].image };
+        }
+        editingProductId = null;
+    } else {
+        const product = { id: 'prod_' + Date.now(), name, price, desc, category, image };
+        bizProducts.push(product);
+    }
 
-    bizProducts.push(product);
     if (currentBusiness) {
         currentBusiness.products = bizProducts;
         saveBusinessData();
     }
 
     renderProductsList();
-    
-    // Reset form
+    resetProductForm();
+    showSaveToast();
+}
+
+function resetProductForm() {
     document.getElementById('product-name').value = '';
     document.getElementById('product-price').value = '';
     document.getElementById('product-desc').value = '';
+    selectProductCategory('Soft');
+    editingProductId = null;
+    const hiddenInput = document.getElementById('product-image-input-hidden');
+    if (hiddenInput) hiddenInput.value = '';
     const placeholder = document.getElementById('product-image-placeholder');
     if (placeholder) {
         placeholder.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Ajouter une image</span>`;
         placeholder.classList.remove('has-image');
     }
-    
-    showSaveToast();
+}
+
+function loadProductForEdit(id) {
+    const p = bizProducts.find(x => x.id === id);
+    if (!p) return;
+    editingProductId = id;
+    document.getElementById('product-name').value = p.name || '';
+    document.getElementById('product-price').value = p.price || '';
+    document.getElementById('product-desc').value = p.desc || '';
+    selectProductCategory(p.category || 'Soft');
+    if (p.image) {
+        let hiddenInput = document.getElementById('product-image-input-hidden');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'product-image-input-hidden';
+            document.body.appendChild(hiddenInput);
+        }
+        hiddenInput.value = p.image;
+        const placeholder = document.getElementById('product-image-placeholder');
+        if (placeholder) {
+            placeholder.classList.add('has-image');
+            placeholder.innerHTML = `<img src="${p.image}" style="width:100%; height:120px; object-fit:cover;">`;
+        }
+    }
+    document.querySelector('.products-create-panel')?.scrollIntoView({ behavior: 'smooth' });
 }
 
 function handleProductImageUpload(event) {
@@ -2640,7 +3134,6 @@ function handleProductImageUpload(event) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        // We need a hidden input for the product image too, or just store it in a variable
         let hiddenInput = document.getElementById('product-image-input-hidden');
         if (!hiddenInput) {
             hiddenInput = document.createElement('input');
@@ -2649,34 +3142,93 @@ function handleProductImageUpload(event) {
             document.body.appendChild(hiddenInput);
         }
         hiddenInput.value = e.target.result;
-
         const placeholder = document.getElementById('product-image-placeholder');
         if (placeholder) {
             placeholder.classList.add('has-image');
-            placeholder.innerHTML = `<img src="${e.target.result}" style="width:100%; height:160px; object-fit:cover;">`;
+            placeholder.innerHTML = `<img src="${e.target.result}" style="width:100%; height:120px; object-fit:cover;">`;
         }
     };
     reader.readAsDataURL(file);
+}
+
+function addNewProductCategory() {
+    showPromptModal('Nouvelle catégorie', 'Entrez le nom de la nouvelle catégorie :', (catName) => {
+        const optionsContainer = document.getElementById('product-category-options');
+        if (!optionsContainer) return;
+        const exists = Array.from(optionsContainer.querySelectorAll('.select-option')).some(o => o.dataset.value.toLowerCase() === catName.toLowerCase());
+        if (!exists) {
+            const opt = document.createElement('div');
+            opt.className = 'select-option';
+            opt.dataset.value = catName;
+            opt.textContent = catName;
+            opt.onclick = () => selectProductCategory(catName);
+            optionsContainer.appendChild(opt);
+        }
+        selectProductCategory(catName);
+        renderProductCategoryFilters();
+    });
+}
+
+function filterProducts(category) {
+    productFilterCategory = category;
+    renderProductsList();
+}
+
+function renderProductCategoryFilters() {
+    const filterOptions = document.getElementById('product-filter-options');
+    const createOptions = document.getElementById('product-category-options');
+    if (!filterOptions) return;
+
+    // Collect all categories from products + create dropdown
+    const categories = [...new Set(bizProducts.map(p => p.category).filter(Boolean))];
+    if (createOptions) {
+        createOptions.querySelectorAll('.select-option').forEach(o => {
+            if (o.dataset.value && !categories.includes(o.dataset.value)) categories.push(o.dataset.value);
+        });
+    }
+
+    // Rebuild filter dropdown
+    const currentVal = productFilterCategory;
+    filterOptions.innerHTML = '<div class="select-option' + (currentVal === 'all' ? ' selected' : '') + '" data-value="all" onclick="selectProductFilter(\'all\')">Toutes les catégories</div>';
+    categories.forEach(c => {
+        const opt = document.createElement('div');
+        opt.className = 'select-option' + (currentVal === c ? ' selected' : '');
+        opt.dataset.value = c;
+        opt.textContent = c;
+        opt.onclick = () => selectProductFilter(c);
+        filterOptions.appendChild(opt);
+    });
 }
 
 function renderProductsList() {
     const grid = document.getElementById('biz-products-grid');
     if (!grid) return;
 
-    if (bizProducts.length === 0) {
-        grid.innerHTML = '<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">Aucun produit créé.</p>';
+    renderProductCategoryFilters();
+
+    let filtered = bizProducts;
+    if (productFilterCategory !== 'all') {
+        filtered = bizProducts.filter(p => p.category === productFilterCategory);
+    }
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? 'Aucun produit dans cette catégorie.' : 'Aucun produit créé.'}</p>`;
         return;
     }
 
-    grid.innerHTML = bizProducts.map(p => `
+    grid.innerHTML = filtered.map(p => `
         <div class="product-card">
             <div class="product-card-image" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300'}')"></div>
             <div class="product-card-body">
-                <div class="product-card-name">${p.name}</div>
+                <div class="product-card-name-row">
+                    <span class="product-card-name">${p.name}</span>
+                    ${p.category ? `<span class="product-card-category">${p.category}</span>` : ''}
+                </div>
                 <div class="product-card-price">${p.price}</div>
                 <div class="product-card-desc">${p.desc || ''}</div>
                 <div class="product-card-actions">
-                    <button class="btn-mini btn-delete" style="width: 100%;" onclick="deleteProduct('${p.id}')">Supprimer</button>
+                    <button class="btn-mini btn-edit" onclick="loadProductForEdit('${p.id}')">Modifier</button>
+                    <button class="btn-mini btn-delete" onclick="deleteProduct('${p.id}')">Supprimer</button>
                 </div>
             </div>
         </div>
@@ -2684,9 +3236,10 @@ function renderProductsList() {
 }
 
 function deleteProduct(id) {
-    if (!confirm('Supprimer ce produit ?')) return;
-    bizProducts = bizProducts.filter(p => p.id !== id);
-    if (currentBusiness) currentBusiness.products = bizProducts;
-    saveBusinessData();
-    renderProductsList();
+    showConfirmModal('Supprimer ce produit ?', 'Cette action est irréversible.', () => {
+        bizProducts = bizProducts.filter(p => p.id !== id);
+        if (currentBusiness) currentBusiness.products = bizProducts;
+        saveBusinessData();
+        renderProductsList();
+    });
 }
