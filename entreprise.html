@@ -34,6 +34,14 @@
     </script>
 </head>
 <body class="view-entreprise">
+    <!-- Language Selector -->
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+        <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
+            <option value="fr" style="color: black;">FR</option>
+            <option value="en" style="color: black;">EN</option>
+            <option value="es" style="color: black;">ES</option>
+        </select>
+    </div>
     <!-- ==================== ENTREPRISE VIEW ==================== -->
     <div id="entreprise-view">
         <div class="auth-bg">
@@ -48,27 +56,27 @@
                     <div class="auth-logo">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/><path d="M18 12h.01"/><path d="M18 16h.01"/><path d="M18 8h.01"/><path d="M14 19h1"/><path d="M14 15h1"/><path d="M14 11h1"/><path d="M14 8h1"/></svg>
                     </div>
-                    <h1>Espace Entreprise</h1>
-                    <p>Développez votre visibilité et gérez vos rewards.</p>
+                    <h1 data-i18n="auth.biz_title">Espace Entreprise</h1>
+                    <p data-i18n="auth.biz_desc">Développez votre visibilité et gérez vos rewards.</p>
                 </div>
 
                 <div class="auth-tabs">
                     <div class="tab-indicator" id="biz-tab-indicator"></div>
-                    <button class="tab-btn active" onclick="switchBizTab('login')">Connexion</button>
-                    <button class="tab-btn" onclick="switchBizTab('signup')">Inscription</button>
+                    <button class="tab-btn active" onclick="switchBizTab('login')" data-i18n="common.login">Connexion</button>
+                    <button class="tab-btn" onclick="switchBizTab('signup')" data-i18n="common.signup">Inscription</button>
                 </div>
 
                 <!-- Business Login -->
                 <form id="business-login-form" class="auth-form active" onsubmit="handleBusinessLogin(event)">
                     <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Entrez votre mot de passe pour accéder à votre espace.</p>
                     <div class="input-group">
-                        <label>Mot de passe</label>
+                        <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                             <input type="password" id="biz-login-password" placeholder="Votre mot de passe club" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="biz-login-btn">Se connecter</button>
+                    <button type="submit" class="btn-primary" id="biz-login-btn" data-i18n="auth.biz_login">Se connecter</button>
                     <div id="biz-login-message" class="form-message"></div>
                 </form>
 
@@ -76,14 +84,14 @@
                 <form id="business-signup-form" class="auth-form" onsubmit="handleBusinessSignup(event)">
                     <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Inscrivez votre établissement sur Suggesto.</p>
                     <div class="input-group">
-                        <label>Nom de la boîte de nuit</label>
+                        <label data-i18n="auth.biz_name">Nom de la boîte de nuit</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/></svg>
                             <input type="text" id="biz-signup-name" placeholder="Ex: Le Macumba" required>
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Mot de passe</label>
+                        <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                             <input type="password" id="biz-signup-password" placeholder="Définissez votre mot de passe" required>
@@ -92,7 +100,7 @@
                             </button>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="biz-signup-btn">Créer mon compte</button>
+                    <button type="submit" class="btn-primary" id="biz-signup-btn" data-i18n="auth.biz_signup">Créer mon compte</button>
                     <div id="biz-signup-message" class="form-message"></div>
                 </form>
             </div>
@@ -109,37 +117,37 @@
                 <nav class="sidebar-nav">
                     <button class="nav-item active" onclick="switchBizSection('annonces')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                        Mes Annonces
+                        <span data-i18n="nav.annonces">Mes Annonces</span>
                     </button>
                     <button class="nav-item" onclick="switchBizSection('calendrier')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        Calendrier
+                        <span data-i18n="nav.calendar">Calendrier</span>
                     </button>
                     <button class="nav-item" onclick="switchBizSection('rewards')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                        Rewards
+                        <span data-i18n="nav.rewards">Rewards</span>
                     </button>
                     <button class="nav-item" onclick="switchBizSection('produits')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                        Produits
+                        <span data-i18n="nav.products">Produits</span>
                     </button>
                     <button class="nav-item" onclick="switchBizSection('commandes')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-                        Commande
+                        <span data-i18n="nav.orders">Commande</span>
                     </button>
                     <button class="nav-item" onclick="switchBizSection('stats')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-                        Stats
+                        <span data-i18n="nav.stats">Stats</span>
                     </button>
                     <button class="nav-item" onclick="switchBizSection('qrcodes')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                        Mes QR Codes
+                        <span data-i18n="nav.my_qr">Mes QR Codes</span>
                     </button>
                 </nav>
                 <div class="sidebar-footer">
                     <button class="btn-logout-biz" onclick="handleBusinessLogout()">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        Déconnexion
+                        <span data-i18n="common.logout">Déconnexion</span>
                     </button>
                 </div>
             </aside>
@@ -656,7 +664,9 @@
 
     <div id="save-toast" class="save-toast">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        Template enregistré !
+        <span data-i18n="common.save">Template enregistré !</span>
     </div>
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

@@ -1,4 +1,9 @@
 let currentBusiness = JSON.parse(localStorage.getItem('businessUser')) || null;
+let bizTemplates = [];
+let announcementTemplates = [];
+let bizRewards = [];
+let bizSchedule = {};
+let calendarDate = new Date();
 
 // Initialize View on Load
 document.addEventListener('DOMContentLoaded', () => {
@@ -133,7 +138,7 @@ async function handleLogin(e) {
     const password = document.getElementById('login-password').value.trim();
 
     if (!password) {
-        showMessage('login-message', 'Veuillez entrer un mot de passe.', 'error');
+        showMessage('login-message', t('errors.fill_all'), 'error');
         return;
     }
 
@@ -155,11 +160,11 @@ async function handleLogin(e) {
         console.log('Login response:', response.status, data);
 
         if (!data) {
-            showMessage('login-message', 'Erreur: impossible de lire la réponse du serveur.', 'error');
+            showMessage('login-message', t('errors.default'), 'error');
         } else if (data.statut === 'invalid') {
-            showMessage('login-message', data.phrase || 'Connexion refusée.', 'error');
+            showMessage('login-message', data.phrase || t('errors.wrong_creds'), 'error');
         } else {
-            showMessage('login-message', 'Connexion validée !', 'success');
+            showMessage('login-message', t('common.loading'), 'success');
             
             // On récupère le userid renvoyé par le webhook n8n
             const userId = data.userid || data.uuid; 
@@ -184,7 +189,7 @@ async function handleLogin(e) {
         }
     } catch (err) {
         console.error('Login webhook error:', err);
-        showMessage('login-message', 'Erreur de connexion au serveur.', 'error');
+        showMessage('login-message', t('errors.default'), 'error');
     } finally {
         setLoading('login-btn', false);
     }
@@ -287,12 +292,12 @@ async function handleBusinessSignup(e) {
     const msg = document.getElementById('biz-signup-message');
 
     if (!name || !password) {
-        showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
+        showMessage('biz-signup-message', t('errors.fill_all'), 'error');
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Création en cours...';
+    btn.textContent = t('common.loading');
 
     const uuid = generateUUID();
     const userCode = generateUserCode();
@@ -328,11 +333,11 @@ async function handleBusinessSignup(e) {
                 ...data
             };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            msg.textContent = 'Inscription réussie ! Redirection...';
+            msg.textContent = t('common.loading');
             msg.className = 'form-message success';
             setTimeout(() => showBusinessDashboard(), 500);
         } else {
-            throw new Error(data?.phrase || 'Erreur lors de l\'inscription');
+            throw new Error(data?.phrase || t('errors.default'));
         }
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
@@ -350,12 +355,12 @@ async function handleBusinessLogin(e) {
     const msg = document.getElementById('biz-login-message');
 
     if (!password) {
-        showMessage('biz-login-message', 'Veuillez entrer un mot de passe.', 'error');
+        showMessage('biz-login-message', t('errors.fill_all'), 'error');
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Connexion...';
+    btn.textContent = t('common.loading');
 
     try {
         const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/valide_mdp', {
@@ -379,7 +384,7 @@ async function handleBusinessLogin(e) {
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
             showBusinessDashboard();
         } else {
-            throw new Error(data?.phrase || 'Identifiants incorrects');
+            throw new Error(data?.phrase || t('errors.wrong_creds'));
         }
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
@@ -560,8 +565,6 @@ function updateAnnoncesPreview() {
     });
 }
 
-// ----- Announcement Template Management -----
-let announcementTemplates = [];
 
 function initAnnouncementEditor() {
     // Load templates from current business profile
@@ -1339,7 +1342,6 @@ function updateBar(id, percent) {
     }
 }
 
-let calendarDate = new Date();
 let calClickTimeout = null;
 
 function renderCalendar() {

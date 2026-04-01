@@ -1,0 +1,61 @@
+{
+  "common": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "password": "Password",
+    "connect": "Sign In",
+    "logout": "Log Out",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "loading": "Loading..."
+  },
+  "landing": {
+    "fetard": "Partygoer",
+    "entreprise": "Business",
+    "start": "Get Started",
+    "title_fetard": "Go out at the right place, at the right time.",
+    "subtitle_fetard": "See where the crowd is, get a signal when it moves... and earn rewards every time you go out.",
+    "title_entreprise": "Fill your parties. Retain your customers.",
+    "subtitle_entreprise": "Turn the people who already visit you into a loyal, actionable, and measurable customer base."
+  },
+  "auth": {
+    "platform": "Lead Management Platform",
+    "fullname": "Full Name",
+    "age": "Age",
+    "gender": "Gender",
+    "city": "City",
+    "signup_btn": "Sign Up",
+    "biz_title": "Business Space",
+    "biz_desc": "Grow your visibility and manage your rewards.",
+    "biz_name": "Nightclub Name",
+    "biz_login": "Sign In",
+    "biz_signup": "Create my account"
+  },
+  "nav": {
+    "home": "Clubs Home",
+    "qr": "Clubs QR",
+    "code": "My Code",
+    "annonces": "My Ads",
+    "calendar": "Calendar",
+    "rewards": "Rewards",
+    "products": "Products",
+    "orders": "Orders",
+    "stats": "Stats",
+    "my_qr": "My QR Codes"
+  },
+  "dashboard": {
+    "search": "Search for a club...",
+    "favorites": "My Favorite Clubs",
+    "all_clubs": "All Clubs",
+    "my_code": "MY UNIQUE CODE",
+    "visits": "Outings",
+    "total_points": "Total Points"
+  },
+  "errors": {
+    "default": "An error occurred.",
+    "fill_all": "Please fill in all required fields.",
+    "wrong_creds": "Incorrect credentials."
+  }
+}

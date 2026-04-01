@@ -1,0 +1,61 @@
+{
+  "common": {
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "password": "Contraseña",
+    "connect": "Conectarse",
+    "logout": "Cerrar sesión",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "loading": "Cargando..."
+  },
+  "landing": {
+    "fetard": "Fiestero",
+    "entreprise": "Empresa",
+    "start": "Empezar",
+    "title_fetard": "Sal al lugar correcto, en el momento correcto.",
+    "subtitle_fetard": "Mira dónde hay gente, recibe una señal cuando el ambiente mejora... y gana recompensas con cada salida.",
+    "title_entreprise": "Llena tus fiestas. Fideliza a tus clientes.",
+    "subtitle_entreprise": "Convierte a las personas que ya vienen a tu local en una clientela fiel, activable y medible."
+  },
+  "auth": {
+    "platform": "Plataforma de gestión de leads",
+    "fullname": "Nombre completo",
+    "age": "Edad",
+    "gender": "Sexo",
+    "city": "Ciudad",
+    "signup_btn": "Registrarse",
+    "biz_title": "Espacio Empresa",
+    "biz_desc": "Desarrolla tu visibilidad y gestiona tus recompensas.",
+    "biz_name": "Nombre de la discoteca",
+    "biz_login": "Iniciar sesión",
+    "biz_signup": "Crear mi cuenta"
+  },
+  "nav": {
+    "home": "Inicio Discotecas",
+    "qr": "QR Discotecas",
+    "code": "Mi Código",
+    "annonces": "Mis Anuncios",
+    "calendar": "Calendario",
+    "rewards": "Recompensas",
+    "products": "Productos",
+    "orders": "Pedidos",
+    "stats": "Estadísticas",
+    "my_qr": "Mis Códigos QR"
+  },
+  "dashboard": {
+    "search": "Buscar una discoteca...",
+    "favorites": "Mis Discotecas Favoritas",
+    "all_clubs": "Todas las Discotecas",
+    "my_code": "MI CÓDIGO ÚNICO",
+    "visits": "Salidas",
+    "total_points": "Puntos Totales"
+  },
+  "errors": {
+    "default": "Ha ocurrido un error.",
+    "fill_all": "Por favor, completa todos los campos requeridos.",
+    "wrong_creds": "Credenciales incorrectas."
+  }
+}
