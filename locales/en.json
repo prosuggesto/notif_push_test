@@ -10,7 +10,8 @@
     "delete": "Delete",
     "close": "Close",
     "loading": "Loading...",
-    "today": "Today"
+    "today": "Today",
+    "download": "Download"
   },
   "landing": {
     "fetard": "Partygoer",
@@ -142,6 +143,17 @@
     "detailed_analysis": "Detailed Analysis",
     "gender_repartition": "Gender Repartition",
     "rewards_usage": "Rewards Usage",
-    "no_data": "No data for this period."
+    "no_data": "No data for this period.",
+    "pro_space": "Suggesto Pro",
+    "period_always": "Always",
+    "period_year": "This year",
+    "period_quarter": "This quarter",
+    "period_month": "This month",
+    "period_week": "This week",
+    "period_today": "Today",
+    "qr_entry": "Entry QR Code",
+    "qr_entry_desc": "Scan to validate client entry.",
+    "qr_bar": "Bar QR Code",
+    "qr_bar_desc": "Scan to order at the bar."
   }
 }

@@ -118,17 +118,9 @@
         <div id="business-dashboard-screen" class="screen">
             <!-- Sidebar Navigation -->
             <aside class="sidebar">
-                <div class="sidebar-header" style="justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="biz-logo-sm">S</div>
-                        <span id="biz-club-name" data-i18n="auth.biz_desc">Pro Space</span>
-                    </div>
-                    <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 8px; font-size: 11px; outline: none; cursor: pointer;">
-                        <option value="fr" style="color: black;">FR</option>
-                        <option value="en" style="color: black;">EN</option>
-                        <option value="es" style="color: black;">ES</option>
-                    </select>
+                <div class="sidebar-header">
                 </div>
+                <!-- Sidebar contents... -->
                 <nav class="sidebar-nav">
                     <button class="nav-item active" onclick="switchBizSection('annonces')" data-i18n="nav.annonces">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
@@ -178,6 +170,20 @@
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
+
+            <!-- Top Dashboard Header with Language Selector -->
+            <div class="dash-top-header">
+                <div class="header-left">
+                    <span id="biz-display-name" data-i18n="biz.pro_space" style="font-weight: 700; font-size: 18px; color: #fff;">Suggesto Pro</span>
+                </div>
+                <div class="header-right">
+                    <select class="language-selector content-lang-selector" onchange="changeLanguage(this.value)">
+                        <option value="fr" style="color: black;">FR</option>
+                        <option value="en" style="color: black;">EN</option>
+                        <option value="es" style="color: black;">ES</option>
+                    </select>
+                </div>
+            </div>
 
             <!-- Section: Mes Annonces -->
             <section id="biz-section-annonces" class="biz-section active">
@@ -482,20 +488,20 @@
                 <!-- Section: Stats -->
                 <section id="biz-section-stats" class="biz-section">
                     <div class="section-header" style="padding-left: 60px;">
-                        <h2>Statistiques</h2>
-                        <p>Analysez les performances de votre club.</p>
+                        <h2 data-i18n="nav.stats">Statistiques</h2>
+                        <p data-i18n="biz.stats_desc">Analysez les performances de votre club.</p>
                     </div>
 
                     <!-- Date Filter -->
                     <div class="stats-filter-container">
                         <div class="liquid-glass-select-wrap">
                             <select id="stats-date-filter" class="liquid-glass-select" onchange="updateStats()">
-                                <option value="always">Depuis toujours</option>
-                                <option value="year">Cette année</option>
-                                <option value="quarter">Ce trimestre</option>
-                                <option value="month" selected>Ce mois</option>
-                                <option value="week">Cette semaine</option>
-                                <option value="today">Aujourd'hui</option>
+                                <option value="always" data-i18n="biz.period_always">Depuis toujours</option>
+                                <option value="year" data-i18n="biz.period_year">Cette année</option>
+                                <option value="quarter" data-i18n="biz.period_quarter">Ce trimestre</option>
+                                <option value="month" data-i18n="biz.period_month" selected>Ce mois</option>
+                                <option value="week" data-i18n="biz.period_week">Cette semaine</option>
+                                <option value="today" data-i18n="biz.period_today">Aujourd'hui</option>
                             </select>
                         </div>
                     </div>
@@ -566,25 +572,25 @@
                         <div class="biz-card qr-card">
                             <div class="qr-card-header">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                                <h3>QR Code Entrée</h3>
-                                <p class="text-dim" style="font-size: 13px;" data-i18n="landing.cta_desc">Scannez pour valider l'entrée des clients.</p>
+                                <h3 data-i18n="biz.qr_entry">QR Code Entrée</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.qr_entry_desc">Scannez pour valider l'entrée des clients.</p>
                             </div>
                             <div id="qr-code-entry" class="qr-display-box"></div>
                             <button class="btn-primary" onclick="downloadBusinessQR('qr-code-entry', 'QR-Entree')" style="margin-top: 16px; width: 100%;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                Télécharger
+                                <span data-i18n="common.download">Télécharger</span>
                             </button>
                         </div>
                         <div class="biz-card qr-card">
                             <div class="qr-card-header">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                                <h3>QR Code Bar</h3>
-                                <p class="text-dim" style="font-size: 13px;">Scannez pour commander au bar.</p>
+                                <h3 data-i18n="biz.qr_bar">QR Code Bar</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.qr_bar_desc">Scannez pour commander au bar.</p>
                             </div>
                             <div id="qr-code-bar" class="qr-display-box"></div>
                             <button class="btn-primary" onclick="downloadBusinessQR('qr-code-bar', 'QR-Bar')" style="margin-top: 16px; width: 100%;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                Télécharger
+                                <span data-i18n="common.download">Télécharger</span>
                             </button>
                         </div>
                     </div>

@@ -10,7 +10,8 @@
     "delete": "Eliminar",
     "close": "Cerrar",
     "loading": "Cargando...",
-    "today": "Hoy"
+    "today": "Hoy",
+    "download": "Descargar"
   },
   "landing": {
     "fetard": "Fiestero",
@@ -142,6 +143,17 @@
     "detailed_analysis": "Análisis Detallados",
     "gender_repartition": "Reparto por Sexo",
     "rewards_usage": "Uso de Recompensas",
-    "no_data": "Sin datos para este periodo."
+    "no_data": "Sin datos para este periodo.",
+    "pro_space": "Suggesto Pro",
+    "period_always": "Desde siempre",
+    "period_year": "Este año",
+    "period_quarter": "Este trimestre",
+    "period_month": "Este mes",
+    "period_week": "Esta semana",
+    "period_today": "Hoy",
+    "qr_entry": "Código QR Entrada",
+    "qr_entry_desc": "Escanea para validar la entrada de clientes.",
+    "qr_bar": "Código QR Bar",
+    "qr_bar_desc": "Escanea para pedir en la barra."
   }
 }

@@ -1888,27 +1888,39 @@ async function handleSignup(e) {
 // ===== SHOW DASHBOARD =====
 function showDashboard(username) {
     try {
+        console.log('--- SHOW DASHBOARD START ---', username);
         const authScreen = document.getElementById('auth-screen');
         const dashScreen = document.getElementById('dashboard-screen');
         
-        if (authScreen) authScreen.classList.remove('active');
+        if (authScreen) {
+            authScreen.classList.remove('active');
+            authScreen.style.display = 'none';
+        }
+        
         if (dashScreen) {
             dashScreen.classList.add('active');
-            dashScreen.style.display = 'flex'; // Force display if class fails
+            dashScreen.style.setProperty('display', 'flex', 'important');
+            dashScreen.style.opacity = '1';
+            dashScreen.style.visibility = 'visible';
+            console.log('Dashboard screen activated');
+        } else {
+            console.error('CRITICAL: dashboard-screen element not found!');
         }
         
         const userDisp = document.getElementById('user-display');
         if (userDisp) userDisp.textContent = username;
 
         // Render local clubs for home view
+        console.log('Calling renderLocalClubs...');
         renderLocalClubs();
         
         // Ensure the new view is translated
         if (typeof translateDOM === 'function') {
             translateDOM();
         }
+        console.log('--- SHOW DASHBOARD COMPLETE ---');
     } catch (err) {
-        console.error('showDashboard error:', err);
+        console.error('showDashboard CRITICAL error:', err);
     }
 }
 
@@ -2958,6 +2970,16 @@ async function validateBarmanOrder() {
 function switchBizSection(sectionId) {
     console.log('Switching to biz section:', sectionId);
     
+    // Toggle calendar-active class on content area for header offset
+    const bizContent = document.querySelector('.biz-content');
+    if (bizContent) {
+        if (sectionId === 'calendrier') {
+            bizContent.classList.add('calendar-active');
+        } else {
+            bizContent.classList.remove('calendar-active');
+        }
+    }
+
     // Close sidebar on mobile
     const sidebar = document.querySelector('.sidebar');
     if (sidebar && sidebar.classList.contains('active')) {

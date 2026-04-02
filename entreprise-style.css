@@ -13,10 +13,10 @@
     top: 16px;
     left: 16px;
     z-index: 10000;
-    background: rgba(10, 10, 30, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
     border-radius: 12px;
     padding: 10px;
     color: white;
@@ -111,6 +111,45 @@
     .biz-content {
         padding-top: 10px !important;
     }
+}
+
+.dash-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    margin-bottom: 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 100;
+}
+
+.dash-top-header .header-left {
+    padding-left: 50px; /* Space for burger */
+}
+
+@media (min-width: 1025px) {
+    .dash-top-header .header-left {
+        padding-left: 0;
+    }
+}
+
+.content-lang-selector {
+    background: rgba(15, 23, 42, 0.6) !important;
+    color: #fff !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+}
+
+/* Offset for Calendar */
+.calendar-active .dash-top-header {
+    margin-right: 120px; /* Shift language selector left when calendar is active */
 }
 
 /* Fix for Titles being covered by Burger */
@@ -1563,6 +1602,7 @@
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -1613,6 +1653,7 @@
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

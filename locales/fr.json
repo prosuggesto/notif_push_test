@@ -10,7 +10,8 @@
     "delete": "Supprimer",
     "close": "Fermer",
     "loading": "Chargement...",
-    "today": "Aujourd'hui"
+    "today": "Aujourd'hui",
+    "download": "Télécharger"
   },
   "landing": {
     "fetard": "Fêtard",
@@ -142,6 +143,17 @@
     "detailed_analysis": "Analyses Détaillées",
     "gender_repartition": "Répartition par Sexe",
     "rewards_usage": "Utilisation des Rewards",
-    "no_data": "Aucune donnée pour cette période."
+    "no_data": "Aucune donnée pour cette période.",
+    "pro_space": "Suggesto Pro",
+    "period_always": "Depuis toujours",
+    "period_year": "Cette année",
+    "period_quarter": "Ce trimestre",
+    "period_month": "Ce mois",
+    "period_week": "Cette semaine",
+    "period_today": "Aujourd'hui",
+    "qr_entry": "QR Code Entrée",
+    "qr_entry_desc": "Scannez pour valider l'entrée des clients.",
+    "qr_bar": "QR Code Bar",
+    "qr_bar_desc": "Scannez pour commander au bar."
   }
 }
