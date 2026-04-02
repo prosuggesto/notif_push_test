@@ -97,4 +97,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentLang = detectLanguage();
     await loadTranslations(currentLang);
     translateDOM();
+    updateLanguageSelectorUI(currentLang);
 });
