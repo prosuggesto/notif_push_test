@@ -1887,12 +1887,29 @@ async function handleSignup(e) {
 
 // ===== SHOW DASHBOARD =====
 function showDashboard(username) {
-    document.getElementById('auth-screen').classList.remove('active');
-    document.getElementById('dashboard-screen').classList.add('active');
-    document.getElementById('user-display').textContent = username;
+    try {
+        const authScreen = document.getElementById('auth-screen');
+        const dashScreen = document.getElementById('dashboard-screen');
+        
+        if (authScreen) authScreen.classList.remove('active');
+        if (dashScreen) {
+            dashScreen.classList.add('active');
+            dashScreen.style.display = 'flex'; // Force display if class fails
+        }
+        
+        const userDisp = document.getElementById('user-display');
+        if (userDisp) userDisp.textContent = username;
 
-    // Render local clubs for home view
-    renderLocalClubs();
+        // Render local clubs for home view
+        renderLocalClubs();
+        
+        // Ensure the new view is translated
+        if (typeof translateDOM === 'function') {
+            translateDOM();
+        }
+    } catch (err) {
+        console.error('showDashboard error:', err);
+    }
 }
 
 // ===== LOGOUT =====
@@ -2180,27 +2197,32 @@ function renderLocalClubs() {
     const titleEl = document.getElementById('local-clubs-title');
     if (!container) return;
 
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
-    const userCity = user?.city || '';
+    try {
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const userCity = user?.city || '';
 
-    if (titleEl && userCity) {
-        titleEl.textContent = 'Boîtes à ' + userCity;
-    }
+        if (titleEl && userCity) {
+            titleEl.textContent = 'Boîtes à ' + userCity;
+            // No translateDOM here yet, let showDashboard handle it
+        }
 
-    const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];
+        const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];
 
-    if (local.length === 0) {
+        if (local.length === 0) {
+            container.innerHTML = '';
+            if (noLocal) noLocal.style.display = 'block';
+            return;
+        }
+
+        if (noLocal) noLocal.style.display = 'none';
         container.innerHTML = '';
-        if (noLocal) noLocal.style.display = 'block';
-        return;
+        local.forEach(club => {
+            container.innerHTML += buildClubCard(club);
+        });
+    } catch (e) {
+        console.error('renderLocalClubs error:', e);
     }
-
-    if (noLocal) noLocal.style.display = 'none';
-    container.innerHTML = '';
-    local.forEach(club => {
-        container.innerHTML += buildClubCard(club);
-    });
 }
 
 function renderFavoritesView() {
@@ -2964,6 +2986,11 @@ function switchBizSection(sectionId) {
         if (sectionId === 'stats') updateStats();
         if (sectionId === 'qrcodes') generateBusinessQRCodes();
         if (sectionId === 'produits') renderProductsList();
+
+        // Trigger i18n for the new section
+        if (typeof translateDOM === 'function') {
+            translateDOM();
+        }
     }
 }
 

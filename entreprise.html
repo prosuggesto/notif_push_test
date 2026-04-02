@@ -34,13 +34,7 @@
     </script>
 </head>
 <body class="view-entreprise">
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
-        <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
-            <option value="fr" style="color: black;">FR</option>
-            <option value="en" style="color: black;">EN</option>
-            <option value="es" style="color: black;">ES</option>
-        </select>
-    </div>
+    <!-- Language selector moved to sidebar -->
     <!-- ==================== ENTREPRISE VIEW ==================== -->
     <div id="entreprise-view">
         <div class="auth-bg">
@@ -124,42 +118,49 @@
         <div id="business-dashboard-screen" class="screen">
             <!-- Sidebar Navigation -->
             <aside class="sidebar">
-                <div class="sidebar-header">
-                    <div class="biz-logo-sm">S</div>
-                    <span id="biz-club-name">Pro Space</span>
+                <div class="sidebar-header" style="justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="biz-logo-sm">S</div>
+                        <span id="biz-club-name" data-i18n="auth.biz_desc">Pro Space</span>
+                    </div>
+                    <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 8px; font-size: 11px; outline: none; cursor: pointer;">
+                        <option value="fr" style="color: black;">FR</option>
+                        <option value="en" style="color: black;">EN</option>
+                        <option value="es" style="color: black;">ES</option>
+                    </select>
                 </div>
                 <nav class="sidebar-nav">
-                    <button class="nav-item active" onclick="switchBizSection('annonces')">
+                    <button class="nav-item active" onclick="switchBizSection('annonces')" data-i18n="nav.annonces">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                         Mes Annonces
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('calendrier')">
+                    <button class="nav-item" onclick="switchBizSection('calendrier')" data-i18n="nav.calendar">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         Calendrier
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('rewards')">
+                    <button class="nav-item" onclick="switchBizSection('rewards')" data-i18n="nav.rewards">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                         Rewards
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('produits')">
+                    <button class="nav-item" onclick="switchBizSection('produits')" data-i18n="nav.products">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
                         Produits
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('commandes')">
+                    <button class="nav-item" onclick="switchBizSection('commandes')" data-i18n="nav.orders">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
                         Commande
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('stats')">
+                    <button class="nav-item" onclick="switchBizSection('stats')" data-i18n="nav.stats">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         Stats
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('qrcodes')">
+                    <button class="nav-item" onclick="switchBizSection('qrcodes')" data-i18n="nav.my_qr">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                         Mes QR Codes
                     </button>
                 </nav>
                 <div class="sidebar-footer">
-                    <button class="btn-logout-biz" onclick="handleBusinessLogout()">
+                    <button class="btn-logout-biz" onclick="handleBusinessLogout()" data-i18n="common.logout">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         Déconnexion
                     </button>
@@ -185,8 +186,8 @@
                         <div class="editor-section">
                             <div class="preview-container editor-mode">
                                 <div class="editor-header">
-                                    <h3 class="card-title">Édition Directe</h3>
-                                    <p class="text-dim" style="font-size: 13px;">Cliquez sur la carte pour la personnaliser.</p>
+                                <h3 class="card-title" data-i18n="biz.direct_edition">Édition Directe</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.click_to_customize">Cliquez sur la carte pour la personnaliser.</p>
                                 </div>
                                 
                                 <div id="annonces-preview-card" class="modal-content" style="position: static; transform: none; width: 100%; max-width: 420px; margin: 0 auto;">
@@ -194,15 +195,15 @@
                                 </div>
 
                                 <div class="biz-actions" style="margin-top: 24px; justify-content: center;">
-                                    <button type="button" class="btn-primary" onclick="handleSaveTemplate(event)" style="width: 100%; max-width: 420px;">Enregistrer comme Template</button>
+                                    <button type="button" class="btn-primary" onclick="handleSaveTemplate(event)" style="width: 100%; max-width: 420px;" data-i18n="biz.save_as_template">Enregistrer comme Template</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="templates-section">
                             <div class="section-header" style="text-align: center;">
-                                <h3 class="card-title">Mes Templates</h3>
-                                <p class="text-dim" style="font-size: 13px;">Gérez vos templates enregistrés.</p>
+                                <h3 class="card-title" data-i18n="biz.my_templates">Mes Templates</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.manage_templates">Gérez vos templates enregistrés.</p>
                             </div>
                             
                             <div class="template-management-bar">
@@ -252,7 +253,7 @@
                                 </button>
                             </div>
                             <div class="gcal-actions-bar">
-                                <button class="gcal-today-btn" onclick="goToToday()">Aujourd'hui</button>
+                                <button class="gcal-today-btn" onclick="goToToday()" data-i18n="common.today">Aujourd'hui</button>
                                 <span id="gcal-selected-count" class="gcal-sel-badge" style="display:none;">0 sélectionné(s)</span>
                                 <button id="gcal-delete-selected" class="gcal-delete-btn" style="display:none;" onclick="deleteSelectedTemplates()">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
@@ -346,28 +347,30 @@
                     <div class="products-split-layout">
                         <div class="products-create-panel">
                             <div class="products-panel-header">
-                                <h3>Créer un nouveau produit</h3>
-                                <p class="text-dim">Ajoutez un produit à votre carte.</p>
+                            <div class="section-header" style="padding-left: 60px;">
+                                <h3 data-i18n="biz.create_product">Créer un nouveau produit</h3>
+                                <p class="text-dim" data-i18n="biz.add_product_desc">Ajoutez un produit à votre carte.</p>
+                            </div>
                             </div>
                             <div class="biz-card">
                                 <div class="rew-image-upload product-image-upload" onclick="document.getElementById('product-image-input').click()">
                                     <input type="file" id="product-image-input" style="display:none" accept="image/*" onchange="handleProductImageUpload(event)">
                                     <div id="product-image-placeholder" class="rew-image-placeholder">
                                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                        <span>Ajouter une image</span>
+                                        <span data-i18n="biz.add_image">Ajouter une image</span>
                                     </div>
                                 </div>
                                 <div class="input-group" style="margin-top:16px;">
-                                    <label>Nom du produit</label>
-                                    <input type="text" id="product-name" placeholder="Ex: Cocktail Maison" class="biz-textarea">
+                                    <label data-i18n="biz.product_name">Nom du produit</label>
+                                    <input type="text" id="product-name" placeholder="Ex: Cocktail Maison" class="biz-textarea" data-i18n-placeholder="biz.product_name">
                                 </div>
                                 <div class="input-group" style="margin-top:12px;">
-                                    <label>Prix</label>
-                                    <input type="text" id="product-price" placeholder="Ex: 12€" class="biz-textarea">
+                                    <label data-i18n="biz.price">Prix</label>
+                                    <input type="text" id="product-price" placeholder="Ex: 12€" class="biz-textarea" data-i18n-placeholder="biz.price">
                                 </div>
                                 <div class="input-group" style="margin-top:12px;">
-                                    <label>Description</label>
-                                    <textarea id="product-desc" placeholder="Description du produit..." class="biz-textarea" style="min-height: 70px;"></textarea>
+                                    <label data-i18n="biz.description">Description</label>
+                                    <textarea id="product-desc" placeholder="Description du produit..." class="biz-textarea" style="min-height: 70px;" data-i18n-placeholder="biz.description"></textarea>
                                 </div>
                                 <div class="input-group" style="margin-top:12px;">
                                     <label>Catégorie</label>
@@ -386,7 +389,7 @@
                                         <button type="button" class="btn-add-category" onclick="addNewProductCategory()">+ Nouvelle</button>
                                     </div>
                                 </div>
-                                <button class="btn-primary" style="margin-top:20px; width:100%;" onclick="handleCreateProduct()">
+                                <button class="btn-primary" style="margin-top:20px; width:100%;" onclick="handleCreateProduct()" data-i18n="biz.create_btn">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                                     Créer le produit
                                 </button>
@@ -396,8 +399,8 @@
                         <!-- Right: Products Grid -->
                         <div class="rewards-list-panel">
                             <div class="products-panel-header">
-                                <h3>Mes Produits</h3>
-                                <p class="text-dim">Gérez les produits de votre établissement.</p>
+                                <h3 data-i18n="biz.my_products">Mes Produits</h3>
+                                <p class="text-dim" data-i18n="biz.manage_products">Gérez les produits de votre établissement.</p>
                             </div>
                             <div class="product-filter-bar">
                                 <div class="custom-select-wrapper" id="product-filter-wrapper">
@@ -406,7 +409,7 @@
                                         <span class="dropdown-arrow">▼</span>
                                     </div>
                                     <div class="select-options" id="product-filter-options">
-                                        <div class="select-option selected" data-value="all" onclick="selectProductFilter('all')">Toutes les catégories</div>
+                                        <div class="select-option selected" data-value="all" onclick="selectProductFilter('all')" data-i18n="biz.all_categories">Toutes les catégories</div>
                                         <div class="select-option" data-value="Soft" onclick="selectProductFilter('Soft')">Soft</div>
                                         <div class="select-option" data-value="Alcool" onclick="selectProductFilter('Alcool')">Alcool</div>
                                         <div class="select-option" data-value="Snacks" onclick="selectProductFilter('Snacks')">Snacks</div>
@@ -423,15 +426,15 @@
                 <!-- Section: Commande (ex Give Rewards) -->
                 <section id="biz-section-commandes" class="biz-section">
                     <div class="section-header" style="padding-left: 60px;">
-                        <h2>Commandes</h2>
-                        <p>Saisissez le code client pour voir sa commande et la valider.</p>
+                        <h2 data-i18n="biz.orders_title">Commandes</h2>
+                        <p data-i18n="biz.orders_desc">Saisissez le code client pour voir sa commande et la valider.</p>
                     </div>
                     <div class="biz-card" style="max-width: 700px; margin: 0 auto;">
                         <div class="search-box">
                             <label>Code Client</label>
                             <div class="input-row" style="display: flex; gap: 12px; margin-top: 8px;">
-                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: ABC123">
-                                <button class="btn-primary" onclick="searchClientForCommande()" style="width: auto; padding: 0 24px;">Rechercher</button>
+                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: ABC123" data-i18n-placeholder="biz.client_code">
+                                <button class="btn-primary" onclick="searchClientForCommande()" style="width: auto; padding: 0 24px;" data-i18n="biz.search">Rechercher</button>
                             </div>
                         </div>
 
@@ -439,11 +442,11 @@
                             <!-- Client Info Header -->
                             <div class="client-info-header" style="text-align: center; margin-bottom: 24px;">
                                 <div class="client-avatar" style="width: 72px; height: 72px; background: linear-gradient(135deg, var(--primary), #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px; color: white;">👤</div>
-                                <h3 id="res-client-name" style="font-size: 20px; margin-bottom: 4px;">Nom du Client</h3>
+                                <h3 id="res-client-name" style="font-size: 20px; margin-bottom: 4px;" data-i18n="biz.client_name">Nom du Client</h3>
                                 <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--primary-glow); padding: 8px 20px; border-radius: 20px; margin-top: 8px;">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                                     <span id="res-client-points" style="color: var(--primary-light); font-weight: 800; font-size: 20px;">0</span>
-                                    <span style="color: var(--primary-light); font-weight: 500; font-size: 14px;">Points</span>
+                                    <span style="color: var(--primary-light); font-weight: 500; font-size: 14px;" data-i18n="biz.points">Points</span>
                                 </div>
                             </div>
 
@@ -501,52 +504,52 @@
                     <div class="stats-bubbles-grid">
                         <div class="stat-bubble">
                             <span class="stat-bubble-val" id="stat-total-clients">0</span>
-                            <span class="stat-bubble-label">Total Clients</span>
+                            <span class="stat-bubble-label" data-i18n="biz.total_clients">Total Clients</span>
                         </div>
                         <div class="stat-bubble">
                             <span class="stat-bubble-val" id="stat-total-earnings">0€</span>
-                            <span class="stat-bubble-label">Total Gagné</span>
+                            <span class="stat-bubble-label" data-i18n="biz.total_earnings">Total Gagné</span>
                         </div>
                         <div class="stat-bubble">
                             <span class="stat-bubble-val" id="stat-rewards-cost">0</span>
-                            <span class="stat-bubble-label">Coût Total Rewards</span>
+                            <span class="stat-bubble-label" data-i18n="biz.rewards_cost">Coût Total Rewards</span>
                         </div>
                         <div class="stat-bubble">
                             <div class="pie-chart-container"></div>
-                            <span class="stat-bubble-label">Répartition H/F/NB</span>
+                            <span class="stat-bubble-label" data-i18n="biz.gender_split">Répartition H/F/NB</span>
                         </div>
                     </div>
 
                     <!-- Detailed Analysis -->
                     <div class="stats-card">
-                        <h3 class="card-title" style="margin-bottom: 20px;">Analyses Détaillées</h3>
+                        <h3 class="card-title" style="margin-bottom: 20px;" data-i18n="biz.detailed_analysis">Analyses Détaillées</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
                             <!-- Gender Bars -->
                             <div class="stat-sub-section">
-                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;">Répartition par Sexe</h4>
+                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;" data-i18n="biz.gender_repartition">Répartition par Sexe</h4>
                                 <div class="chart-container" style="height: 180px; display: flex; align-items: flex-end; gap: 20px; justify-content: space-around; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
                                     <div class="bar-group" style="text-align: center; flex: 1;">
                                         <div id="bar-m" style="height: 0%; width: 100%; max-width: 40px; background: #3b82f6; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Hommes</span>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_male">Hommes</span>
                                         <span id="val-m" style="font-size: 12px; font-weight: 700;">0%</span>
                                     </div>
                                     <div class="bar-group" style="text-align: center; flex: 1;">
                                         <div id="bar-f" style="height: 0%; width: 100%; max-width: 40px; background: #ec4899; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Femmes</span>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_female">Femmes</span>
                                         <span id="val-f" style="font-size: 12px; font-weight: 700;">0%</span>
                                     </div>
                                     <div class="bar-group" style="text-align: center; flex: 1;">
                                         <div id="bar-nb" style="height: 0%; width: 100%; max-width: 40px; background: #a855f7; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Non-binaire</span>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_other">Autre</span>
                                         <span id="val-nb" style="font-size: 12px; font-weight: 700;">0%</span>
                                     </div>
                                 </div>
                             </div>
                             <!-- Rewards Usage -->
                             <div class="stat-sub-section">
-                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;">Utilisation des Rewards</h4>
+                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;" data-i18n="biz.rewards_usage">Utilisation des Rewards</h4>
                                 <div id="stats-rewards-list" style="display: flex; flex-direction: column; gap: 10px;">
-                                    <p style="font-size: 12px; color: var(--text-dim);">Aucune donnée pour cette période.</p>
+                                    <p style="font-size: 12px; color: var(--text-dim);" data-i18n="biz.no_data">Aucune donnée pour cette période.</p>
                                 </div>
                             </div>
                         </div>
@@ -556,15 +559,15 @@
                 <!-- Section: Mes QR Codes -->
                 <section id="biz-section-qrcodes" class="biz-section">
                     <div class="biz-header">
-                        <h1>Mes QR Codes</h1>
-                        <p>Générez et téléchargez les QR codes de votre établissement.</p>
+                        <h1 data-i18n="biz.qr_title">Mes QR Codes</h1>
+                        <p data-i18n="biz.qr_desc">Générez et téléchargez les QR codes de votre établissement.</p>
                     </div>
                     <div class="qr-cards-grid">
                         <div class="biz-card qr-card">
                             <div class="qr-card-header">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                                 <h3>QR Code Entrée</h3>
-                                <p class="text-dim" style="font-size: 13px;">Scannez pour valider l'entrée des clients.</p>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="landing.cta_desc">Scannez pour valider l'entrée des clients.</p>
                             </div>
                             <div id="qr-code-entry" class="qr-display-box"></div>
                             <button class="btn-primary" onclick="downloadBusinessQR('qr-code-entry', 'QR-Entree')" style="margin-top: 16px; width: 100%;">
