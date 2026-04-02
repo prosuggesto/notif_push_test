@@ -34,6 +34,13 @@
     </script>
 </head>
 <body class="view-entreprise">
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+        <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
+            <option value="fr" style="color: black;">FR</option>
+            <option value="en" style="color: black;">EN</option>
+            <option value="es" style="color: black;">ES</option>
+        </select>
+    </div>
     <!-- ==================== ENTREPRISE VIEW ==================== -->
     <div id="entreprise-view">
         <div class="auth-bg">
@@ -48,46 +55,45 @@
                     <div class="auth-logo">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/><path d="M18 12h.01"/><path d="M18 16h.01"/><path d="M18 8h.01"/><path d="M14 19h1"/><path d="M14 15h1"/><path d="M14 11h1"/><path d="M14 8h1"/></svg>
                     </div>
-                    <h1>Espace Entreprise</h1>
-                    <p>Développez votre visibilité et gérez vos rewards.</p>
+                    <h1 data-i18n="auth.biz_title">Espace Entreprise</h1>
+                    <p data-i18n="auth.biz_desc">Développez votre visibilité et gérez vos rewards.</p>
                 </div>
 
                 <div class="auth-tabs">
                     <div class="tab-indicator" id="biz-tab-indicator"></div>
-                    <button class="tab-btn active" onclick="switchBizTab('login')">Connexion</button>
-                    <button class="tab-btn" onclick="switchBizTab('signup')">Inscription</button>
+                    <button class="tab-btn active" onclick="switchBizTab('login')" data-i18n="common.login">Connexion</button>
+                    <button class="tab-btn" onclick="switchBizTab('signup')" data-i18n="common.signup">Inscription</button>
                 </div>
 
                 <!-- Business Login -->
                 <form id="business-login-form" class="auth-form active" onsubmit="handleBusinessLogin(event)">
-                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Entrez votre mot de passe pour accéder à votre espace.</p>
                     <div class="input-group">
-                        <label>Mot de passe</label>
+                        <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            <input type="password" id="biz-login-password" placeholder="Votre mot de passe club" required>
+                            <input type="password" id="biz-login-password" placeholder="Votre mot de passe club" data-i18n="auth.biz_login_password" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="biz-login-btn">Se connecter</button>
+                    <button type="submit" class="btn-primary" id="biz-login-btn" data-i18n="auth.biz_login">Se connecter</button>
                     <div id="biz-login-message" class="form-message"></div>
                 </form>
 
                 <!-- Business Signup -->
                 <form id="business-signup-form" class="auth-form" onsubmit="handleBusinessSignup(event)">
-                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Inscrivez votre établissement sur Suggesto.</p>
+                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;" data-i18n="auth.biz_signup_title">Inscrivez votre établissement sur Suggesto.</p>
                     <div class="input-group">
-                        <label>Nom de la boîte de nuit</label>
+                        <label data-i18n="auth.biz_name">Nom de la boîte de nuit</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/></svg>
-                            <input type="text" id="biz-signup-name" placeholder="Ex: Le Macumba" required>
+                            <input type="text" id="biz-signup-name" placeholder="Ex: Le Macumba" data-i18n="auth.biz_name_placeholder" required>
                         </div>
                     </div>
                     <div class="registration-grid">
                         <div class="input-group">
-                            <label for="biz-signup-city">Ville</label>
+                            <label for="biz-signup-city" data-i18n="auth.city">Ville</label>
                             <div class="input-wrapper">
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <input type="text" id="biz-signup-city" placeholder="Ville de l'établissement" required>
+                                <input type="text" id="biz-signup-city" placeholder="Ville de l'établissement" data-i18n="auth.biz_city_placeholder" required>
                             </div>
                         </div>
                         <div class="input-group">
@@ -99,16 +105,16 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Mot de passe</label>
+                        <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            <input type="password" id="biz-signup-password" placeholder="Définissez votre mot de passe" required>
+                            <input type="password" id="biz-signup-password" placeholder="Définissez votre mot de passe" data-i18n="auth.biz_password_placeholder" required>
                             <button type="button" class="toggle-password" onclick="togglePassword('biz-signup-password', this)">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="biz-signup-btn">Créer mon compte</button>
+                    <button type="submit" class="btn-primary" id="biz-signup-btn" data-i18n="auth.biz_signup">Créer mon compte</button>
                     <div id="biz-signup-message" class="form-message"></div>
                 </form>
             </div>
@@ -703,5 +709,6 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
         Template enregistré !
     </div>
+    <script src="i18n.js"></script>
 </body>
 </html>
