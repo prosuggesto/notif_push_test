@@ -1,0 +1,63 @@
+{
+  "common": {
+    "login": "Connexion",
+    "signup": "Inscription",
+    "password": "Mot de passe",
+    "connect": "Se connecter",
+    "logout": "Déconnexion",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "loading": "Chargement..."
+  },
+  "landing": {
+    "fetard": "Fêtard",
+    "entreprise": "Entreprise",
+    "start": "Commencer",
+    "title_fetard": "Sors au bon endroit, au bon moment.",
+    "subtitle_fetard": "Vois où il y a du monde, reçois un signal quand ça bouge… et gagne des récompenses à chaque sortie.",
+    "title_entreprise": "Remplissez vos soirées. Fidélisez vos clients.",
+    "subtitle_entreprise": "Transformez les personnes qui viennent déjà chez vous en une clientèle fidèle, activable et mesurable."
+  },
+  "auth": {
+    "platform": "Plateforme de gestion de leads",
+    "fullname": "Nom complet",
+    "age": "Âge",
+    "gender": "Sexe",
+    "city": "Ville",
+    "country": "Pays",
+    "your_country": "Votre pays",
+    "signup_btn": "S'inscrire",
+    "biz_title": "Espace Entreprise",
+    "biz_desc": "Développez votre visibilité et gérez vos rewards.",
+    "biz_name": "Nom de la boîte de nuit",
+    "biz_login": "Se connecter",
+    "biz_signup": "Créer mon compte"
+  },
+  "nav": {
+    "home": "Accueil Boîtes",
+    "qr": "QR Boîtes",
+    "code": "Mon Code",
+    "annonces": "Mes Annonces",
+    "calendar": "Calendrier",
+    "rewards": "Rewards",
+    "products": "Produits",
+    "orders": "Commande",
+    "stats": "Stats",
+    "my_qr": "Mes QR Codes"
+  },
+  "dashboard": {
+    "search": "Rechercher une boîte...",
+    "favorites": "Mes Boîtes Préférées",
+    "all_clubs": "Toutes les Boîtes",
+    "my_code": "MON CODE UNIQUE",
+    "visits": "Sorties",
+    "total_points": "Points Total"
+  },
+  "errors": {
+    "default": "Une erreur est survenue.",
+    "fill_all": "Veuillez remplir tous les champs obligatoires.",
+    "wrong_creds": "Identifiants incorrects."
+  }
+}

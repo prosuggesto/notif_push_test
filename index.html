@@ -12,6 +12,13 @@
     <link rel="stylesheet" href="landing.css">
 </head>
 <body>
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+        <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
+            <option value="fr" style="color: black;">FR</option>
+            <option value="en" style="color: black;">EN</option>
+            <option value="es" style="color: black;">ES</option>
+        </select>
+    </div>
     <div class="landing-container">
         <!-- Background effects -->
         <div class="bg-effects">
@@ -45,14 +52,14 @@
             <div class="mode-switch-container">
                 <button class="mode-label active" id="fetard-label" onclick="switchMode('fetard')">
                     <span class="emoji">🎉</span>
-                    <span>Fêtard</span>
+                    <span data-i18n="landing.fetard">Fêtard</span>
                 </button>
                 <div class="switch-track" onclick="toggleSwitch()">
                     <div class="switch-thumb" id="switch-thumb"></div>
                 </div>
                 <button class="mode-label" id="entreprise-label" onclick="switchMode('entreprise')">
                     <span class="emoji">🏢</span>
-                    <span>Entreprise</span>
+                    <span data-i18n="landing.entreprise">Entreprise</span>
                 </button>
             </div>
 
@@ -61,8 +68,8 @@
                 <!-- Fêtard Content -->
                 <div class="mode-content active" id="fetard-content">
                     <div class="hero-section">
-                        <h2 class="hero-title">Sors au bon endroit, au bon moment.</h2>
-                        <p class="hero-subtitle">Vois où il y a du monde, reçois un signal quand ça bouge… et gagne des récompenses à chaque sortie.</p>
+                        <h2 class="hero-title" data-i18n="landing.title_fetard">Sors au bon endroit, au bon moment.</h2>
+                        <p class="hero-subtitle" data-i18n="landing.subtitle_fetard">Vois où il y a du monde, reçois un signal quand ça bouge… et gagne des récompenses à chaque sortie.</p>
                     </div>
 
                     <div class="features-grid">
@@ -100,7 +107,7 @@
                     </div>
 
                     <button class="cta-button fetard-cta" onclick="goToFetard()">
-                        Commencer
+                        <span data-i18n="landing.start">Commencer</span>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
@@ -110,8 +117,8 @@
                 <!-- Entreprise Content -->
                 <div class="mode-content" id="entreprise-content">
                     <div class="hero-section">
-                        <h2 class="hero-title">Remplissez vos soirées. Fidélisez vos clients.</h2>
-                        <p class="hero-subtitle">Transformez les personnes qui viennent déjà chez vous en une clientèle fidèle, activable et mesurable.</p>
+                        <h2 class="hero-title" data-i18n="landing.title_entreprise">Remplissez vos soirées. Fidélisez vos clients.</h2>
+                        <p class="hero-subtitle" data-i18n="landing.subtitle_entreprise">Transformez les personnes qui viennent déjà chez vous en une clientèle fidèle, activable et mesurable.</p>
                     </div>
 
                     <div class="features-grid">
@@ -155,7 +162,7 @@
                     </div>
 
                     <button class="cta-button entreprise-cta" onclick="goToEntreprise()">
-                        Commencer
+                        <span data-i18n="landing.start">Commencer</span>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
@@ -165,6 +172,7 @@
         </main>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="landing.js"></script>
 </body>
 </html>
