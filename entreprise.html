@@ -15,21 +15,29 @@
     <meta name="description" content="Espace de gestion pour les établissements partenaires Suggesto.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="entreprise-style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
     <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
-          allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: false,
-          },
-        });
+      // Delay OneSignal loading until after page is fully interactive
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+          s.defer = true;
+          s.onload = function() {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(async function(OneSignal) {
+              await OneSignal.init({
+                appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: { enable: false },
+              });
+            });
+          };
+          document.head.appendChild(s);
+        }, 2000);
       });
     </script>
 </head>

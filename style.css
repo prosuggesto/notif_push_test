@@ -94,6 +94,15 @@ body {
     75% { transform: translate(40px, 30px) scale(1.02); }
 }
 
+/* ===== MOBILE PERFORMANCE: Reduce heavy animations ===== */
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .orb, .orb-1, .orb-2, .orb-3 {
+        animation: none !important;
+        opacity: 0.2 !important;
+        filter: blur(80px);
+    }
+}
+
 .auth-container {
     position: relative;
     z-index: 1;

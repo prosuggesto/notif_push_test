@@ -498,6 +498,27 @@ body.mode-entreprise .feature-card:hover {
     }
 }
 
+/* ===== MOBILE PERFORMANCE: Reduce heavy animations ===== */
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .gradient-orb {
+        animation: none !important;
+        opacity: 0.15 !important;
+        filter: blur(80px);
+    }
+
+    .feature-icon {
+        animation: none !important;
+    }
+
+    .logo {
+        animation: none !important;
+    }
+
+    .feature-card {
+        backdrop-filter: none;
+    }
+}
+
 @media (max-width: 480px) {
     .landing-container {
         padding: 20px;
