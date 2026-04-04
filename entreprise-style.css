@@ -20,9 +20,9 @@
     background-clip: text;
 }
 
-/* Biz content - no sidebar offset needed anymore */
+/* Biz content padding */
 .biz-content {
-    padding: 0;
+    padding: 32px;
 }
 
 .biz-header {

@@ -2991,19 +2991,6 @@ function switchBizSection(sectionId) {
         const link = document.getElementById(`biz-link-${sectionId}`);
         if (link) link.classList.add('active');
 
-        // Update header title
-        const titleMap = {
-            annonces: t('nav.annonces'),
-            calendrier: t('nav.calendar'),
-            rewards: t('nav.rewards'),
-            produits: t('nav.products'),
-            commandes: t('nav.orders'),
-            stats: t('nav.stats'),
-            qrcodes: t('nav.my_qr')
-        };
-        const headerTitle = document.getElementById('biz-header-title');
-        if (headerTitle) headerTitle.textContent = titleMap[sectionId] || sectionId;
-
         // Initialize section data if needed
         if (sectionId === 'annonces') initAnnouncementEditor();
         if (sectionId === 'calendrier') renderCalendar();
@@ -3015,6 +3002,19 @@ function switchBizSection(sectionId) {
         if (typeof translateDOM === 'function') {
             translateDOM();
         }
+
+        // Update header title AFTER translateDOM so it doesn't get overwritten
+        const titleMap = {
+            annonces: t('nav.annonces'),
+            calendrier: t('nav.calendar'),
+            rewards: t('nav.rewards'),
+            produits: t('nav.products'),
+            commandes: t('nav.orders'),
+            stats: t('nav.stats'),
+            qrcodes: t('nav.my_qr')
+        };
+        const headerTitle = document.getElementById('biz-header-title');
+        if (headerTitle) headerTitle.textContent = titleMap[sectionId] || sectionId;
     }
 }
 
