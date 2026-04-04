@@ -175,7 +175,7 @@
             <!-- Top Dashboard Header with Language Selector -->
             <div class="dash-top-header">
                 <div class="header-left">
-                    <span id="biz-display-name" data-i18n="biz.pro_space" style="font-weight: 700; font-size: 18px; color: #fff;">Suggesto Pro</span>
+                    <span id="biz-display-name" style="font-weight: 700; font-size: 18px; color: #fff;">Suggesto Pro</span>
                 </div>
                 <div class="header-right">
                     <select class="language-selector content-lang-selector" onchange="changeLanguage(this.value)">
@@ -286,50 +286,50 @@
                         <div class="rewards-create-panel">
                             <div class="preview-container editor-mode">
                                 <div class="editor-header">
-                                    <h3 class="card-title">Créer une Récompense</h3>
-                                    <p class="text-dim" style="font-size: 13px;">Remplissez les informations ci-dessous.</p>
+                                    <h3 class="card-title" data-i18n="biz.create_reward">Créer une Récompense</h3>
+                                    <p class="text-dim" style="font-size: 13px;" data-i18n="biz.reward_info">Remplissez les informations ci-dessous.</p>
                                 </div>
                                 <form id="biz-reward-form" onsubmit="handleCreateReward(event)">
                                     <!-- Image Upload -->
                                     <div class="rew-image-upload" onclick="document.getElementById('rew-image-input').click()">
                                         <div id="rew-image-preview" class="rew-image-placeholder">
                                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                            <span>Ajouter une image</span>
+                                            <span data-i18n="biz.add_image">Ajouter une image</span>
                                         </div>
                                         <input type="file" id="rew-image-input" accept="image/*" style="display:none" onchange="handleRewardImageUpload(event)">
                                         <input type="hidden" id="rew-image" value="">
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Nom de la récompense</label>
+                                        <label data-i18n="biz.reward_name">Nom de la récompense</label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                                             <input type="text" id="rew-name" placeholder="Ex: Shot de bienvenue" required>
                                         </div>
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Points nécessaires pour obtention</label>
+                                        <label data-i18n="biz.reward_points">Points nécessaires pour obtention</label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                                             <input type="number" id="rew-points" placeholder="Ex: 100" required>
                                         </div>
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Prix de base du produit (avant rewards)</label>
+                                        <label data-i18n="biz.reward_base_price">Prix de base du produit (avant rewards)</label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                                             <input type="text" id="rew-base-price" placeholder="Ex: 8€">
                                         </div>
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Code ID <span style="color: var(--text-dim); font-weight: 400;">(optionnel — pour la caisse)</span></label>
+                                        <label><span data-i18n="biz.reward_code">Code ID</span> <span style="color: var(--text-dim); font-weight: 400;" data-i18n="biz.reward_code_hint">(optionnel — pour la caisse)</span></label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                                             <input type="text" id="rew-code" placeholder="Ex: SHOOT1">
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn-primary" style="margin-top: 24px;">
+                                    <button type="submit" class="btn-primary" style="margin-top: 24px;" data-i18n="biz.create_reward_btn">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                                        Créer la récompense
+                                        Créer la r��compense
                                     </button>
                                 </form>
                             </div>
@@ -338,8 +338,8 @@
                         <!-- Right: Rewards Grid -->
                         <div class="rewards-list-panel">
                             <div class="section-header" style="text-align: center;">
-                                <h3 class="card-title">Mes Récompenses</h3>
-                                <p class="text-dim" style="font-size: 13px;">Gérez vos récompenses créées.</p>
+                                <h3 class="card-title" data-i18n="biz.my_rewards">Mes Récompenses</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.manage_rewards">Gérez vos récompenses créées.</p>
                             </div>
                             <div id="biz-rewards-grid" class="rewards-grid">
                                 <!-- Rewards dynamically added here -->

@@ -37,6 +37,10 @@
     transform: scale(0.95);
 }
 
+.floating-burger.sidebar-shifted {
+    left: 270px;
+}
+
 .mobile-logo {
     font-weight: 800;
     font-size: 18px;
@@ -147,9 +151,9 @@
     backdrop-filter: blur(8px);
 }
 
-/* Offset for Calendar */
+/* Calendar header - full width */
 .calendar-active .dash-top-header {
-    margin-right: 120px; /* Shift language selector left when calendar is active */
+    margin-right: 0;
 }
 
 /* Fix for Titles being covered by Burger */

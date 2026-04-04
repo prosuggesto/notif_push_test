@@ -48,7 +48,7 @@
     </script>
 </head>
 <body class="view-fetars">
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+    <div id="auth-lang-selector" style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
         <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
             <option value="fr" style="color: black;">FR</option>
             <option value="en" style="color: black;">EN</option>
@@ -191,25 +191,25 @@
             </button>
         </div>
         <div class="menu-links">
-            <button class="menu-link active" onclick="switchMainView('home')" id="link-home">
+            <button class="menu-link active" onclick="switchMainView('home')" id="link-home" data-i18n="nav.home">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
                 Boîtes près de chez toi
             </button>
-            <button class="menu-link" onclick="switchMainView('search')" id="link-search">
+            <button class="menu-link" onclick="switchMainView('search')" id="link-search" data-i18n="nav.search">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 Recherche ta boîte
             </button>
-            <button class="menu-link" onclick="switchMainView('favorites')" id="link-favorites">
+            <button class="menu-link" onclick="switchMainView('favorites')" id="link-favorites" data-i18n="nav.favorites">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                 Mes Favoris
             </button>
-            <button class="menu-link" onclick="switchMainView('code')" id="link-code">
+            <button class="menu-link" onclick="switchMainView('code')" id="link-code" data-i18n="nav.code">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
                 Mon Code
             </button>
         </div>
         <div class="menu-footer">
-            <button class="btn-logout" onclick="handleLogout()">
+            <button class="btn-logout" onclick="handleLogout()" data-i18n="common.logout">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Déconnexion
             </button>
@@ -240,6 +240,11 @@
                 </div>
             </div>
             <div class="dash-header-right">
+                <select class="language-selector lang-sel-dash" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; outline: none; cursor: pointer; font-size: 13px;">
+                    <option value="fr" style="color: black;">FR</option>
+                    <option value="en" style="color: black;">EN</option>
+                    <option value="es" style="color: black;">ES</option>
+                </select>
                 <span id="user-display" class="user-badge"></span>
             </div>
         </header>
@@ -264,7 +269,7 @@
                     <input type="text" id="club-search" placeholder="Nom, ville, pays..." oninput="filterClubs()">
                 </div>
             </div>
-            <h3 class="section-title">Toutes les Boîtes</h3>
+            <h3 class="section-title" data-i18n="dashboard.all_clubs">Toutes les Boîtes</h3>
             <div class="clubs-grid" id="clubs-container">
                 <!-- Cards injected here via app.js -->
             </div>
@@ -277,8 +282,8 @@
             </div>
             <div id="no-favorites" style="display:none; text-align:center; padding:60px 20px;">
                 <p style="font-size: 48px; margin-bottom: 16px;">&#x2764;&#xFE0F;</p>
-                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;">Tu n'as pas encore de boîte favorite.</p>
-                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')">Découvrir des boîtes</button>
+                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;" data-i18n="dashboard.no_favorites">Tu n'as pas encore de boîte favorite.</p>
+                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')" data-i18n="dashboard.discover_clubs">Découvrir des boîtes</button>
             </div>
         </main>
 
@@ -331,44 +336,44 @@
                     </div>
                     
                     <div class="code-section">
-                        <span class="code-label">MON CODE UNIQUE</span>
+                        <span class="code-label" data-i18n="profile.my_code">MON CODE UNIQUE</span>
                         <div class="big-code" id="display-user-code">------</div>
-                        <p class="code-help">Présentez ce code à l'entrée de l'établissement ou lors de vos commandes au bar.</p>
+                        <p class="code-help" data-i18n="profile.code_help">Présentez ce code à l'entrée de l'établissement ou lors de vos commandes au bar.</p>
                     </div>
 
                     <div class="profile-stats">
                         <div class="p-stat">
                             <span class="p-stat-val" id="profile-count-visits">0</span>
-                            <span class="p-stat-label">Sorties</span>
+                            <span class="p-stat-label" data-i18n="profile.visits">Sorties</span>
                         </div>
                         <div class="p-stat">
                             <span class="p-stat-val" id="profile-count-points">0</span>
-                            <span class="p-stat-label">Points Total</span>
+                            <span class="p-stat-label" data-i18n="profile.total_points">Points Total</span>
                         </div>
                     </div>
 
                     <div class="points-explanation">
                         <div class="exp-box">
-                            <h5>💎 Gagner des points</h5>
+                            <h5 data-i18n="profile.earn_points">💎 Gagner des points</h5>
                             <ul>
-                                <li>Scanne à l'entrée et entre ton code unique.</li>
-                                <li>Évalue l'ambiance de la boîte via l'app.</li>
+                                <li data-i18n="profile.earn_1">Scanne à l'entrée et entre ton code unique.</li>
+                                <li data-i18n="profile.earn_2">Évalue l'ambiance de la boîte via l'app.</li>
                             </ul>
                         </div>
                         <div class="exp-box">
-                            <h5>🎁 Dépenser mes points</h5>
+                            <h5 data-i18n="profile.spend_points">🎁 Dépenser mes points</h5>
                             <ul>
-                                <li>Scanne le QR au bar pour voir tes récompenses.</li>
-                                <li>Donne ton code au barman et commande ton cadeau !</li>
+                                <li data-i18n="profile.spend_1">Scanne le QR au bar pour voir tes récompenses.</li>
+                                <li data-i18n="profile.spend_2">Donne ton code au barman et commande ton cadeau !</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="club-points-list">
-                        <h4>Détail par établissement</h4>
+                        <h4 data-i18n="profile.per_club">Détail par établissement</h4>
                         <div id="per-club-points" class="club-points-container">
                             <!-- Injected via JS -->
-                            <p class="text-dim">Aucun point cumulé pour le moment.</p>
+                            <p class="text-dim" data-i18n="profile.no_points">Aucun point cumulé pour le moment.</p>
                         </div>
                     </div>
                 </div>
@@ -383,8 +388,8 @@
                 <div id="verify-entry-container" class="verify-card" style="display: none;">
                     <div class="verify-club-header">
                         <div class="verify-icon">✨</div>
-                        <h3 id="verify-entry-club-name">Bienvenue</h3>
-                        <p>Validation Entrée</p>
+                        <h3 id="verify-entry-club-name" data-i18n="verify.welcome">Bienvenue</h3>
+                        <p data-i18n="verify.entry_validation">Validation Entrée</p>
                     </div>
 
                     <!-- Auto Success (Account Found) -->
@@ -394,23 +399,23 @@
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </div>
-                        <h4 style="font-size: 20px; color: white; margin-bottom: 12px;">Entrée validée !</h4>
-                        <p style="color: var(--text-dim);">Tu as gagné +1 point. Passe une excellente soirée 🎉</p>
-                        <button class="btn-primary" onclick="switchMainView('home')" style="margin-top: 24px;">Retour à l'accueil</button>
+                        <h4 style="font-size: 20px; color: white; margin-bottom: 12px;" data-i18n="verify.entry_validated">Entrée validée !</h4>
+                        <p style="color: var(--text-dim);" data-i18n="verify.entry_success">Tu as gagné +1 point. Passe une excellente soirée 🎉</p>
+                        <button class="btn-primary" onclick="switchMainView('home')" style="margin-top: 24px;" data-i18n="verify.back_home">Retour à l'accueil</button>
                     </div>
 
                     <!-- Code Required (No auto-detect) -->
                     <div id="entry-manual-code" style="display: none;">
-                        <p class="verify-desc">Entrez votre code personnel pour valider votre entrée.</p>
+                        <p class="verify-desc" data-i18n="verify.enter_code">Entrez votre code personnel pour valider votre entrée.</p>
                         <div class="input-group">
                             <input type="text" id="entry-code-input" class="big-verify-input" placeholder="CODE" maxlength="6">
                         </div>
-                        <button class="btn-primary" onclick="submitEntryCode()">Valider mon passage</button>
-                        
+                        <button class="btn-primary" onclick="submitEntryCode()" data-i18n="verify.validate_entry">Valider mon passage</button>
+
                         <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
-                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px;">Pas encore de compte ?</p>
-                            <button class="btn-secondary" onclick="handleEntryNoAccount()" style="width: 100%;">Continuer sans code (+1)</button>
-                            <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">Tu gagneras quand même 1 point, et pourras créer ton compte après.</p>
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px;" data-i18n="verify.no_account">Pas encore de compte ?</p>
+                            <button class="btn-secondary" onclick="handleEntryNoAccount()" style="width: 100%;" data-i18n="verify.continue_no_code">Continuer sans code (+1)</button>
+                            <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;" data-i18n="verify.no_account_help">Tu gagneras quand même 1 point, et pourras créer ton compte après.</p>
                         </div>
                     </div>
                 </div>
@@ -437,8 +442,8 @@
                         <!-- Rewards Section -->
                         <div class="kiosk-section">
                             <div class="kiosk-section-title">
-                                <span>&#x1F381; Récompenses disponibles</span>
-                                <span class="kiosk-section-subtitle">Utilisez vos points</span>
+                                <span data-i18n="kiosk.rewards_available">&#x1F381; Récompenses disponibles</span>
+                                <span class="kiosk-section-subtitle" data-i18n="kiosk.use_points">Utilisez vos points</span>
                             </div>
                             <div id="bar-rewards-grid" class="kiosk-grid">
                                 <!-- Injected by JS -->
@@ -448,8 +453,8 @@
                         <!-- Products Section -->
                         <div class="kiosk-section">
                             <div class="kiosk-section-title">
-                                <span>&#x1F378; Carte du bar</span>
-                                <span class="kiosk-section-subtitle">Ajoutez à votre commande</span>
+                                <span data-i18n="kiosk.bar_menu">&#x1F378; Carte du bar</span>
+                                <span class="kiosk-section-subtitle" data-i18n="kiosk.add_to_order">Ajoutez à votre commande</span>
                             </div>
                             <div id="bar-products-grid" class="kiosk-grid">
                                 <!-- Injected by JS -->
@@ -459,39 +464,39 @@
                         <!-- Floating Cart Footer -->
                         <div id="kiosk-cart-footer" class="kiosk-cart-footer" style="display: none;">
                             <div class="kiosk-cart-summary">
-                                <div class="kiosk-cart-count"><span id="kiosk-cart-count">0</span> article(s)</div>
+                                <div class="kiosk-cart-count"><span id="kiosk-cart-count">0</span> <span data-i18n="kiosk.articles">article(s)</span></div>
                                 <div class="kiosk-cart-total"><span id="kiosk-cart-total">0.00</span> &euro;</div>
                             </div>
-                            <button class="btn-primary kiosk-btn-order" onclick="showOrderSummary()">Voir ma commande</button>
+                            <button class="btn-primary kiosk-btn-order" onclick="showOrderSummary()" data-i18n="kiosk.see_order">Voir ma commande</button>
                         </div>
                     </div>
 
                     <!-- STEP 2: Order Summary + QR Code -->
                     <div id="kiosk-summary-page" style="display: none;">
                         <div class="kiosk-summary-header">
-                            <button class="kiosk-back-btn" onclick="backToKiosk()">
+                            <button class="kiosk-back-btn" onclick="backToKiosk()" data-i18n="common.back">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                                 Retour
                             </button>
-                            <h3>Ma Commande</h3>
+                            <h3 data-i18n="kiosk.my_order">Ma Commande</h3>
                         </div>
 
                         <!-- Rewards in order -->
                         <div id="summary-rewards-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.rewards_used">&#x1F381; Récompenses utilisées</h4>
                             <div id="summary-rewards-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Points déduits</span>
+                                <span data-i18n="kiosk.points_deducted">Points déduits</span>
                                 <strong id="summary-rewards-pts">0 pts</strong>
                             </div>
                         </div>
 
                         <!-- Products in order -->
                         <div id="summary-products-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.products_ordered">&#x1F378; Produits commandés</h4>
                             <div id="summary-products-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Sous-total produits</span>
+                                <span data-i18n="kiosk.products_subtotal">Sous-total produits</span>
                                 <strong id="summary-products-total">0.00 &euro;</strong>
                             </div>
                         </div>
@@ -499,21 +504,21 @@
                         <!-- Totals -->
                         <div class="kiosk-totals-card">
                             <div class="kiosk-total-row">
-                                <span>Total sans récompenses</span>
+                                <span data-i18n="kiosk.total_no_rewards">Total sans récompenses</span>
                                 <span id="summary-total-no-rewards">0.00 &euro;</span>
                             </div>
                             <div class="kiosk-total-row kiosk-total-final">
-                                <span>Total à payer</span>
+                                <span data-i18n="kiosk.total_to_pay">Total à payer</span>
                                 <strong id="summary-total-final">0.00 &euro;</strong>
                             </div>
                             <div class="kiosk-total-row kiosk-pts-row">
-                                <span>Points utilisés</span>
+                                <span data-i18n="kiosk.points_used">Points utilisés</span>
                                 <span id="summary-pts-used">0 pts</span>
                             </div>
                         </div>
 
                         <!-- Generate QR Button -->
-                        <button class="btn-primary kiosk-btn-generate" onclick="generateOrderQR()">
+                        <button class="btn-primary kiosk-btn-generate" onclick="generateOrderQR()" data-i18n="kiosk.confirm_generate">
                             Confirmer &amp; Générer le QR
                         </button>
                     </div>
@@ -522,8 +527,8 @@
                     <div id="kiosk-qr-page" style="display: none;">
                         <div class="kiosk-qr-header">
                             <div class="kiosk-qr-check">&#x2705;</div>
-                            <h3>Commande prête !</h3>
-                            <p>Présente ce QR code au barman</p>
+                            <h3 data-i18n="kiosk.order_ready">Commande prête !</h3>
+                            <p data-i18n="kiosk.show_qr">Présente ce QR code au barman</p>
                         </div>
                         <div id="kiosk-qr-code" class="kiosk-qr-box"></div>
                         <div class="kiosk-qr-recap">
@@ -536,8 +541,8 @@
                                 <strong id="qr-recap-pts">0 pts</strong>
                             </div>
                         </div>
-                        <p class="kiosk-qr-hint">Le barman scannera ce code pour valider ta commande.</p>
-                        <button class="btn-secondary" onclick="switchMainView('home')" style="width: 100%; margin-top: 24px;">Terminer</button>
+                        <p class="kiosk-qr-hint" data-i18n="kiosk.barman_hint">Le barman scannera ce code pour valider ta commande.</p>
+                        <button class="btn-secondary" onclick="switchMainView('home')" style="width: 100%; margin-top: 24px;" data-i18n="common.finish">Terminer</button>
                     </div>
 
                 </div>
@@ -549,38 +554,38 @@
                     <div id="barman-review-page">
                         <div class="barman-header">
                             <div class="barman-badge">&#x1F9FE;</div>
-                            <h3>Validation Commande</h3>
+                            <h3 data-i18n="barman.order_validation">Validation Commande</h3>
                             <p id="barman-club-name" class="kiosk-club-name"></p>
                         </div>
 
                         <!-- Client Info -->
                         <div class="barman-client-card">
                             <div class="barman-client-row">
-                                <span>Client</span>
+                                <span data-i18n="barman.client">Client</span>
                                 <strong id="barman-client-name">-</strong>
                             </div>
                             <div class="barman-client-row">
-                                <span>Code</span>
+                                <span data-i18n="barman.code">Code</span>
                                 <strong id="barman-client-code" style="color: var(--primary-light);">-</strong>
                             </div>
                         </div>
 
                         <!-- Rewards -->
                         <div id="barman-rewards-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.rewards_used">&#x1F381; Récompenses utilisées</h4>
                             <div id="barman-rewards-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Points déduits</span>
+                                <span data-i18n="kiosk.points_deducted">Points déduits</span>
                                 <strong id="barman-rewards-pts">0 pts</strong>
                             </div>
                         </div>
 
                         <!-- Products -->
                         <div id="barman-products-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.products_ordered">&#x1F378; Produits commandés</h4>
                             <div id="barman-products-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Sous-total produits</span>
+                                <span data-i18n="kiosk.products_subtotal">Sous-total produits</span>
                                 <strong id="barman-products-total">0.00 &euro;</strong>
                             </div>
                         </div>
@@ -588,21 +593,21 @@
                         <!-- Totals -->
                         <div class="kiosk-totals-card">
                             <div class="kiosk-total-row">
-                                <span>Total sans récompenses</span>
+                                <span data-i18n="kiosk.total_no_rewards">Total sans récompenses</span>
                                 <span id="barman-total-no-rewards">0.00 &euro;</span>
                             </div>
                             <div class="kiosk-total-row kiosk-total-final">
-                                <span>Total à encaisser</span>
+                                <span data-i18n="barman.total_collect">Total à encaisser</span>
                                 <strong id="barman-total-final">0.00 &euro;</strong>
                             </div>
                             <div class="kiosk-total-row kiosk-pts-row">
-                                <span>Points utilisés par le client</span>
+                                <span data-i18n="barman.client_points_used">Points utilisés par le client</span>
                                 <span id="barman-pts-used">0 pts</span>
                             </div>
                         </div>
 
                         <!-- Validate Button -->
-                        <button class="btn-primary barman-validate-btn" onclick="validateBarmanOrder()">
+                        <button class="btn-primary barman-validate-btn" onclick="validateBarmanOrder()" data-i18n="barman.order_paid">
                             &#x2705; Commande payée
                         </button>
                     </div>
@@ -610,9 +615,9 @@
                     <!-- Barman: Success -->
                     <div id="barman-success-page" style="display: none; text-align: center; padding: 40px 20px;">
                         <div style="font-size: 64px; margin-bottom: 16px;">&#x1F389;</div>
-                        <h3 style="font-size: 22px; color: #fff; margin-bottom: 8px;">Commande validée !</h3>
-                        <p style="color: var(--text-dim); margin-bottom: 32px;">Les données ont été envoyées au système.</p>
-                        <button class="btn-secondary" onclick="window.location.reload()" style="width: 100%;">Nouvelle commande</button>
+                        <h3 style="font-size: 22px; color: #fff; margin-bottom: 8px;" data-i18n="barman.order_validated">Commande validée !</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 32px;" data-i18n="barman.data_sent">Les données ont été envoyées au système.</p>
+                        <button class="btn-secondary" onclick="window.location.reload()" style="width: 100%;" data-i18n="barman.new_order">Nouvelle commande</button>
                     </div>
                 </div>
 
@@ -624,17 +629,17 @@
     <div id="club-modal" class="modal-overlay" onclick="closeModal(event, 'club-modal')">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-club-name">Boîte de nuit</h3>
+                <h3 id="modal-club-name" data-i18n="modal.club_title">Boîte de nuit</h3>
                 <button class="btn-close" onclick="closeModal(null, 'club-modal')">&times;</button>
             </div>
             <div class="modal-body text-center">
                 <p id="modal-club-desc" class="club-desc"></p>
-                
+
                 <div style="background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Votre Code ID Personnel</p>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;" data-i18n="modal.your_code">Votre Code ID Personnel</p>
                     <strong id="modal-user-code" style="font-size: 18px; color: var(--primary-light); word-break: break-all;"></strong>
                 </div>
-                <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;">Présentez ce code ou scannez le QR de la boîte avec votre appareil photo natif.</p>
+                <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;" data-i18n="modal.code_instruction">Présentez ce code ou scannez le QR de la boîte avec votre appareil photo natif.</p>
             </div>
         </div>
     </div>
@@ -643,7 +648,7 @@
     <div id="scan-result-modal" class="modal-overlay" onclick="closeModal(event, 'scan-result-modal')">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Bilan du client</h3>
+                <h3 data-i18n="modal.client_report">Bilan du client</h3>
                 <button class="btn-close" onclick="closeModal(null, 'scan-result-modal')">&times;</button>
             </div>
             <div class="modal-body text-center">
@@ -653,11 +658,11 @@
                 <h4 id="result-user-name" class="result-title">Client</h4>
                 <div class="result-stats">
                     <div class="stat-box">
-                        <span class="stat-label">Boissons</span>
+                        <span class="stat-label" data-i18n="modal.drinks">Boissons</span>
                         <strong id="result-drinks" class="stat-value">0</strong>
                     </div>
                     <div class="stat-box">
-                        <span class="stat-label">Points fidélités</span>
+                        <span class="stat-label" data-i18n="modal.loyalty_points">Points fidélités</span>
                         <strong id="result-points" class="stat-value">0</strong>
                     </div>
                 </div>
@@ -671,7 +676,7 @@
     <div id="rewards-popup-modal" class="modal-overlay" onclick="closeModal(event, 'rewards-popup-modal')">
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
-                <h3>Rewards disponibles</h3>
+                <h3 data-i18n="rewards.available">Rewards disponibles</h3>
                 <button class="btn-close" onclick="closeModal(null, 'rewards-popup-modal')">&times;</button>
             </div>
             <div class="modal-body">

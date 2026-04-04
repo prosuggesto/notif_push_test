@@ -1898,6 +1898,8 @@ function showDashboard(username) {
             authScreen.classList.remove('active');
             authScreen.style.display = 'none';
         }
+        const authLangSel = document.getElementById('auth-lang-selector');
+        if (authLangSel) authLangSel.style.display = 'none';
         
         if (dashScreen) {
             dashScreen.classList.add('active');
@@ -2095,12 +2097,12 @@ function switchMainView(viewId) {
     const link = document.getElementById(`link-${viewId}`);
     if (link) link.classList.add('active');
     
-    let title = 'Boîtes près de chez toi';
-    if (viewId === 'search') title = 'Recherche ta boîte';
-    if (viewId === 'favorites') title = 'Mes Favoris';
-    if (viewId === 'qr') title = 'Générateur QR';
-    if (viewId === 'code') title = 'Mon Code';
-    if (viewId === 'verify') title = 'Vérification';
+    let title = t('nav.home');
+    if (viewId === 'search') title = t('nav.search');
+    if (viewId === 'favorites') title = t('nav.favorites');
+    if (viewId === 'qr') title = t('nav.qr');
+    if (viewId === 'code') title = t('nav.code');
+    if (viewId === 'verify') title = t('verify.entry_validation');
 
     const headerTitle = document.getElementById('header-title');
     if (headerTitle) headerTitle.textContent = title;
@@ -2260,7 +2262,7 @@ function renderFavoritesView() {
 
 function buildClubCard(club) {
     const isFav = favorites.includes(club.id);
-    const statusText = club.status === 'open' ? 'Ouvert' : 'Ferm\u00e9';
+    const statusText = club.status === 'open' ? t('dashboard.open') : t('dashboard.closed');
     return '<div class="club-card" onclick="openClubModal(\'' + club.id + '\')">'
         + '<button class="btn-fav ' + (isFav ? 'active' : '') + '" onclick="event.stopPropagation(); toggleFavorite(\'' + club.id + '\')">'
         + '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>'
@@ -2353,7 +2355,7 @@ function openClubModal(clubId) {
             </div>
 
             <button class="btn-primary btn-rewards-modal" onclick="openRewardsPopup('${club.id}')" style="width:100%; margin-top:20px;">
-                \u{1F381} Voir les rewards disponibles
+                \u{1F381} ${t('rewards.see_rewards')}
             </button>
         </div>
     `;
@@ -2377,7 +2379,7 @@ function openRewardsPopup(clubId) {
         + '</div></div>';
 
     if (affordable.length > 0) {
-        html += '<h4 class="rewards-popup-subtitle">Tu peux obtenir :</h4>';
+        html += '<h4 class="rewards-popup-subtitle">' + t('rewards.you_can_get') + '</h4>';
         html += '<div class="rewards-popup-grid">';
         affordable.forEach(function(r) {
             html += '<div class="rewards-popup-item affordable">'
@@ -2391,20 +2393,20 @@ function openRewardsPopup(clubId) {
 
     const notAffordable = rewards.filter(r => userPoints < r.points);
     if (notAffordable.length > 0) {
-        html += '<h4 class="rewards-popup-subtitle" style="margin-top:16px;">Toutes les rewards de la bo\u00eete :</h4>';
+        html += '<h4 class="rewards-popup-subtitle" style="margin-top:16px;">' + t('rewards.all_rewards') + '</h4>';
         html += '<div class="rewards-popup-grid">';
         notAffordable.forEach(function(r) {
             html += '<div class="rewards-popup-item locked">'
                 + '<div class="rewards-popup-img" style="background-image: url(\'' + (r.image || '') + '\')"></div>'
                 + '<div class="rewards-popup-info"><span class="rewards-popup-name">' + r.name + '</span>'
                 + '<span class="rewards-popup-cost">' + r.points + ' pts</span></div>'
-                + '<span class="rewards-popup-lock">\u{1F512} ' + (r.points - userPoints) + ' pts manquants</span></div>';
+                + '<span class="rewards-popup-lock">\u{1F512} ' + t('rewards.not_enough') + '</span></div>';
         });
         html += '</div>';
     }
 
     if (rewards.length === 0) {
-        html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">Aucune reward disponible pour cette bo\u00eete.</p>';
+        html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">' + t('rewards.no_rewards') + '</p>';
     }
 
     var rewardsBody = document.querySelector('#rewards-popup-modal .modal-body');
@@ -3020,8 +3022,10 @@ function switchBizSection(sectionId) {
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.querySelector('.sidebar-overlay');
+    const burger = document.getElementById('sidebar-toggle');
     if (sidebar) sidebar.classList.toggle('active');
     if (overlay) overlay.classList.toggle('active');
+    if (burger) burger.classList.toggle('sidebar-shifted');
 }
 
 // ----- Business Dashboard Management -----
@@ -3040,7 +3044,9 @@ function showBusinessDashboard() {
     
     if (currentBusiness) {
         document.getElementById('biz-club-name').textContent = currentBusiness.name || currentBusiness.nom || 'Club';
-        
+        const bizDisplayName = document.getElementById('biz-display-name');
+        if (bizDisplayName) bizDisplayName.textContent = currentBusiness.name || currentBusiness.nom || 'Club';
+
         // Sync local arrays with currentBusiness data
         bizTemplates = currentBusiness.bizTemplates || [];
         announcementTemplates = currentBusiness.announcementTemplates || [];
