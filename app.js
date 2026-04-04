@@ -1931,9 +1931,21 @@ function showDashboard(username) {
 // ===== LOGOUT =====
 function handleLogout() {
     localStorage.removeItem('user');
-    document.getElementById('dashboard-screen').classList.remove('active');
-    document.getElementById('auth-screen').classList.add('active');
-    
+    const dashScreen = document.getElementById('dashboard-screen');
+    const authScreen = document.getElementById('auth-screen');
+
+    if (dashScreen) {
+        dashScreen.classList.remove('active');
+        dashScreen.style.display = 'none';
+    }
+    if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.display = '';
+    }
+
+    const authLangSel = document.getElementById('auth-lang-selector');
+    if (authLangSel) authLangSel.style.display = '';
+
     document.getElementById('side-menu').classList.remove('open');
     document.getElementById('menu-overlay').classList.remove('open');
 
