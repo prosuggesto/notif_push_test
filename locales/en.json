@@ -276,6 +276,13 @@
     "search_template_placeholder": "Search for a template...",
     "template_name_placeholder": "Ex: Bambi Night",
     "template_theme_placeholder": "Ex: Chic & Glamour",
-    "prompt_placeholder": "Ex: Disco Night..."
+    "prompt_placeholder": "Ex: Disco Night...",
+    "change_image": "Change image",
+    "about_venue": "About the venue",
+    "entry_price": "Entry",
+    "public_live": "Audience (Live)",
+    "current_party": "CURRENT PARTY",
+    "default_party_name": "Special Night",
+    "default_party_theme": "Vibes & Cocktails"
   }
 }

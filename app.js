@@ -385,8 +385,8 @@ function updateAnnoncesPreview() {
     const insta = document.getElementById('biz-club-insta').value || '@votreclub';
     const desc = document.getElementById('biz-club-desc').value || t('biz.no_description');
     const price = document.getElementById('biz-club-price')?.value || '20€';
-    const partyName = document.getElementById('biz-party-name').value || 'Soirée Spéciale';
-    const partyTheme = document.getElementById('biz-party-theme').value || 'Ambiance & Cocktails';
+    const partyName = document.getElementById('biz-party-name').value || t('biz.default_party_name');
+    const partyTheme = document.getElementById('biz-party-theme').value || t('biz.default_party_theme');
 
     // Mock stats (ReadOnly)
     const stats = {
@@ -401,7 +401,7 @@ function updateAnnoncesPreview() {
         <div class="modal-club-hero editable-hero" style="background-image: url('${image}')">
             <div class="hero-overlay" onclick="document.getElementById('biz-club-image-input').click()">
                 <span class="vibe-badge">${stats.vibe}</span>
-                <div class="hero-edit-hint">📷 Changer l'image</div>
+                <div class="hero-edit-hint">📷 ${t('biz.change_image')}</div>
             </div>
             <div class="editable-text club-hero-name" contenteditable="true" data-field="biz-club-name-hidden">
                 ${clubName}
@@ -410,7 +410,7 @@ function updateAnnoncesPreview() {
         
         <div class="modal-content-inner">
             <div class="detail-section">
-                <h4>À propos de l'établissement</h4>
+                <h4>${t('biz.about_venue')}</h4>
                 <p class="text-dim editable-text" contenteditable="true" data-field="biz-club-desc" data-multi="true">${desc}</p>
                 <div class="insta-link-wrapper">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -420,11 +420,11 @@ function updateAnnoncesPreview() {
 
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label">Entrée</span>
+                    <span class="detail-label">${t('biz.entry_price')}</span>
                     <span class="detail-val editable-text" contenteditable="true" data-field="biz-club-price">${price}</span>
                 </div>
                 <div class="detail-item read-only biz-anchor-public">
-                    <span class="detail-label">Public (Live)</span>
+                    <span class="detail-label">${t('biz.public_live')}</span>
                     <span class="detail-val">${stats.count} pers.</span>
                 </div>
             </div>
@@ -446,7 +446,7 @@ function updateAnnoncesPreview() {
 
             <div class="detail-section">
                 <div class="theme-header">
-                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <span class="theme-tag">${t('biz.current_party')}</span>
                     <h4 class="editable-text" contenteditable="true" data-field="biz-party-name">${partyName}</h4>
                 </div>
                 <p class="text-small editable-text" contenteditable="true" data-field="biz-party-theme">${partyTheme}</p>
@@ -460,8 +460,8 @@ function updateAnnoncesPreview() {
         '@votreclub',
         t('biz.no_description'),
         '20€',
-        'Soirée Spéciale',
-        'Ambiance & Cocktails'
+        t('biz.default_party_name'),
+        t('biz.default_party_theme')
     ];
 
     // Add event listeners to sync and clear contenteditable fields
@@ -1487,7 +1487,7 @@ function openCalPreview(dateStr) {
         </div>
         <div class="modal-content-inner">
             <div class="detail-section">
-                <h4>À propos de l'établissement</h4>
+                <h4>${t('biz.about_venue')}</h4>
                 <p class="text-dim">${desc}</p>
                 <div class="insta-link-wrapper">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -1496,11 +1496,11 @@ function openCalPreview(dateStr) {
             </div>
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label">Entrée</span>
+                    <span class="detail-label">${t('biz.entry_price')}</span>
                     <span class="detail-val">${price}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Public (Live)</span>
+                    <span class="detail-label">${t('biz.public_live')}</span>
                     <span class="detail-val">${stats.count} pers.</span>
                 </div>
             </div>
@@ -1519,7 +1519,7 @@ function openCalPreview(dateStr) {
             <hr class="modal-hr">
             <div class="detail-section">
                 <div class="theme-header">
-                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <span class="theme-tag">${t('biz.current_party')}</span>
                     <h4>${partyName}</h4>
                 </div>
                 <p class="text-small">${partyTheme}</p>
@@ -2298,7 +2298,7 @@ function openClubModal(clubId) {
         
         <div class="modal-content-inner">
             <div class="detail-section">
-                <h4>À propos de l'établissement</h4>
+                <h4>${t('biz.about_venue')}</h4>
                 <p class="text-dim">${club.generalDesc}</p>
                 <a href="https://instagram.com/${club.instagram.replace('@','')}" target="_blank" class="insta-link">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -2308,11 +2308,11 @@ function openClubModal(clubId) {
 
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label">Entrée</span>
+                    <span class="detail-label">${t('biz.entry_price')}</span>
                     <span class="detail-val">${club.price}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Public</span>
+                    <span class="detail-label">${t('biz.public_live')}</span>
                     <span class="detail-val">${club.count} pers.</span>
                 </div>
             </div>
@@ -2334,7 +2334,7 @@ function openClubModal(clubId) {
 
             <div class="detail-section">
                 <div class="theme-header">
-                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <span class="theme-tag">${t('biz.current_party')}</span>
                     <h4>${club.theme}</h4>
                 </div>
                 <p class="text-small">${club.nightDesc}</p>

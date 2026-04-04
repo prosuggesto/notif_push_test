@@ -276,6 +276,13 @@
     "search_template_placeholder": "Buscar una plantilla...",
     "template_name_placeholder": "Ej: Noche Bambi",
     "template_theme_placeholder": "Ej: Chic & Glamour",
-    "prompt_placeholder": "Ej: Noche Disco..."
+    "prompt_placeholder": "Ej: Noche Disco...",
+    "change_image": "Cambiar la imagen",
+    "about_venue": "Acerca del establecimiento",
+    "entry_price": "Entrada",
+    "public_live": "Público (En vivo)",
+    "current_party": "FIESTA ACTUAL",
+    "default_party_name": "Fiesta Especial",
+    "default_party_theme": "Ambiente & Cócteles"
   }
 }

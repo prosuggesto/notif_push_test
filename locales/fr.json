@@ -276,6 +276,13 @@
     "search_template_placeholder": "Rechercher un template...",
     "template_name_placeholder": "Ex: Soirée Bambi",
     "template_theme_placeholder": "Ex: Chic & Glamour",
-    "prompt_placeholder": "Ex: Soirée Disco..."
+    "prompt_placeholder": "Ex: Soirée Disco...",
+    "change_image": "Changer l'image",
+    "about_venue": "À propos de l'établissement",
+    "entry_price": "Entrée",
+    "public_live": "Public (Live)",
+    "current_party": "SOIRÉE ACTUELLE",
+    "default_party_name": "Soirée Spéciale",
+    "default_party_theme": "Ambiance & Cocktails"
   }
 }
