@@ -382,7 +382,7 @@ function updateAnnoncesPreview() {
     // Get current values
     const clubName = document.getElementById('biz-club-name-hidden')?.value || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = document.getElementById('biz-club-image').value || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
-    const insta = document.getElementById('biz-club-insta').value || '@votreclub';
+    const insta = document.getElementById('biz-club-insta').value || t('biz.default_insta');
     const desc = document.getElementById('biz-club-desc').value || t('biz.no_description');
     const price = document.getElementById('biz-club-price')?.value || '20€';
     const partyName = document.getElementById('biz-party-name').value || t('biz.default_party_name');
@@ -457,7 +457,7 @@ function updateAnnoncesPreview() {
     const defaultTexts = [
         (currentBusiness ? currentBusiness.name : 'Mon Club'),
         'Mon Club',
-        '@votreclub',
+        t('biz.default_insta'),
         t('biz.no_description'),
         '20€',
         t('biz.default_party_name'),
@@ -1469,7 +1469,7 @@ function openCalPreview(dateStr) {
     const clubName = template.name || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = template.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
     const desc = template.description || t('biz.no_description');
-    const insta = template.insta || '@votreclub';
+    const insta = template.insta || t('biz.default_insta');
     const price = template.price || '20€';
     const partyName = template.partyName || template.name || 'Soirée Spéciale';
     const partyTheme = template.partyTheme || template.theme || 'Ambiance & Cocktails';

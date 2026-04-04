@@ -283,6 +283,7 @@
     "public_live": "Public (Live)",
     "current_party": "SOIRÉE ACTUELLE",
     "default_party_name": "Soirée Spéciale",
-    "default_party_theme": "Ambiance & Cocktails"
+    "default_party_theme": "Ambiance & Cocktails",
+    "default_insta": "@votreclub"
   }
 }

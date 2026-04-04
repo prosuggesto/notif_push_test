@@ -283,6 +283,7 @@
     "public_live": "Público (En vivo)",
     "current_party": "FIESTA ACTUAL",
     "default_party_name": "Fiesta Especial",
-    "default_party_theme": "Ambiente & Cócteles"
+    "default_party_theme": "Ambiente & Cócteles",
+    "default_insta": "@tuclub"
   }
 }

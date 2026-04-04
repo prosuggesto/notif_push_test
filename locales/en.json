@@ -283,6 +283,7 @@
     "public_live": "Audience (Live)",
     "current_party": "CURRENT PARTY",
     "default_party_name": "Special Night",
-    "default_party_theme": "Vibes & Cocktails"
+    "default_party_theme": "Vibes & Cocktails",
+    "default_insta": "@yourclub"
   }
 }
