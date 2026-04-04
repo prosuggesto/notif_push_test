@@ -99,7 +99,17 @@
     "search_club": "Rechercher une boîte",
     "my_code": "MON CODE UNIQUE",
     "visits": "Sorties",
-    "total_points": "Points Total"
+    "total_points": "Points Total",
+    "clubs_in": "Boîtes à"
+  },
+  "calendar": {
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mer",
+    "thu": "Jeu",
+    "fri": "Ven",
+    "sat": "Sam",
+    "sun": "Dim"
   },
   "errors": {
     "default": "Une erreur est survenue.",

@@ -1343,7 +1343,9 @@ function renderCalendar() {
     let startOffset = firstDay.getDay() - 1;
     if (startOffset === -1) startOffset = 6;
     
-    monthLabel.textContent = firstDay.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const calLocale = (typeof currentLang !== 'undefined' && currentLang) ? currentLang : 'fr';
+    const localeMap = { fr: 'fr-FR', es: 'es-ES', en: 'en-US' };
+    monthLabel.textContent = firstDay.toLocaleDateString(localeMap[calLocale] || 'fr-FR', { month: 'long', year: 'numeric' });
     grid.innerHTML = '';
     
     // Empty leading cells
@@ -2206,7 +2208,7 @@ function initFilters() {
 function renderLocalClubs() {
     const container = document.getElementById('local-clubs-container');
     const noLocal = document.getElementById('no-local-clubs');
-    const titleEl = document.getElementById('local-clubs-title');
+    const titleEl = document.getElementById('header-title');
     if (!container) return;
 
     try {
@@ -2215,8 +2217,7 @@ function renderLocalClubs() {
         const userCity = user?.city || '';
 
         if (titleEl && userCity) {
-            titleEl.textContent = 'Boîtes à ' + userCity;
-            // No translateDOM here yet, let showDashboard handle it
+            titleEl.textContent = t('dashboard.clubs_in') + ' ' + userCity;
         }
 
         const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];

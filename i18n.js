@@ -44,15 +44,19 @@ function translateDOM() {
         const key = el.getAttribute('data-i18n');
         const translation = t(key);
         if (translation !== key) {
-            // Check if it's an input placeholder
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                if (el.hasAttribute('placeholder')) {
-                    el.placeholder = translation;
-                }
+                el.placeholder = translation;
             } else {
-                // If it contains HTML we shouldn't overwrite it blindly, but for standard text nodes:
-                // We'll just set textContent or innerHTML based on if it's purely text.
-                el.innerText = translation;
+                // Only update text nodes to preserve SVG/HTML children
+                const textNode = Array.from(el.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+                if (textNode) {
+                    textNode.textContent = translation;
+                } else if (!el.children.length) {
+                    el.textContent = translation;
+                } else {
+                    // Element has children but no direct text node - append one
+                    el.appendChild(document.createTextNode(translation));
+                }
             }
         }
     });

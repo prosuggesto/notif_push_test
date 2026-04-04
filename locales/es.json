@@ -99,7 +99,17 @@
     "search_club": "Buscar un club",
     "my_code": "MI CÓDIGO ÚNICO",
     "visits": "Salidas",
-    "total_points": "Puntos Totales"
+    "total_points": "Puntos Totales",
+    "clubs_in": "Clubes en"
+  },
+  "calendar": {
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mié",
+    "thu": "Jue",
+    "fri": "Vie",
+    "sat": "Sáb",
+    "sun": "Dom"
   },
   "errors": {
     "default": "Ha ocurrido un error.",

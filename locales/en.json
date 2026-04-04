@@ -99,7 +99,17 @@
     "search_club": "Search for a club",
     "my_code": "MY UNIQUE CODE",
     "visits": "Outings",
-    "total_points": "Total Points"
+    "total_points": "Total Points",
+    "clubs_in": "Clubs in"
+  },
+  "calendar": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
   },
   "errors": {
     "default": "An error occurred.",

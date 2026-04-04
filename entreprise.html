@@ -119,8 +119,9 @@
             <!-- Sidebar Navigation -->
             <aside class="sidebar">
                 <div class="sidebar-header">
+                    <div class="biz-logo-sm">S</div>
+                    <span id="biz-club-name">Pro Space</span>
                 </div>
-                <!-- Sidebar contents... -->
                 <nav class="sidebar-nav">
                     <button class="nav-item active" onclick="switchBizSection('annonces')" data-i18n="nav.annonces">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
@@ -268,8 +269,8 @@
                             </div>
                         </div>
                         <!-- Weekday Labels -->
-                        <div class="gcal-weekdays">
-                            <div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div><div>Dim</div>
+                        <div class="gcal-weekdays" id="gcal-weekday-labels">
+                            <div data-i18n="calendar.mon">Lun</div><div data-i18n="calendar.tue">Mar</div><div data-i18n="calendar.wed">Mer</div><div data-i18n="calendar.thu">Jeu</div><div data-i18n="calendar.fri">Ven</div><div data-i18n="calendar.sat">Sam</div><div data-i18n="calendar.sun">Dim</div>
                         </div>
                         <!-- Calendar Grid -->
                         <div id="biz-calendar-grid" class="gcal-grid">
