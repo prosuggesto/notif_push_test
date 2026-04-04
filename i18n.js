@@ -110,4 +110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTranslations(currentLang);
     translateDOM();
     updateLanguageSelectorUI(currentLang);
+    // Re-render dynamic content now that translations are ready
+    if (typeof refreshActiveBizSection === 'function') {
+        refreshActiveBizSection();
+    }
+    if (typeof refreshActiveFetardView === 'function') {
+        refreshActiveFetardView();
+    }
 });
