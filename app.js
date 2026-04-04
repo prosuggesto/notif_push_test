@@ -383,7 +383,7 @@ function updateAnnoncesPreview() {
     const clubName = document.getElementById('biz-club-name-hidden')?.value || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = document.getElementById('biz-club-image').value || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
     const insta = document.getElementById('biz-club-insta').value || '@votreclub';
-    const desc = document.getElementById('biz-club-desc').value || 'Aucune description fournie.';
+    const desc = document.getElementById('biz-club-desc').value || t('biz.no_description');
     const price = document.getElementById('biz-club-price')?.value || '20€';
     const partyName = document.getElementById('biz-party-name').value || 'Soirée Spéciale';
     const partyTheme = document.getElementById('biz-party-theme').value || 'Ambiance & Cocktails';
@@ -458,7 +458,7 @@ function updateAnnoncesPreview() {
         (currentBusiness ? currentBusiness.name : 'Mon Club'),
         'Mon Club',
         '@votreclub',
-        'Aucune description fournie.',
+        t('biz.no_description'),
         '20€',
         'Soirée Spéciale',
         'Ambiance & Cocktails'
@@ -846,7 +846,7 @@ function renderTemplatesGrid() {
 
     if (filtered.length === 0) {
         grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-            ${templateSearchQuery ? 'Aucun résultat pour cette recherche.' : 'Aucun template pour le moment.'}
+            ${templateSearchQuery ? t('biz.search_template_no_result') : t('biz.no_template')}
         </p>`;
         return;
     }
@@ -858,7 +858,7 @@ function renderTemplatesGrid() {
             <div class="template-card-hero" style="background-image: url('${t.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop'}')"></div>
             <div class="template-card-content">
                 <div class="template-card-title">${t.partyName || 'Sans nom'}</div>
-                <div class="template-card-desc">${t.partyTheme || 'Aucun thème'}</div>
+                <div class="template-card-desc">${t.partyTheme || window.t('biz.no_theme')}</div>
             </div>
             <div class="template-actions">
                 <button class="btn-mini btn-edit" onclick="loadAdminTemplate('${t.id}')">Modifier</button>
@@ -1012,7 +1012,7 @@ function renderRewardsList() {
     
     if (bizRewards.length === 0) {
         grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-            Aucune récompense créée pour le moment.
+            ${t('biz.no_reward_created')}
         </p>`;
         return;
     }
@@ -1111,7 +1111,7 @@ function renderCommandeRewards(points) {
     list.innerHTML = '';
     
     if (bizRewards.length === 0) {
-        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim); grid-column: 1/-1;">Aucun reward.</p>';
+        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim); grid-column: 1/-1;">' + t('biz.no_reward_short') + '</p>';
         return;
     }
 
@@ -1161,7 +1161,7 @@ function updateCommandeRecap() {
     });
 
     if (html === '') {
-        html = '<p style="font-size: 13px; color: var(--text-dim);">Aucune sélection.</p>';
+        html = '<p style="font-size: 13px; color: var(--text-dim);">' + t('biz.no_selection') + '</p>';
     }
 
     recap.innerHTML = html;
@@ -1468,7 +1468,7 @@ function openCalPreview(dateStr) {
 
     const clubName = template.name || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = template.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
-    const desc = template.description || 'Aucune description fournie.';
+    const desc = template.description || t('biz.no_description');
     const insta = template.insta || '@votreclub';
     const price = template.price || '20€';
     const partyName = template.partyName || template.name || 'Soirée Spéciale';
@@ -1634,7 +1634,7 @@ function renderCalendarPickerList(query) {
     `;
     
     if (filtered.length === 0 && query) {
-        html += `<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 13px;">Aucun template trouvé pour "${query}"</div>`;
+        html += `<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 13px;">${t('biz.search_template_no_result')}</div>`;
     }
     
     filtered.forEach(t => {
@@ -2649,7 +2649,7 @@ function renderKioskGrids(rewards, products) {
     const userPts = parseInt(document.getElementById('bar-user-points-val')?.textContent) || 0;
 
     rGrid.innerHTML = rewards.length === 0
-        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucune récompense disponible.</p>'
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">' + t('kiosk.no_rewards_available') + '</p>'
         : '';
 
     rewards.forEach(r => {
@@ -2671,7 +2671,7 @@ function renderKioskGrids(rewards, products) {
     });
 
     pGrid.innerHTML = products.length === 0
-        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucun produit disponible.</p>'
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">' + t('kiosk.no_products_available') + '</p>'
         : '';
 
     products.forEach(p => {
@@ -3270,7 +3270,7 @@ function renderProductsList() {
     }
 
     if (filtered.length === 0) {
-        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? 'Aucun produit dans cette catégorie.' : 'Aucun produit créé.'}</p>`;
+        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? t('biz.no_product_category') : t('biz.no_product')}</p>`;
         return;
     }
 

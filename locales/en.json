@@ -263,6 +263,19 @@
     "qr_entry": "Entry QR Code",
     "qr_entry_desc": "Scan to validate client entry.",
     "qr_bar": "Bar QR Code",
-    "qr_bar_desc": "Scan to order at the bar."
+    "qr_bar_desc": "Scan to order at the bar.",
+    "no_template": "No templates yet.",
+    "no_product": "No products created.",
+    "no_product_category": "No products in this category.",
+    "no_reward_created": "No rewards created yet.",
+    "no_reward_short": "No rewards.",
+    "no_selection": "No selection yet.",
+    "no_description": "No description provided.",
+    "no_theme": "No theme",
+    "search_template_no_result": "No templates found.",
+    "search_template_placeholder": "Search for a template...",
+    "template_name_placeholder": "Ex: Bambi Night",
+    "template_theme_placeholder": "Ex: Chic & Glamour",
+    "prompt_placeholder": "Ex: Disco Night..."
   }
 }

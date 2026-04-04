@@ -263,6 +263,19 @@
     "qr_entry": "Código QR Entrada",
     "qr_entry_desc": "Escanea para validar la entrada de clientes.",
     "qr_bar": "Código QR Bar",
-    "qr_bar_desc": "Escanea para pedir en la barra."
+    "qr_bar_desc": "Escanea para pedir en la barra.",
+    "no_template": "Ninguna plantilla por el momento.",
+    "no_product": "Ningún producto creado.",
+    "no_product_category": "Ningún producto en esta categoría.",
+    "no_reward_created": "Ninguna recompensa creada por el momento.",
+    "no_reward_short": "Ninguna recompensa.",
+    "no_selection": "Ninguna selección por el momento.",
+    "no_description": "Ninguna descripción proporcionada.",
+    "no_theme": "Sin tema",
+    "search_template_no_result": "Ninguna plantilla encontrada.",
+    "search_template_placeholder": "Buscar una plantilla...",
+    "template_name_placeholder": "Ej: Noche Bambi",
+    "template_theme_placeholder": "Ej: Chic & Glamour",
+    "prompt_placeholder": "Ej: Noche Disco..."
   }
 }

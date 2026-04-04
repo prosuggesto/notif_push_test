@@ -263,6 +263,19 @@
     "qr_entry": "QR Code Entrée",
     "qr_entry_desc": "Scannez pour valider l'entrée des clients.",
     "qr_bar": "QR Code Bar",
-    "qr_bar_desc": "Scannez pour commander au bar."
+    "qr_bar_desc": "Scannez pour commander au bar.",
+    "no_template": "Aucun template pour le moment.",
+    "no_product": "Aucun produit créé.",
+    "no_product_category": "Aucun produit dans cette catégorie.",
+    "no_reward_created": "Aucune récompense créée pour le moment.",
+    "no_reward_short": "Aucun reward.",
+    "no_selection": "Aucune sélection pour le moment.",
+    "no_description": "Aucune description fournie.",
+    "no_theme": "Aucun thème",
+    "search_template_no_result": "Aucun template trouvé.",
+    "search_template_placeholder": "Rechercher un template...",
+    "template_name_placeholder": "Ex: Soirée Bambi",
+    "template_theme_placeholder": "Ex: Chic & Glamour",
+    "prompt_placeholder": "Ex: Soirée Disco..."
   }
 }

@@ -226,7 +226,7 @@
                             <div class="template-management-bar">
                                 <div class="search-wrapper">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                                    <input type="text" id="tpl-search" placeholder="Rechercher un template..." oninput="handleTemplateSearch(event)">
+                                    <input type="text" id="tpl-search" placeholder="Rechercher un template..." data-i18n="biz.search_template_placeholder" oninput="handleTemplateSearch(event)">
                                 </div>
                                 <div id="bulk-actions" class="bulk-actions" style="display: none;">
                                     <span id="selected-count">0 sélectionné(s)</span>
@@ -379,15 +379,15 @@
                                 </div>
                                 <div class="input-group" style="margin-top:16px;">
                                     <label data-i18n="biz.product_name">Nom du produit</label>
-                                    <input type="text" id="product-name" placeholder="Ex: Cocktail Maison" class="biz-textarea" data-i18n-placeholder="biz.product_name">
+                                    <input type="text" id="product-name" placeholder="Ex: Cocktail Maison" class="biz-textarea" data-i18n="biz.product_name">
                                 </div>
                                 <div class="input-group" style="margin-top:12px;">
                                     <label data-i18n="biz.price">Prix</label>
-                                    <input type="text" id="product-price" placeholder="Ex: 12€" class="biz-textarea" data-i18n-placeholder="biz.price">
+                                    <input type="text" id="product-price" placeholder="Ex: 12€" class="biz-textarea" data-i18n="biz.price">
                                 </div>
                                 <div class="input-group" style="margin-top:12px;">
                                     <label data-i18n="biz.description">Description</label>
-                                    <textarea id="product-desc" placeholder="Description du produit..." class="biz-textarea" style="min-height: 70px;" data-i18n-placeholder="biz.description"></textarea>
+                                    <textarea id="product-desc" placeholder="Description du produit..." class="biz-textarea" style="min-height: 70px;" data-i18n="biz.description"></textarea>
                                 </div>
                                 <div class="input-group" style="margin-top:12px;">
                                     <label>Catégorie</label>
@@ -422,7 +422,7 @@
                             <div class="product-filter-bar">
                                 <div class="custom-select-wrapper" id="product-filter-wrapper">
                                     <div class="select-trigger" onclick="toggleCustomSelect('product-filter-wrapper')">
-                                        <span class="select-value" id="product-filter-value">Toutes les catégories</span>
+                                        <span class="select-value" id="product-filter-value" data-i18n="biz.all_categories">Toutes les catégories</span>
                                         <span class="dropdown-arrow">▼</span>
                                     </div>
                                     <div class="select-options" id="product-filter-options">
@@ -442,15 +442,11 @@
 
                 <!-- Section: Commande (ex Give Rewards) -->
                 <section id="biz-section-commandes" class="biz-section">
-                    <div class="section-header" style="">
-                        <h2 data-i18n="biz.orders_title">Commandes</h2>
-                        <p data-i18n="biz.orders_desc">Saisissez le code client pour voir sa commande et la valider.</p>
-                    </div>
                     <div class="biz-card" style="max-width: 700px; margin: 0 auto;">
                         <div class="search-box">
                             <label>Code Client</label>
                             <div class="input-row" style="display: flex; gap: 12px; margin-top: 8px;">
-                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: ABC123" data-i18n-placeholder="biz.client_code">
+                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: ABC123" data-i18n="biz.client_code">
                                 <button class="btn-primary" onclick="searchClientForCommande()" style="width: auto; padding: 0 24px;" data-i18n="biz.search">Rechercher</button>
                             </div>
                         </div>
@@ -570,10 +566,6 @@
 
                 <!-- Section: Mes QR Codes -->
                 <section id="biz-section-qrcodes" class="biz-section">
-                    <div class="biz-header">
-                        <h1 data-i18n="biz.qr_title">Mes QR Codes</h1>
-                        <p data-i18n="biz.qr_desc">Générez et téléchargez les QR codes de votre établissement.</p>
-                    </div>
                     <div class="qr-cards-grid">
                         <div class="biz-card qr-card">
                             <div class="qr-card-header">
@@ -693,7 +685,7 @@
             <p id="cal-picker-subtitle">Sélectionnez le template pour ce jour.</p>
             <div class="cal-picker-search-wrap">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="cal-picker-search" class="biz-modal-input" placeholder="Rechercher un template..." oninput="filterCalendarTemplates()" style="margin: 0 !important; padding-left: 44px !important;">
+                <input type="text" id="cal-picker-search" class="biz-modal-input" placeholder="Rechercher un template..." data-i18n="biz.search_template_placeholder" oninput="filterCalendarTemplates()" style="margin: 0 !important; padding-left: 44px !important;">
             </div>
             <div id="cal-picker-list" class="cal-picker-list">
                 <!-- Template options rendered here -->
