@@ -1651,3 +1651,18 @@
     padding: 32px;
     margin-top: 24px;
 }
+
+/* ===== MOBILE PERFORMANCE ===== */
+@media (max-width: 768px) {
+    .biz-modal-overlay,
+    .biz-input,
+    .biz-input-wrapper,
+    .liquid-glass-select,
+    .liquid-glass-card,
+    .liquid-glass-header {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .biz-modal-overlay { background: rgba(0, 0, 0, 0.85); }
+}

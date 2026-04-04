@@ -250,8 +250,31 @@ body {
 .input-wrapper input:focus + .input-icon {
     color: var(--primary-light);
 }
-.input-wrapper input::placeholder {
+.input-wrapper input::placeholder,
+.input-wrapper textarea::placeholder {
     color: var(--text-dim);
+}
+.input-wrapper textarea {
+    width: 100%;
+    padding: 13px 14px 13px 44px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
+}
+.input-wrapper textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    background: rgba(255,255,255,0.06);
+}
+.input-wrapper textarea:focus ~ .input-icon,
+.input-wrapper textarea:focus + .input-icon {
+    color: var(--primary-light);
 }
 
 .toggle-password {
@@ -2408,4 +2431,47 @@ input[type="number"] {
 .btn-discover:active {
     transform: scale(0.95);
     background: rgba(99, 102, 241, 0.25);
+}
+
+/* ===== MOBILE PERFORMANCE ===== */
+@media (max-width: 768px) {
+    /* Disable expensive backdrop-filter on mobile */
+    .auth-container,
+    .dash-header,
+    .side-menu,
+    .modal-overlay,
+    .select-options,
+    .footer,
+    .btn-discover,
+    .btn-fav {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    /* Use solid backgrounds instead of blur */
+    .auth-container { background: rgba(15, 15, 35, 0.95); }
+    .dash-header { background: rgba(15, 15, 35, 0.97); }
+    .side-menu { background: rgba(15, 15, 35, 0.98); }
+    .modal-overlay { background: rgba(0, 0, 0, 0.85); }
+    .select-options { background: rgba(15, 15, 35, 0.98); }
+
+    /* Faster transitions on mobile for snappy interactions */
+    *, *::before, *::after {
+        transition-duration: 0.1s !important;
+    }
+
+    /* Keep specific animations that need longer duration */
+    .side-menu { transition: left 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important; }
+    .modal-overlay { transition: opacity 0.2s !important; }
+    .modal-content { transition: transform 0.2s, opacity 0.2s !important; }
+
+    /* Disable orb animations */
+    .orb, .orb-1, .orb-2, .orb-3 {
+        animation: none !important;
+    }
+
+    /* Improve touch responsiveness */
+    button, a, .menu-link, .select-trigger, .tab-btn, .club-card {
+        touch-action: manipulation;
+    }
 }

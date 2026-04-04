@@ -180,7 +180,7 @@ async function handleLogin(e) {
                 city: data.ville
             };
             localStorage.setItem('user', JSON.stringify(userData));
-            setTimeout(() => { showDashboard(userData.name); }, 800);
+            setTimeout(() => { showDashboard(userData.name); }, 300);
         }
     } catch (err) {
         console.error('Login webhook error:', err);
@@ -296,7 +296,7 @@ async function handleBusinessSignup(e) {
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
             msg.textContent = 'Inscription réussie ! Redirection...';
             msg.className = 'form-message success';
-            setTimeout(() => showBusinessDashboard(), 500);
+            setTimeout(() => showBusinessDashboard(), 200);
         } else {
             throw new Error(data?.phrase || 'Erreur lors de l\'inscription');
         }
@@ -636,6 +636,8 @@ async function proceedWithSave(btn, templateName) {
 }
 
 function animateCardToGrid(card) {
+    // Skip heavy animation on mobile for performance
+    if (window.innerWidth <= 768) return;
     const rect = card.getBoundingClientRect();
     // Look for the "Public (Live)" anchor inside
     const anchor = card.querySelector('.biz-anchor-public')?.getBoundingClientRect() || rect;
@@ -1403,7 +1405,7 @@ function renderCalendar() {
             calClickTimeout = setTimeout(() => {
                 calClickTimeout = null;
                 toggleDateSelection(dateStr);
-            }, 250);
+            }, 150);
         });
         
         grid.appendChild(cell);
