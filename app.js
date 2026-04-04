@@ -2972,38 +2972,37 @@ async function validateBarmanOrder() {
 // ----- Section Switching -----
 function switchBizSection(sectionId) {
     console.log('Switching to biz section:', sectionId);
-    
-    // Toggle calendar-active class on content area for header offset
-    const bizContent = document.querySelector('.biz-content');
-    if (bizContent) {
-        if (sectionId === 'calendrier') {
-            bizContent.classList.add('calendar-active');
-        } else {
-            bizContent.classList.remove('calendar-active');
-        }
-    }
 
-    // Close sidebar on mobile
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar && sidebar.classList.contains('active')) {
-        toggleSidebar();
+    // Close biz menu if open
+    const bizMenu = document.getElementById('biz-side-menu');
+    if (bizMenu && bizMenu.classList.contains('open')) {
+        toggleBizMenu();
     }
 
     // Update active states
     document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.sidebar-nav .nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('#biz-side-menu .menu-link').forEach(l => l.classList.remove('active'));
 
     const section = document.getElementById(`biz-section-${sectionId}`);
     if (section) {
         section.classList.add('active');
-        
-        // Find corresponding nav item
-        const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
-        navItems.forEach(item => {
-            if (item.getAttribute('onclick')?.includes(sectionId)) {
-                item.classList.add('active');
-            }
-        });
+
+        // Activate the corresponding menu link
+        const link = document.getElementById(`biz-link-${sectionId}`);
+        if (link) link.classList.add('active');
+
+        // Update header title
+        const titleMap = {
+            annonces: t('nav.annonces'),
+            calendrier: t('nav.calendar'),
+            rewards: t('nav.rewards'),
+            produits: t('nav.products'),
+            commandes: t('nav.orders'),
+            stats: t('nav.stats'),
+            qrcodes: t('nav.my_qr')
+        };
+        const headerTitle = document.getElementById('biz-header-title');
+        if (headerTitle) headerTitle.textContent = titleMap[sectionId] || sectionId;
 
         // Initialize section data if needed
         if (sectionId === 'annonces') initAnnouncementEditor();
@@ -3019,13 +3018,16 @@ function switchBizSection(sectionId) {
     }
 }
 
+function toggleBizMenu() {
+    const menu = document.getElementById('biz-side-menu');
+    const overlay = document.getElementById('biz-menu-overlay');
+    if (menu) menu.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('open');
+}
+
+// Keep toggleSidebar for backward compat (in case other code references it)
 function toggleSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.querySelector('.sidebar-overlay');
-    const burger = document.getElementById('sidebar-toggle');
-    if (sidebar) sidebar.classList.toggle('active');
-    if (overlay) overlay.classList.toggle('active');
-    if (burger) burger.classList.toggle('sidebar-shifted');
+    toggleBizMenu();
 }
 
 // ----- Business Dashboard Management -----
@@ -3043,9 +3045,11 @@ function showBusinessDashboard() {
     }
     
     if (currentBusiness) {
-        document.getElementById('biz-club-name').textContent = currentBusiness.name || currentBusiness.nom || 'Club';
+        const bizName = currentBusiness.name || currentBusiness.nom || 'Club';
+        const bizClubName = document.getElementById('biz-club-name');
+        if (bizClubName) bizClubName.textContent = bizName;
         const bizDisplayName = document.getElementById('biz-display-name');
-        if (bizDisplayName) bizDisplayName.textContent = currentBusiness.name || currentBusiness.nom || 'Club';
+        if (bizDisplayName) bizDisplayName.textContent = bizName;
 
         // Sync local arrays with currentBusiness data
         bizTemplates = currentBusiness.bizTemplates || [];

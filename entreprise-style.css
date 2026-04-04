@@ -8,173 +8,27 @@
     --border: rgba(255, 255, 255, 0.1);
 }
 
-.floating-burger {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 10000;
-    background: transparent !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border: none !important;
-    border-radius: 12px;
-    padding: 10px;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-}
+/* Biz dashboard uses the same dash-header / side-menu from style.css */
 
-.floating-burger:hover {
-    background: rgba(99, 102, 241, 0.2);
-    border-color: rgba(99, 102, 241, 0.4);
-    transform: scale(1.05);
-}
-
-.floating-burger:active {
-    transform: scale(0.95);
-}
-
-.floating-burger.sidebar-shifted {
-    left: 270px;
-}
-
-.mobile-logo {
-    font-weight: 800;
-    font-size: 18px;
-    background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+/* Biz header title styling */
+.biz-dash-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #c7d2fe);
     -webkit-background-clip: text;
-    background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-left: 16px;
+    background-clip: text;
 }
 
-.sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 15000;
-    transform: translateX(-100%);
-    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    width: 290px;
-    background: rgba(10, 10, 30, 0.95);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-right: 1px solid var(--border);
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.4);
+/* Biz content - no sidebar offset needed anymore */
+.biz-content {
+    padding: 0;
 }
 
-.sidebar.active {
-    transform: translateX(0);
-}
-
-.sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 14000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-}
-
-.sidebar-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.btn-burger {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 8px;
-    margin-left: -8px; /* Offset padding for alignment */
-    z-index: 16000;
-}
-
-.btn-burger:hover {
-    color: var(--primary-light);
-    transform: scale(1.1);
-}
-
-.btn-burger:active {
-    transform: scale(0.95);
-}
-
-@media (max-width: 1024px) {
-    .biz-content {
-        padding-top: 10px !important;
-    }
-}
-
-.dash-top-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 32px;
-    margin-bottom: 24px;
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid var(--border);
-    position: relative;
-    z-index: 100;
-}
-
-.dash-top-header .header-left {
-    padding-left: 50px; /* Space for burger */
-}
-
-@media (min-width: 1025px) {
-    .dash-top-header .header-left {
-        padding-left: 0;
-    }
-}
-
-.content-lang-selector {
-    background: rgba(15, 23, 42, 0.6) !important;
-    color: #fff !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-    backdrop-filter: blur(8px);
-}
-
-/* Calendar header - full width */
-.calendar-active .dash-top-header {
-    margin-right: 0;
-}
-
-/* Fix for Titles being covered by Burger */
 .biz-header {
     display: flex;
     flex-direction: column;
     margin-bottom: 32px;
-    padding-left: 60px; /* Shift right to avoid burger */
-}
-
-@media (min-width: 1025px) {
-    .biz-header {
-        padding-left: 0; /* Header is inside content which is already shifted when sidebar is open, but usually content stays center/left */
-    }
-}
-
-/* Global Shift for Mobile/Tablet to avoid floating burger */
-@media (max-width: 1024px) {
-    .biz-header h1 {
-        margin-left: 10px;
-    }
 }
 
 /* ===== ANNONCES SPLIT LAYOUT ===== */
