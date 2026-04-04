@@ -84,6 +84,14 @@ window.changeLanguage = async function(lang) {
         await loadTranslations(lang);
         translateDOM();
         updateLanguageSelectorUI(lang);
+        // Re-render active biz section to update dynamic JS content
+        if (typeof refreshActiveBizSection === 'function') {
+            refreshActiveBizSection();
+        }
+        // Re-render active fêtard view
+        if (typeof refreshActiveFetardView === 'function') {
+            refreshActiveFetardView();
+        }
     }
 };
 

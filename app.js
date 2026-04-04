@@ -3030,6 +3030,48 @@ function toggleSidebar() {
     toggleBizMenu();
 }
 
+// Re-render active biz section (called on language change)
+function refreshActiveBizSection() {
+    const activeSection = document.querySelector('.biz-section.active');
+    if (!activeSection) return;
+    const id = activeSection.id.replace('biz-section-', '');
+    if (id === 'annonces') { renderTemplatesGrid(); initAnnouncementEditor(); }
+    if (id === 'rewards') { renderRewardsList(); }
+    if (id === 'produits') { renderProductsList(); }
+    if (id === 'calendrier') { renderCalendar(); }
+    if (id === 'stats') { updateStats(); }
+    if (id === 'qrcodes') { generateBusinessQRCodes(); }
+    // Update header title
+    const titleMap = {
+        annonces: t('nav.annonces'),
+        calendrier: t('nav.calendar'),
+        rewards: t('nav.rewards'),
+        produits: t('nav.products'),
+        commandes: t('nav.orders'),
+        stats: t('nav.stats'),
+        qrcodes: t('nav.my_qr')
+    };
+    const headerTitle = document.getElementById('biz-header-title');
+    if (headerTitle) headerTitle.textContent = titleMap[id] || id;
+}
+
+// Re-render active fêtard view (called on language change)
+function refreshActiveFetardView() {
+    const activeView = document.querySelector('.main-view.active');
+    if (!activeView) return;
+    const id = activeView.id.replace('-view', '');
+    if (id === 'home') renderLocalClubs();
+    if (id === 'search') { renderClubs(); }
+    if (id === 'favorites') renderFavoritesView();
+    if (id === 'code') renderProfile();
+    // Update header title
+    const headerTitle = document.getElementById('header-title');
+    if (headerTitle) {
+        const titleMap = { home: t('nav.home'), search: t('nav.search'), favorites: t('nav.favorites'), code: t('nav.code'), qr: t('nav.qr') };
+        headerTitle.textContent = titleMap[id] || headerTitle.textContent;
+    }
+}
+
 // ----- Business Dashboard Management -----
 function showBusinessDashboard() {
     const authScreen = document.getElementById('business-auth-screen');
