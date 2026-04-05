@@ -1406,7 +1406,7 @@ function renderCalendar() {
             calClickTimeout = setTimeout(() => {
                 calClickTimeout = null;
                 toggleDateSelection(dateStr);
-            }, 250);
+            }, 150);
         });
         
         grid.appendChild(cell);
