@@ -3,10 +3,8 @@ let currentMode = 'fetard'; // Default mode
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', () => {
-    // Set initial mode
-    setMode('fetard');
-
-    // Add smooth animations on scroll
+    // Body already has mode-fetard from HTML, just ensure state is in sync
+    currentMode = 'fetard';
     observeElements();
 });
 

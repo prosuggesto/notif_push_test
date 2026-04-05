@@ -8,10 +8,17 @@
     <meta name="description" content="Plateforme de gestion et d'optimisation des sorties nocturnes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Non-render-blocking font loading -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="landing.css">
+    <!-- Prefetch auth page resources so "Commencer" feels instant -->
+    <link rel="prefetch" href="auth.html">
+    <link rel="prefetch" href="style.css">
+    <link rel="prefetch" href="app.js">
 </head>
-<body>
+<body class="mode-fetard">
     <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
         <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
             <option value="fr" style="color: black;">FR</option>
