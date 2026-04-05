@@ -1389,6 +1389,7 @@ function renderCalendar() {
         }
         
         // Single click = toggle selection, Double click = preview or picker
+        // Use 300ms window for double-click detection (mobile needs more time)
         cell.addEventListener('click', (e) => {
             e.preventDefault();
             if (calClickTimeout) {
@@ -1405,7 +1406,7 @@ function renderCalendar() {
             calClickTimeout = setTimeout(() => {
                 calClickTimeout = null;
                 toggleDateSelection(dateStr);
-            }, 150);
+            }, 300);
         });
         
         grid.appendChild(cell);
