@@ -516,6 +516,26 @@ body.mode-entreprise .feature-card:hover {
 
     .feature-card {
         backdrop-filter: none;
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .logo-section {
+        animation: none !important;
+    }
+
+    .mode-switch-container {
+        animation: none !important;
+    }
+
+    .hero-section {
+        animation: none !important;
+    }
+
+    .cta-button {
+        animation: none !important;
+        opacity: 1 !important;
     }
 }
 

@@ -110,11 +110,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTranslations(currentLang);
     translateDOM();
     updateLanguageSelectorUI(currentLang);
-    // Re-render dynamic content now that translations are ready
-    if (typeof refreshActiveBizSection === 'function') {
-        refreshActiveBizSection();
-    }
-    if (typeof refreshActiveFetardView === 'function') {
-        refreshActiveFetardView();
-    }
+    // Re-render dynamic content after a short delay to not block the main thread
+    // This fixes the raw translation keys (nav.annonces) without causing mobile lag
+    setTimeout(() => {
+        if (typeof refreshActiveBizSection === 'function') {
+            refreshActiveBizSection();
+        }
+        if (typeof refreshActiveFetardView === 'function') {
+            refreshActiveFetardView();
+        }
+    }, 50);
 });

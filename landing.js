@@ -55,8 +55,9 @@ function setMode(mode) {
     animateContentChange();
 }
 
-// Animate content transition
+// Animate content transition (skip on mobile for performance)
 function animateContentChange() {
+    if (window.innerWidth <= 768) return;
     const activeContent = document.querySelector('.mode-content.active');
 
     // Reset animations
@@ -80,8 +81,11 @@ function goToEntreprise() {
     window.location.href = 'entreprise.html?action=signup';
 }
 
-// Intersection Observer for scroll animations
+// Intersection Observer for scroll animations (desktop only)
 function observeElements() {
+    // Skip on mobile - show everything immediately for performance
+    if (window.innerWidth <= 768) return;
+
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -129,20 +133,22 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Parallax effect for orbs
-document.addEventListener('mousemove', (e) => {
-    const orbs = document.querySelectorAll('.gradient-orb');
-    const x = e.clientX / window.innerWidth;
-    const y = e.clientY / window.innerHeight;
+// Parallax effect for orbs (desktop only - no mouse on mobile)
+if (window.innerWidth > 768) {
+    document.addEventListener('mousemove', (e) => {
+        const orbs = document.querySelectorAll('.gradient-orb');
+        const x = e.clientX / window.innerWidth;
+        const y = e.clientY / window.innerHeight;
 
-    orbs.forEach((orb, index) => {
-        const speed = (index + 1) * 10;
-        const xOffset = (x - 0.5) * speed;
-        const yOffset = (y - 0.5) * speed;
+        orbs.forEach((orb, index) => {
+            const speed = (index + 1) * 10;
+            const xOffset = (x - 0.5) * speed;
+            const yOffset = (y - 0.5) * speed;
 
-        orb.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+            orb.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+        });
     });
-});
+}
 
 // Add keyboard navigation
 document.addEventListener('keydown', (e) => {

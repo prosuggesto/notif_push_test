@@ -2984,8 +2984,10 @@ async function validateBarmanOrder() {
 }
 
 // ----- Section Switching -----
+let _bizSwitchTimer = null;
 function switchBizSection(sectionId) {
-    console.log('Switching to biz section:', sectionId);
+    // Debounce rapid switching to avoid lag on mobile
+    if (_bizSwitchTimer) clearTimeout(_bizSwitchTimer);
 
     // Close biz menu if open
     const bizMenu = document.getElementById('biz-side-menu');
@@ -2993,31 +2995,17 @@ function switchBizSection(sectionId) {
         toggleBizMenu();
     }
 
-    // Update active states
+    // Update active states immediately (lightweight DOM ops)
     document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('#biz-side-menu .menu-link').forEach(l => l.classList.remove('active'));
 
     const section = document.getElementById(`biz-section-${sectionId}`);
     if (section) {
         section.classList.add('active');
-
-        // Activate the corresponding menu link
         const link = document.getElementById(`biz-link-${sectionId}`);
         if (link) link.classList.add('active');
 
-        // Initialize section data if needed
-        if (sectionId === 'annonces') initAnnouncementEditor();
-        if (sectionId === 'calendrier') renderCalendar();
-        if (sectionId === 'stats') updateStats();
-        if (sectionId === 'qrcodes') generateBusinessQRCodes();
-        if (sectionId === 'produits') renderProductsList();
-
-        // Trigger i18n for the new section
-        if (typeof translateDOM === 'function') {
-            translateDOM();
-        }
-
-        // Update header title AFTER translateDOM so it doesn't get overwritten
+        // Update header title immediately
         const titleMap = {
             annonces: t('nav.annonces'),
             calendrier: t('nav.calendar'),
@@ -3029,6 +3017,16 @@ function switchBizSection(sectionId) {
         };
         const headerTitle = document.getElementById('biz-header-title');
         if (headerTitle) headerTitle.textContent = titleMap[sectionId] || sectionId;
+
+        // Defer heavy rendering to next frame so the UI switch feels instant
+        _bizSwitchTimer = setTimeout(() => {
+            _bizSwitchTimer = null;
+            if (sectionId === 'annonces') initAnnouncementEditor();
+            if (sectionId === 'calendrier') renderCalendar();
+            if (sectionId === 'stats') updateStats();
+            if (sectionId === 'qrcodes') generateBusinessQRCodes();
+            if (sectionId === 'produits') renderProductsList();
+        }, 30);
     }
 }
 

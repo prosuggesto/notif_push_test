@@ -2465,8 +2465,11 @@ input[type="number"] {
     .modal-overlay { transition: opacity 0.2s !important; }
     .modal-content { transition: transform 0.2s, opacity 0.2s !important; }
 
-    /* Disable orb animations */
+    /* Disable orb animations and auth slideUp (causes white flash) */
     .orb, .orb-1, .orb-2, .orb-3 {
+        animation: none !important;
+    }
+    .auth-container {
         animation: none !important;
     }
 
