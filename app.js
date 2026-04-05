@@ -1388,25 +1388,19 @@ function renderCalendar() {
             cell.appendChild(eventEl);
         }
         
-        // Single click = toggle selection, Double click = preview or picker
-        // Use 300ms window for double-click detection (mobile needs more time)
+        // Single click = instant selection (no delay)
         cell.addEventListener('click', (e) => {
             e.preventDefault();
-            if (calClickTimeout) {
-                clearTimeout(calClickTimeout);
-                calClickTimeout = null;
-                // Double click
-                if (bizSchedule[dateStr]) {
-                    openCalPreview(dateStr);
-                } else {
-                    handleCalendarDblClick(dateStr);
-                }
-                return;
+            toggleDateSelection(dateStr);
+        });
+        // Double click = preview or template picker (native browser event)
+        cell.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            if (bizSchedule[dateStr]) {
+                openCalPreview(dateStr);
+            } else {
+                handleCalendarDblClick(dateStr);
             }
-            calClickTimeout = setTimeout(() => {
-                calClickTimeout = null;
-                toggleDateSelection(dateStr);
-            }, 150);
         });
         
         grid.appendChild(cell);
