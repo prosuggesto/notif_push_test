@@ -210,8 +210,8 @@
                 Mes Favoris
             </button>
             <button class="menu-link" onclick="switchMainView('code')" id="link-code" data-i18n="nav.code">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
-                Mon Code
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Mon QR
             </button>
         </div>
         <div class="menu-footer">
@@ -331,7 +331,7 @@
             </div>
         </main>
 
-        <!-- Mon Code View -->
+        <!-- Mon QR View (Personal QR Code) -->
         <main id="code-view" class="main-view">
             <div class="profile-container">
                 <div class="profile-card">
@@ -340,11 +340,11 @@
                         <h3 id="profile-name">Chargement...</h3>
                         <p id="profile-city" class="text-muted"></p>
                     </div>
-                    
-                    <div class="code-section">
-                        <span class="code-label" data-i18n="profile.my_code">MON CODE UNIQUE</span>
-                        <div class="big-code" id="display-user-code">------</div>
-                        <p class="code-help" data-i18n="profile.code_help">Présentez ce code à l'entrée de l'établissement ou lors de vos commandes au bar.</p>
+
+                    <div class="code-section" style="text-align: center;">
+                        <span class="code-label" data-i18n="profile.my_qr">MON QR CODE</span>
+                        <div id="personal-qr-code" style="display: inline-block; padding: 16px; background: white; border-radius: 16px; margin: 16px auto;"></div>
+                        <p class="code-help">Présente ce QR code au staff pour qu'il scanne tes points et tes rewards.</p>
                     </div>
 
                     <div class="profile-stats">
@@ -360,17 +360,17 @@
 
                     <div class="points-explanation">
                         <div class="exp-box">
-                            <h5 data-i18n="profile.earn_points">💎 Gagner des points</h5>
+                            <h5 data-i18n="profile.earn_points">Gagner des points</h5>
                             <ul>
-                                <li data-i18n="profile.earn_1">Scanne à l'entrée et entre ton code unique.</li>
+                                <li data-i18n="profile.earn_1">Scanne le QR d'entrée de la boîte en arrivant.</li>
                                 <li data-i18n="profile.earn_2">Évalue l'ambiance de la boîte via l'app.</li>
                             </ul>
                         </div>
                         <div class="exp-box">
-                            <h5 data-i18n="profile.spend_points">🎁 Dépenser mes points</h5>
+                            <h5 data-i18n="profile.spend_points">Dépenser mes points</h5>
                             <ul>
-                                <li data-i18n="profile.spend_1">Scanne le QR au bar pour voir tes récompenses.</li>
-                                <li data-i18n="profile.spend_2">Donne ton code au barman et commande ton cadeau !</li>
+                                <li data-i18n="profile.spend_1">Montre ton QR au staff pour qu'il scanne tes points.</li>
+                                <li data-i18n="profile.spend_2">Choisis tes rewards et profite !</li>
                             </ul>
                         </div>
                     </div>

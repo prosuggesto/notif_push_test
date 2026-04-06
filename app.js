@@ -365,15 +365,7 @@ let lastFoundClient = null;
 let selectedCommandeRewards = [];
 let selectedCommandeProducts = [];
 
-function searchClientForCommande() {
-    const code = document.getElementById('biz-client-code-search').value.trim();
-    if (!code) return;
-
-    // Reuse search logic but with commande UI
-    searchClientForReward(true); // Flag to indicate commande mode
-}
-
-// Note: searchClientForReward will be updated later to handle both modes
+// searchClientForCommande replaced by QR scanner (startClientScanner)
 
 function updateAnnoncesPreview() {
     const previewContainer = document.getElementById('annonces-preview-card');
@@ -1111,37 +1103,37 @@ function renderCommandeRewards(points) {
     const list = document.getElementById('biz-commande-rewards');
     if (!list) return;
     list.innerHTML = '';
-    
-    if (bizRewards.length === 0) {
-        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim); grid-column: 1/-1;">' + t('biz.no_reward_short') + '</p>';
+
+    // Only show rewards the client can afford
+    const affordableRewards = bizRewards.filter(r => points >= r.points);
+
+    if (affordableRewards.length === 0) {
+        list.innerHTML = '<p style="font-size:13px; color:var(--text-dim); grid-column: 1/-1;">Pas assez de points pour un reward.</p>';
         return;
     }
 
-    bizRewards.forEach(r => {
-        const canAfford = points >= r.points;
+    affordableRewards.forEach(r => {
         const isSelected = selectedCommandeRewards.find(sr => sr.id === r.id);
-        
+
         const item = document.createElement('div');
         item.className = `reward-item-sel ${isSelected ? 'active' : ''}`;
-        item.style = `background: ${canAfford ? 'var(--surface)' : 'rgba(255,255,255,0.02)'}; padding: 12px; border-radius: 12px; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; text-align: center; opacity: ${canAfford ? '1' : '0.5'}; cursor: ${canAfford ? 'pointer' : 'default'}; transition: all 0.2s;`;
-        
+        item.style = `background: var(--surface); padding: 12px; border-radius: 12px; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; text-align: center; cursor: pointer; transition: all 0.2s;`;
+
         item.innerHTML = `
             <h5 style="font-size: 13px; margin-bottom: 2px;">${r.name}</h5>
             <p style="font-size: 11px; color: var(--primary-light); font-weight: bold;">${r.points} pts</p>
         `;
-        
-        if (canAfford) {
-            item.onclick = () => {
-                const idx = selectedCommandeRewards.findIndex(sr => sr.id === r.id);
-                if (idx > -1) {
-                    selectedCommandeRewards.splice(idx, 1);
-                } else {
-                    selectedCommandeRewards.push(r);
-                }
-                renderCommandeRewards(points);
-                updateCommandeRecap();
-            };
-        }
+
+        item.onclick = () => {
+            const idx = selectedCommandeRewards.findIndex(sr => sr.id === r.id);
+            if (idx > -1) {
+                selectedCommandeRewards.splice(idx, 1);
+            } else {
+                selectedCommandeRewards.push(r);
+            }
+            renderCommandeRewards(points);
+            updateCommandeRecap();
+        };
         list.appendChild(item);
     });
 }
@@ -1172,30 +1164,39 @@ function updateCommandeRecap() {
 
 async function validateCommande() {
     if (!lastFoundClient) return;
-    
+
     const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + r.points, 0);
-    
-    if (!confirm(`Valider la commande pour ${lastFoundClient.name} ? (+1 point de visite, -${totalPointsToDeduct} points rewards)`)) return;
+
+    if (totalPointsToDeduct === 0) {
+        alert('Sélectionnez au moins un reward.');
+        return;
+    }
+
+    if (!confirm(`Valider pour ${lastFoundClient.name} ? -${totalPointsToDeduct} points`)) return;
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                action: 'validate_commande',
-                clientCode: lastFoundClient.code,
+                name: 'entree_barre',
+                value: 'entree_barre.01',
+                action: 'use_rewards',
+                clientId: scannedClientId || lastFoundClient.uuid || lastFoundClient.code,
                 clubName: currentBusiness.name || currentBusiness.nom,
-                deductPoints: totalPointsToDeduct,
-                incrementVisit: 1,
-                items: selectedCommandeRewards.map(r => r.name)
+                rewards: selectedCommandeRewards.map(r => ({ name: r.name, points: r.points })),
+                totalPointsUsed: totalPointsToDeduct,
+                increment: 1
             })
         });
 
         if (response.ok) {
-            alert('Commande validée !');
+            alert('Points utilisés avec succès !');
             document.getElementById('biz-client-result').style.display = 'none';
-            document.getElementById('biz-client-code-search').value = '';
-            updateStatsUI();
+            lastFoundClient = null;
+            scannedClientId = null;
+            selectedCommandeRewards = [];
+            selectedCommandeProducts = [];
         } else {
             alert('Erreur lors de la validation');
         }
@@ -1207,20 +1208,108 @@ async function validateCommande() {
 // ===== QR CODES MODULE =====
 function generateBusinessQRCodes() {
     const entryDiv = document.getElementById('qr-code-entry');
-    const barDiv = document.getElementById('qr-code-bar');
-    if (!entryDiv || !barDiv || !currentBusiness) return;
+    if (!entryDiv || !currentBusiness) return;
 
     entryDiv.innerHTML = '';
-    barDiv.innerHTML = '';
 
     const clubName = currentBusiness.name || currentBusiness.nom;
-    const baseUrl = window.location.origin + window.location.pathname.replace('entreprise.html', 'auth.html');
-    
-    const entryUrl = `${baseUrl}?action=scan&type=entry&club=${encodeURIComponent(clubName)}`;
-    const barUrl = `${baseUrl}?action=scan&type=bar&club=${encodeURIComponent(clubName)}`;
+    const baseUrl = window.location.origin + window.location.pathname.replace('entreprise.html', 'scan.html');
+    const entryUrl = `${baseUrl}?club=${encodeURIComponent(clubName)}`;
 
     new QRCode(entryDiv, { text: entryUrl, width: 200, height: 200 });
-    new QRCode(barDiv, { text: barUrl, width: 200, height: 200 });
+}
+
+// ===== QR SCANNER MODULE (Entreprise scans client QR) =====
+let html5QrScanner = null;
+let scannedClientId = null;
+
+function startClientScanner() {
+    const readerEl = document.getElementById('biz-qr-reader');
+    if (!readerEl) return;
+
+    document.getElementById('btn-start-scanner').style.display = 'none';
+    document.getElementById('btn-stop-scanner').style.display = 'block';
+    document.getElementById('biz-client-result').style.display = 'none';
+
+    html5QrScanner = new Html5Qrcode('biz-qr-reader');
+    html5QrScanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onClientQRScanned,
+        () => {} // ignore scan failures
+    ).catch(err => {
+        console.error('Scanner error:', err);
+        alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
+        stopClientScanner();
+    });
+}
+
+function stopClientScanner() {
+    if (html5QrScanner) {
+        html5QrScanner.stop().catch(() => {});
+        html5QrScanner = null;
+    }
+    document.getElementById('btn-start-scanner').style.display = 'block';
+    document.getElementById('btn-stop-scanner').style.display = 'none';
+}
+
+async function onClientQRScanned(decodedText) {
+    // Stop scanner immediately
+    stopClientScanner();
+
+    // Parse the QR data — expected format: suggesto_client:<uuid>
+    let clientId = null;
+    if (decodedText.startsWith('suggesto_client:')) {
+        clientId = decodedText.replace('suggesto_client:', '');
+    } else {
+        alert('QR code non reconnu.');
+        return;
+    }
+
+    scannedClientId = clientId;
+
+    // Fetch client info from webhook
+    try {
+        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'search_client',
+                clientId: clientId
+            })
+        });
+
+        if (response.ok) {
+            const client = await response.json();
+            lastFoundClient = client;
+            scannedClientId = client.uuid || clientId;
+
+            document.getElementById('res-client-name').textContent = client.name;
+            document.getElementById('res-client-points').textContent = client.points;
+            document.getElementById('biz-client-result').style.display = 'block';
+
+            // Reset selections
+            selectedCommandeRewards = [];
+            selectedCommandeProducts = [];
+
+            // Only show rewards the client can afford
+            renderCommandeRewards(client.points);
+            updateCommandeRecap();
+        } else {
+            alert('Client non trouvé.');
+        }
+    } catch (error) {
+        console.error('Client search error:', error);
+        alert('Erreur de connexion.');
+    }
+}
+
+function cancelCommande() {
+    document.getElementById('biz-client-result').style.display = 'none';
+    lastFoundClient = null;
+    scannedClientId = null;
+    selectedCommandeRewards = [];
+    selectedCommandeProducts = [];
 }
 
 function downloadBusinessQR(containerId, filename) {
@@ -2132,12 +2221,24 @@ function renderProfile() {
     const userStr = localStorage.getItem('user');
     if (!userStr) return;
     const user = JSON.parse(userStr);
-    
+
     const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
     document.getElementById('profile-initials').textContent = initials;
     document.getElementById('profile-name').textContent = user.name;
     document.getElementById('profile-city').textContent = user.city || 'Ville non renseignée';
-    document.getElementById('display-user-code').textContent = user.code || '------';
+
+    // Generate personal QR code
+    const qrContainer = document.getElementById('personal-qr-code');
+    if (qrContainer && user.uuid) {
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+            text: 'suggesto_client:' + user.uuid,
+            width: 200,
+            height: 200,
+            colorDark: '#0a0a1a',
+            colorLight: '#ffffff'
+        });
+    }
 
     // Mock points per club for demonstration
     const clubPointsContainer = document.getElementById('per-club-points');
