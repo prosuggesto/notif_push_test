@@ -1,7 +1,7 @@
 let currentBusiness = JSON.parse(localStorage.getItem('businessUser')) || null;
 
 // Initialize View on Load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const isBusinessView = document.body.classList.contains('view-entreprise');
     const fetarsEl = document.getElementById('fetars-view');
     const entrepriseEl = document.getElementById('entreprise-view');
@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = params.get('action');
 
     console.log('App Init - isBusinessView:', isBusinessView, 'Action:', action);
+
+    // Handle OAuth callback (Google login redirect)
+    const oauthSession = supabase.auth.getSessionFromUrl();
+    if (oauthSession) {
+        await handleOAuthCallback(isBusinessView);
+        return;
+    }
 
     if (isBusinessView) {
         // Mode Entreprise
@@ -174,6 +181,71 @@ async function handleLogin(e) {
     }
 }
 
+// ===== OAUTH CALLBACK HANDLER =====
+async function handleOAuthCallback(isBusinessView) {
+    try {
+        const user = await supabase.auth.getUser();
+        if (!user) return;
+
+        const userId = user.id;
+        const fullName = user.user_metadata?.full_name || user.email;
+
+        if (isBusinessView) {
+            // Check if business profile exists
+            let profiles = [];
+            try { profiles = await supabase.select('profiles_business', `id=eq.${userId}`); } catch(e) {}
+
+            if (profiles.length === 0) {
+                // New business via Google — insert with default data
+                await supabase.insert('profiles_business', {
+                    id: userId,
+                    nom_boite: fullName,
+                    ville: '',
+                    pays: ''
+                });
+            }
+            const profile = profiles[0] || { nom_boite: fullName };
+            currentBusiness = {
+                name: profile.nom_boite || fullName,
+                uuid: userId,
+                city: profile.ville,
+                country: profile.pays
+            };
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+            showBusinessDashboard();
+        } else {
+            // Check if user profile exists
+            let profiles = [];
+            try { profiles = await supabase.select('profiles_users', `id=eq.${userId}`); } catch(e) {}
+
+            if (profiles.length === 0) {
+                // New user via Google — insert with default data
+                await supabase.insert('profiles_users', {
+                    id: userId,
+                    nom: fullName,
+                    age: null,
+                    sexe: null,
+                    ville: '',
+                    pays: ''
+                });
+            }
+            const profile = profiles[0] || { nom: fullName };
+            const userData = {
+                name: profile.nom || fullName,
+                uuid: userId,
+                age: profile.age,
+                sexe: profile.sexe,
+                city: profile.ville,
+                country: profile.pays
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            showDashboard(userData.name);
+        }
+    } catch (err) {
+        console.error('OAuth callback error:', err);
+    }
+}
+
 function toggleDropdown(id) {
     document.getElementById(id).classList.toggle('active');
 }
@@ -244,7 +316,10 @@ async function handleBusinessSignup(e) {
 
     try {
         // 1. Create auth user in Supabase Auth
-        const authData = await supabase.auth.signUp(email, password);
+        const authData = await supabase.auth.signUp(email, password, {
+            full_name: name,
+            role: 'business'
+        });
         supabase.auth._saveSession(authData);
 
         const userId = authData.user.id;
@@ -1882,7 +1957,10 @@ async function handleSignup(e) {
 
     try {
         // 1. Create auth user in Supabase Auth
-        const authData = await supabase.auth.signUp(email, password);
+        const authData = await supabase.auth.signUp(email, password, {
+            full_name: name,
+            role: 'client'
+        });
         supabase.auth._saveSession(authData);
 
         const userId = authData.user.id;

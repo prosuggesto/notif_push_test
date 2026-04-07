@@ -326,6 +326,41 @@ body {
     box-shadow: none;
 }
 
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    color: var(--text-dim);
+    font-size: 13px;
+}
+.auth-divider::before, .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px;
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-google:hover { background: #f5f5f5; }
+.btn-google:active { transform: scale(0.98); }
+
 .spinner {
     display: inline-block;
     width: 20px;

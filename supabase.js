@@ -6,18 +6,55 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = {
     // --- AUTH ---
     auth: {
-        async signUp(email, password) {
+        async signUp(email, password, metadata = {}) {
             const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'apikey': SUPABASE_ANON_KEY
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, data: metadata })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.msg || data.error_description || data.message || 'Erreur inscription');
             return data;
+        },
+
+        // OAuth (Google, etc.)
+        signInWithOAuth(provider) {
+            const redirectTo = window.location.origin + window.location.pathname;
+            window.location.href = `${SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(redirectTo)}`;
+        },
+
+        // Handle OAuth callback (tokens in URL hash)
+        getSessionFromUrl() {
+            const hash = window.location.hash.substring(1);
+            if (!hash) return null;
+            const params = new URLSearchParams(hash);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+            if (accessToken) {
+                localStorage.setItem('sb_access_token', accessToken);
+                localStorage.setItem('sb_refresh_token', refreshToken);
+                // Clean URL
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                return { access_token: accessToken, refresh_token: refreshToken };
+            }
+            return null;
+        },
+
+        // Get current user from token
+        async getUser() {
+            const token = localStorage.getItem('sb_access_token');
+            if (!token) return null;
+            const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!res.ok) return null;
+            return await res.json();
         },
 
         async signIn(email, password) {
