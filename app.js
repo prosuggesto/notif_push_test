@@ -130,10 +130,11 @@ function showMessage(elementId, message, type) {
 // ===== LOGIN HANDLER =====
 async function handleLogin(e) {
     e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
 
-    if (!password) {
-        showMessage('login-message', 'Veuillez entrer un mot de passe.', 'error');
+    if (!email || !password) {
+        showMessage('login-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
 
@@ -141,50 +142,33 @@ async function handleLogin(e) {
     showMessage('login-message', '', '');
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/valide_mdp', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'valid.mdp': 'valid.mdp.01'
-            },
-            body: JSON.stringify({ password: password })
-        });
+        const authData = await supabase.auth.signIn(email, password);
+        supabase.auth._saveSession(authData);
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
-        console.log('Login response:', response.status, data);
+        const userId = authData.user.id;
 
-        if (!data) {
-            showMessage('login-message', 'Erreur: impossible de lire la réponse du serveur.', 'error');
-        } else if (data.statut === 'invalid') {
-            showMessage('login-message', data.phrase || 'Connexion refusée.', 'error');
-        } else {
-            showMessage('login-message', 'Connexion validée !', 'success');
-            
-            // On récupère le userid renvoyé par le webhook n8n
-            const userId = data.userid || data.uuid; 
-            const userCode = data.user_code || data.code || generateUserCode();
-            
-            // Identify user in OneSignal if we have an ID
-            if (window.OneSignal && userId) {
-                console.log("Identifying OneSignal user with ID:", userId);
-                OneSignal.login(userId);
-            }
+        // Fetch profile from profiles_users
+        const profiles = await supabase.select('profiles_users', `id=eq.${userId}`);
+        const profile = profiles[0] || {};
 
-            const userData = { 
-                name: data.nom || 'Utilisateur', 
-                uuid: userId,
-                code: userCode,
-                age: data.age,
-                sexe: data.sexe,
-                city: data.ville
-            };
-            localStorage.setItem('user', JSON.stringify(userData));
-            setTimeout(() => { showDashboard(userData.name); }, 300);
+        if (window.OneSignal && userId) {
+            OneSignal.login(userId);
         }
+
+        const userData = {
+            name: profile.nom || authData.user.email,
+            uuid: userId,
+            age: profile.age,
+            sexe: profile.sexe,
+            city: profile.ville,
+            country: profile.pays
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        showMessage('login-message', 'Connexion validée !', 'success');
+        setTimeout(() => { showDashboard(userData.name); }, 300);
     } catch (err) {
-        console.error('Login webhook error:', err);
-        showMessage('login-message', 'Erreur de connexion au serveur.', 'error');
+        console.error('Login error:', err);
+        showMessage('login-message', err.message || 'Erreur de connexion.', 'error');
     } finally {
         setLoading('login-btn', false);
     }
@@ -234,6 +218,7 @@ function toggleSidebar() {
 }
 
 function handleBusinessLogout() {
+    supabase.auth.signOut();
     localStorage.removeItem('businessUser');
     document.body.classList.remove('logged-in-biz');
     location.reload();
@@ -242,14 +227,14 @@ function handleBusinessLogout() {
 async function handleBusinessSignup(e) {
     e.preventDefault();
     const name = document.getElementById('biz-signup-name').value.trim();
+    const email = document.getElementById('biz-signup-email').value.trim();
     const bizCity = document.getElementById('biz-signup-city')?.value.trim() || '';
     const bizCountry = document.getElementById('biz-signup-country')?.value.trim() || '';
     const password = document.getElementById('biz-signup-password').value.trim();
-    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz';
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
-    if (!name || !password || !bizCity || !bizCountry) {
+    if (!name || !email || !password || !bizCity || !bizCountry) {
         showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -257,49 +242,31 @@ async function handleBusinessSignup(e) {
     btn.disabled = true;
     btn.textContent = 'Création en cours...';
 
-    const uuid = generateUUID();
-    const userCode = generateUserCode();
-
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/inscription', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'inscription.setter': 'inscription.setter.01'
-            },
-            body: JSON.stringify({
-                nom: name,
-                email: email, 
-                password: password,
-                uuid: uuid,
-                user_code: userCode,
-                role: 'business',
-                age: 'N/A',
-                sexe: 'Autre',
-                ville: bizCity,
-                pays: bizCountry
-            })
+        // 1. Create auth user in Supabase Auth
+        const authData = await supabase.auth.signUp(email, password);
+        supabase.auth._saveSession(authData);
+
+        const userId = authData.user.id;
+
+        // 2. Insert profile in profiles_business
+        await supabase.insert('profiles_business', {
+            id: userId,
+            nom_boite: name,
+            ville: bizCity,
+            pays: bizCountry
         });
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
-
-        if (response.ok && data && data.statut !== 'invalid') {
-            currentBusiness = {
-                name: name,
-                uuid: uuid,
-                user_code: userCode,
-                city: bizCity,
-                country: bizCountry,
-                ...data
-            };
-            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            msg.textContent = 'Inscription réussie ! Redirection...';
-            msg.className = 'form-message success';
-            setTimeout(() => showBusinessDashboard(), 200);
-        } else {
-            throw new Error(data?.phrase || 'Erreur lors de l\'inscription');
-        }
+        currentBusiness = {
+            name: name,
+            uuid: userId,
+            city: bizCity,
+            country: bizCountry
+        };
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        msg.textContent = 'Inscription réussie ! Redirection...';
+        msg.className = 'form-message success';
+        setTimeout(() => showBusinessDashboard(), 200);
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
         msg.className = 'form-message error';
@@ -311,12 +278,13 @@ async function handleBusinessSignup(e) {
 
 async function handleBusinessLogin(e) {
     e.preventDefault();
+    const email = document.getElementById('biz-login-email').value.trim();
     const password = document.getElementById('biz-login-password').value.trim();
     const btn = document.getElementById('biz-login-btn');
     const msg = document.getElementById('biz-login-message');
 
-    if (!password) {
-        showMessage('biz-login-message', 'Veuillez entrer un mot de passe.', 'error');
+    if (!email || !password) {
+        showMessage('biz-login-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
 
@@ -324,29 +292,23 @@ async function handleBusinessLogin(e) {
     btn.textContent = 'Connexion...';
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/valide_mdp', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'valid.mdp': 'valid.mdp.01'
-            },
-            body: JSON.stringify({ password: password })
-        });
+        const authData = await supabase.auth.signIn(email, password);
+        supabase.auth._saveSession(authData);
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
+        const userId = authData.user.id;
 
-        if (response.ok && data && data.statut !== 'invalid') {
-            currentBusiness = { 
-                name: data.nom || 'Club Partenaire', 
-                uuid: data.userid || data.uuid,
-                ...data 
-            };
-            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            showBusinessDashboard();
-        } else {
-            throw new Error(data?.phrase || 'Identifiants incorrects');
-        }
+        // Fetch business profile
+        const profiles = await supabase.select('profiles_business', `id=eq.${userId}`);
+        const profile = profiles[0] || {};
+
+        currentBusiness = {
+            name: profile.nom_boite || 'Club Partenaire',
+            uuid: userId,
+            city: profile.ville,
+            country: profile.pays
+        };
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        showBusinessDashboard();
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
         msg.className = 'form-message error';
@@ -1902,6 +1864,7 @@ window.addEventListener('load', () => {
 // ===== SIGNUP HANDLER =====
 async function handleSignup(e) {
     e.preventDefault();
+    const email = document.getElementById('signup-email').value.trim();
     const name = document.getElementById('signup-name').value.trim();
     const age = document.getElementById('signup-age').value.trim();
     const sexe = document.getElementById('signup-sexe').value;
@@ -1909,7 +1872,7 @@ async function handleSignup(e) {
     const country = document.getElementById('signup-country')?.value.trim() || '';
     const password = document.getElementById('signup-password').value.trim();
 
-    if (!name || !password || !age || !sexe || !city || !country) {
+    if (!email || !name || !password || !age || !sexe || !city || !country) {
         showMessage('signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -1917,57 +1880,41 @@ async function handleSignup(e) {
     setLoading('signup-btn', true);
     showMessage('signup-message', '', '');
 
-    const uuid = generateUUID();
-    const userCode = generateUserCode();
-
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/inscription', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'inscription.setter': 'inscription.setter.01'
-            },
-            body: JSON.stringify({
-                nom: name,
-                password: password,
-                uuid: uuid,
-                user_code: userCode,
-                age: age,
-                sexe: sexe,
-                ville: city,
-                pays: country
-            })
+        // 1. Create auth user in Supabase Auth
+        const authData = await supabase.auth.signUp(email, password);
+        supabase.auth._saveSession(authData);
+
+        const userId = authData.user.id;
+
+        // 2. Insert profile in profiles_users
+        await supabase.insert('profiles_users', {
+            id: userId,
+            nom: name,
+            age: parseInt(age),
+            sexe: sexe,
+            ville: city,
+            pays: country
         });
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
-
-        if (!data) {
-            showMessage('signup-message', 'Erreur: impossible de lire la réponse du serveur.', 'error');
-        } else if (data.statut === 'invalid') {
-            showMessage('signup-message', data.phrase || 'Inscription refusée.', 'error');
-        } else {
-            showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
-
-            if (window.OneSignal) {
-                OneSignal.login(uuid);
-            }
-
-            const userData = {
-                name: name,
-                uuid: uuid,
-                code: userCode,
-                age: age,
-                sexe: sexe,
-                city: city,
-                country: country
-            };
-            localStorage.setItem('user', JSON.stringify(userData));
-            setTimeout(() => { showDashboard(name); }, 800);
+        if (window.OneSignal) {
+            OneSignal.login(userId);
         }
+
+        const userData = {
+            name: name,
+            uuid: userId,
+            age: age,
+            sexe: sexe,
+            city: city,
+            country: country
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
+        setTimeout(() => { showDashboard(name); }, 800);
     } catch (err) {
-        console.error('Signup webhook error:', err);
-        showMessage('signup-message', 'Erreur de connexion au serveur.', 'error');
+        console.error('Signup error:', err);
+        showMessage('signup-message', err.message || 'Erreur lors de l\'inscription.', 'error');
     } finally {
         setLoading('signup-btn', false);
     }
@@ -2016,6 +1963,7 @@ function showDashboard(username) {
 
 // ===== LOGOUT =====
 function handleLogout() {
+    supabase.auth.signOut();
     localStorage.removeItem('user');
     const dashScreen = document.getElementById('dashboard-screen');
     const authScreen = document.getElementById('auth-screen');
