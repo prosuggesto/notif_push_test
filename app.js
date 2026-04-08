@@ -191,20 +191,16 @@ async function handleOAuthCallback(isBusinessView) {
         const fullName = user.user_metadata?.full_name || user.email;
 
         if (isBusinessView) {
-            // Check if business profile exists
             let profiles = [];
             try { profiles = await supabase.select('profiles_business', `id=eq.${userId}`); } catch(e) {}
 
             if (profiles.length === 0) {
-                // New business via Google — insert with default data
-                await supabase.insert('profiles_business', {
-                    id: userId,
-                    nom_boite: fullName,
-                    ville: '',
-                    pays: ''
-                });
+                // No profile = not registered, redirect to signup
+                await supabase.auth.signOut();
+                alert('Aucun compte entreprise trouvé. Veuillez d\'abord vous inscrire.');
+                return;
             }
-            const profile = profiles[0] || { nom_boite: fullName };
+            const profile = profiles[0];
             currentBusiness = {
                 name: profile.nom_boite || fullName,
                 uuid: userId,
@@ -214,22 +210,16 @@ async function handleOAuthCallback(isBusinessView) {
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
             showBusinessDashboard();
         } else {
-            // Check if user profile exists
             let profiles = [];
             try { profiles = await supabase.select('profiles_users', `id=eq.${userId}`); } catch(e) {}
 
             if (profiles.length === 0) {
-                // New user via Google — insert with default data
-                await supabase.insert('profiles_users', {
-                    id: userId,
-                    nom: fullName,
-                    age: null,
-                    sexe: null,
-                    ville: '',
-                    pays: ''
-                });
+                // No profile = not registered, redirect to signup
+                await supabase.auth.signOut();
+                alert('Aucun compte trouvé. Veuillez d\'abord vous inscrire.');
+                return;
             }
-            const profile = profiles[0] || { nom: fullName };
+            const profile = profiles[0];
             const userData = {
                 name: profile.nom || fullName,
                 uuid: userId,
