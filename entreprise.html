@@ -485,8 +485,9 @@
                     <!-- Tabs: Entrée / Bar -->
                     <div style="display: flex; justify-content: center; margin-bottom: 24px;">
                         <div class="scan-tabs" style="display: inline-flex; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 4px;">
-                            <button class="scan-tab active" id="scan-tab-entree" onclick="switchScanTab('entree')" style="padding: 10px 28px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Entrée</button>
-                            <button class="scan-tab" id="scan-tab-bar" onclick="switchScanTab('bar')" style="padding: 10px 28px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Bar</button>
+                            <button class="scan-tab active" id="scan-tab-entree" onclick="switchScanTab('entree')" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Entrée</button>
+                            <button class="scan-tab" id="scan-tab-bar" onclick="switchScanTab('bar')" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Bar</button>
+                            <button class="scan-tab" id="scan-tab-sortie" onclick="switchScanTab('sortie')" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Sortie</button>
                         </div>
                     </div>
 
@@ -548,10 +549,30 @@
                                     <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase;">Commandes</div>
                                 </div>
                             </div>
-                            <button class="btn-primary" onclick="validateBarScan()" style="width: 100%; padding: 14px; font-size: 14px;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                Valider
-                            </button>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-primary" onclick="validateBarScan()" style="flex: 1; padding: 14px; font-size: 14px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                    Valider
+                                </button>
+                                <button class="btn-secondary" onclick="cancelBarScan()" style="flex: 1; padding: 14px; font-size: 14px;">Annuler</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SORTIE RESULT (after scanning in Sortie mode) -->
+                    <div id="scan-sortie-result" style="display: none; max-width: 500px; margin: 24px auto 0;">
+                        <div class="biz-card" style="text-align: center; padding: 28px 24px;">
+                            <div class="client-avatar" style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; color: white;" id="sortie-client-initials">?</div>
+                            <h3 id="sortie-client-name" style="font-size: 18px; margin-bottom: 12px;">—</h3>
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">Confirmer la sortie de ce client ?</p>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-primary" onclick="validateSortie()" style="flex: 1; padding: 14px; font-size: 14px; background: #ef4444;">
+                                    Valider sortie
+                                </button>
+                                <button class="btn-secondary" onclick="cancelSortie()" style="flex: 1; padding: 14px; font-size: 14px;">
+                                    Annuler
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>

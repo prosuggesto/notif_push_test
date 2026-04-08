@@ -1207,15 +1207,74 @@ function updateCommandeRecap() {
     totalPtsEl.textContent = `${totalPoints} pts`;
 }
 
+// ===== HELPERS: Calendrier & Stats =====
+function getTodayDateStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function getOrCreateTodayCalendrier() {
+    const today = getTodayDateStr();
+    const boiteId = currentBusiness.uuid;
+    const nomBoite = currentBusiness.name;
+
+    const rows = await supabase.select('calendrier', `boite_id=eq.${boiteId}&date_soiree=eq.${today}`);
+    if (rows && rows.length > 0) return rows[0];
+
+    return await supabase.insert('calendrier', {
+        nom_boite: nomBoite,
+        boite_id: boiteId,
+        nom_template: 'Soirée',
+        date_soiree: today
+    });
+}
+
+function getGenderField(sexe) {
+    if (sexe === 'homme') return 'homme';
+    if (sexe === 'femme') return 'femme';
+    return 'non_binaire';
+}
+
+async function recalculateCalendrierStats(calendrierId) {
+    const today = getTodayDateStr();
+    const boiteId = currentBusiness.uuid;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
+    const stats = await supabase.select('dynamicstats',
+        `boite_id=eq.${boiteId}&created_at=gte.${today}T00:00:00&created_at=lt.${tomorrowStr}T00:00:00&statut=eq.entrée`
+    );
+
+    if (!stats || stats.length === 0) return;
+
+    const paysCount = {};
+    const villeCount = {};
+    let totalAge = 0;
+    let ageCount = 0;
+
+    stats.forEach(s => {
+        if (s.pays) paysCount[s.pays] = (paysCount[s.pays] || 0) + 1;
+        if (s.ville) villeCount[s.ville] = (villeCount[s.ville] || 0) + 1;
+        if (s.age) { totalAge += s.age; ageCount++; }
+    });
+
+    const topPays = Object.entries(paysCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const topVille = Object.entries(villeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const topAge = ageCount > 0 ? Math.ceil(totalAge / ageCount) : null;
+
+    await supabase.update('calendrier', `id=eq.${calendrierId}`, {
+        top_pays: topPays,
+        top_ville: topVille,
+        top_age: topAge
+    });
+}
+
+// ===== VALIDATE ENTRY (Entrée — with rewards) =====
 async function validateCommande() {
     if (!lastFoundClient) return;
 
     const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + r.points, 0);
-
-    if (totalPointsToDeduct === 0) {
-        showGlassToast('Choisis au moins un reward !', 'error');
-        return;
-    }
 
     if (totalPointsToDeduct > lastFoundClient.points) {
         const excess = totalPointsToDeduct - lastFoundClient.points;
@@ -1224,33 +1283,45 @@ async function validateCommande() {
     }
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: 'entree_barre',
-                value: 'entree_barre.01',
-                action: 'use_rewards',
-                clientId: scannedClientId || lastFoundClient.uuid,
-                clubName: currentBusiness.name || currentBusiness.nom,
-                rewards: selectedCommandeRewards.map(r => ({ name: r.name, points: r.points })),
-                totalPointsUsed: totalPointsToDeduct,
-                increment: 1
-            })
+        // 1. Deduct points if rewards were selected
+        if (totalPointsToDeduct > 0) {
+            await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+                points: lastFoundClient.points - totalPointsToDeduct
+            });
+        }
+
+        // 2. Get or create today's calendrier entry
+        const cal = await getOrCreateTodayCalendrier();
+
+        // 3. Update calendrier: +1 affluence, +1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: (parseInt(cal.affluence) || 0) + 1,
+            [genderField]: (parseInt(cal[genderField]) || 0) + 1
         });
 
-        if (response.ok) {
-            showGlassToast('Points utilisés avec succès !', 'success');
-            document.getElementById('scan-entry-result').style.display = 'none';
-            lastFoundClient = null;
-            scannedClientId = null;
-            selectedCommandeRewards = [];
-            startClientScanner();
-        } else {
-            showGlassToast('Erreur lors de la validation', 'error');
-        }
+        // 4. Log to dynamicstats
+        await supabase.insert('dynamicstats', {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            age: lastFoundClient.age,
+            ville: lastFoundClient.ville,
+            pays: lastFoundClient.pays,
+            statut: 'entrée'
+        });
+
+        // 5. Recalculate top_pays, top_ville, top_age
+        await recalculateCalendrierStats(cal.id);
+
+        showGlassToast('Entrée validée !', 'success');
+        document.getElementById('scan-entry-result').style.display = 'none';
+        lastFoundClient = null;
+        scannedClientId = null;
+        selectedCommandeRewards = [];
+        startClientScanner();
     } catch (error) {
-        console.error('Validation error:', error);
+        console.error('Entry validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
     }
 }
 
@@ -1268,27 +1339,40 @@ function generateBusinessQRCodes() {
     new QRCode(entryDiv, { text: entryUrl, width: 200, height: 200 });
 }
 
-// ===== QR SCANNER MODULE (Entreprise — Entrée / Bar) =====
+// ===== QR SCANNER MODULE (Entreprise — Entrée / Bar / Sortie) =====
 let html5QrScanner = null;
 let scannedClientId = null;
-let currentScanMode = 'entree'; // 'entree' or 'bar'
+let currentScanMode = 'entree'; // 'entree', 'bar', or 'sortie'
 
 function switchScanTab(tab) {
     currentScanMode = tab;
-    // Update tab styles
     const entreeTab = document.getElementById('scan-tab-entree');
     const barTab = document.getElementById('scan-tab-bar');
-    if (tab === 'entree') {
+    const sortieTab = document.getElementById('scan-tab-sortie');
+
+    // Reset all tabs
+    [entreeTab, barTab, sortieTab].forEach(t => {
+        if (t) { t.style.background = 'transparent'; t.style.color = 'var(--text-dim)'; }
+    });
+
+    // Activate selected tab
+    if (tab === 'entree' && entreeTab) {
         entreeTab.style.background = 'var(--primary)'; entreeTab.style.color = 'white';
-        barTab.style.background = 'transparent'; barTab.style.color = 'var(--text-dim)';
-    } else {
+    } else if (tab === 'bar' && barTab) {
         barTab.style.background = '#059669'; barTab.style.color = 'white';
-        entreeTab.style.background = 'transparent'; entreeTab.style.color = 'var(--text-dim)';
+    } else if (tab === 'sortie' && sortieTab) {
+        sortieTab.style.background = '#ef4444'; sortieTab.style.color = 'white';
     }
-    // Hide results, restart scanner
-    document.getElementById('scan-entry-result').style.display = 'none';
-    document.getElementById('scan-bar-result').style.display = 'none';
-    startClientScanner();
+
+    // Hide all results
+    const entryResult = document.getElementById('scan-entry-result');
+    const barResult = document.getElementById('scan-bar-result');
+    const sortieResult = document.getElementById('scan-sortie-result');
+    if (entryResult) entryResult.style.display = 'none';
+    if (barResult) barResult.style.display = 'none';
+    if (sortieResult) sortieResult.style.display = 'none';
+
+    try { startClientScanner(); } catch (e) { console.error('Scanner start error:', e); }
 }
 
 function startClientScanner() {
@@ -1302,19 +1386,27 @@ function startClientScanner() {
     }
 
     document.getElementById('scan-camera-zone').style.display = 'block';
-    document.getElementById('scan-entry-result').style.display = 'none';
-    document.getElementById('scan-bar-result').style.display = 'none';
+    const entryResult = document.getElementById('scan-entry-result');
+    const barResult = document.getElementById('scan-bar-result');
+    const sortieResult = document.getElementById('scan-sortie-result');
+    if (entryResult) entryResult.style.display = 'none';
+    if (barResult) barResult.style.display = 'none';
+    if (sortieResult) sortieResult.style.display = 'none';
 
-    html5QrScanner = new Html5Qrcode('biz-qr-reader');
-    html5QrScanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onClientQRScanned,
-        () => {}
-    ).catch(err => {
-        console.error('Scanner error:', err);
-        showGlassToast('Impossible d\'accéder à la caméra', 'error');
-    });
+    try {
+        html5QrScanner = new Html5Qrcode('biz-qr-reader');
+        html5QrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onClientQRScanned,
+            () => {}
+        ).catch(err => {
+            console.error('Scanner error:', err);
+            showGlassToast("Impossible d'accéder à la caméra", 'error');
+        });
+    } catch (e) {
+        console.error('Scanner init error:', e);
+    }
 }
 
 function stopClientScanner() {
@@ -1340,7 +1432,6 @@ async function onClientQRScanned(decodedText) {
     scannedClientId = clientId;
 
     try {
-        // Fetch from Supabase profiles_users
         const profiles = await supabase.select('profiles_users', `id=eq.${clientId}`);
         if (!profiles || profiles.length === 0) {
             showGlassToast('Client non trouvé', 'error');
@@ -1353,13 +1444,19 @@ async function onClientQRScanned(decodedText) {
             uuid: client.id,
             name: client.nom,
             points: parseInt(client.points) || 0,
-            total_commande: parseInt(client.total_commande) || 0
+            total_commande: parseInt(client.total_commande) || 0,
+            age: parseInt(client.age) || null,
+            sexe: client.sexe || null,
+            ville: client.ville || null,
+            pays: client.pays || null
         };
 
         if (currentScanMode === 'entree') {
             showEntryResult(lastFoundClient);
-        } else {
+        } else if (currentScanMode === 'bar') {
             showBarResult(lastFoundClient);
+        } else if (currentScanMode === 'sortie') {
+            showSortieResult(lastFoundClient);
         }
     } catch (error) {
         console.error('Client search error:', error);
@@ -1389,19 +1486,96 @@ function showBarResult(client) {
     document.getElementById('scan-bar-result').style.display = 'block';
 }
 
-function validateBarScan() {
-    showGlassToast('Passage validé !', 'success');
+function showSortieResult(client) {
+    const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('sortie-client-initials').textContent = initials;
+    document.getElementById('sortie-client-name').textContent = client.name;
+    document.getElementById('scan-sortie-result').style.display = 'block';
+}
+
+// ===== VALIDATE BAR =====
+async function validateBarScan() {
+    if (!lastFoundClient) return;
+
+    try {
+        // +1 points and +1 total_commande for user
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: lastFoundClient.points + 1,
+            total_commande: lastFoundClient.total_commande + 1
+        });
+
+        // +1 total_commande in today's calendrier
+        const cal = await getOrCreateTodayCalendrier();
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            total_commande: (parseInt(cal.total_commande) || 0) + 1
+        });
+
+        showGlassToast('Commande validée ! +1 point', 'success');
+        document.getElementById('scan-bar-result').style.display = 'none';
+        lastFoundClient = null;
+        scannedClientId = null;
+        startClientScanner();
+    } catch (error) {
+        console.error('Bar validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+    }
+}
+
+// ===== VALIDATE SORTIE =====
+async function validateSortie() {
+    if (!lastFoundClient) return;
+
+    try {
+        // 1. Update calendrier: -1 affluence, -1 gender
+        const cal = await getOrCreateTodayCalendrier();
+        const genderField = getGenderField(lastFoundClient.sexe);
+
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: Math.max(0, (parseInt(cal.affluence) || 0) - 1),
+            [genderField]: Math.max(0, (parseInt(cal[genderField]) || 0) - 1)
+        });
+
+        // 2. Log to dynamicstats with statut='sortie'
+        await supabase.insert('dynamicstats', {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            age: lastFoundClient.age,
+            ville: lastFoundClient.ville,
+            pays: lastFoundClient.pays,
+            statut: 'sortie'
+        });
+
+        showGlassToast('Sortie validée !', 'success');
+        document.getElementById('scan-sortie-result').style.display = 'none';
+        lastFoundClient = null;
+        scannedClientId = null;
+        startClientScanner();
+    } catch (error) {
+        console.error('Sortie validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+    }
+}
+
+// ===== CANCEL ACTIONS =====
+function cancelCommande() {
+    document.getElementById('scan-entry-result').style.display = 'none';
+    lastFoundClient = null;
+    scannedClientId = null;
+    selectedCommandeRewards = [];
+    startClientScanner();
+}
+
+function cancelBarScan() {
     document.getElementById('scan-bar-result').style.display = 'none';
     lastFoundClient = null;
     scannedClientId = null;
     startClientScanner();
 }
 
-function cancelCommande() {
-    document.getElementById('scan-entry-result').style.display = 'none';
+function cancelSortie() {
+    document.getElementById('scan-sortie-result').style.display = 'none';
     lastFoundClient = null;
     scannedClientId = null;
-    selectedCommandeRewards = [];
     startClientScanner();
 }
 
