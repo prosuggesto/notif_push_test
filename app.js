@@ -1213,11 +1213,15 @@ async function validateCommande() {
     const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + r.points, 0);
 
     if (totalPointsToDeduct === 0) {
-        alert('Sélectionnez au moins un reward.');
+        showGlassToast('Choisis au moins un reward !', 'error');
         return;
     }
 
-    if (!confirm(`Valider pour ${lastFoundClient.name} ? -${totalPointsToDeduct} points`)) return;
+    if (totalPointsToDeduct > lastFoundClient.points) {
+        const excess = totalPointsToDeduct - lastFoundClient.points;
+        showGlassToast(`Pas assez de points ! Enlève ${excess} pts de rewards.`, 'error');
+        return;
+    }
 
     try {
         const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/entree_barre', {
@@ -1227,7 +1231,7 @@ async function validateCommande() {
                 name: 'entree_barre',
                 value: 'entree_barre.01',
                 action: 'use_rewards',
-                clientId: scannedClientId || lastFoundClient.uuid || lastFoundClient.code,
+                clientId: scannedClientId || lastFoundClient.uuid,
                 clubName: currentBusiness.name || currentBusiness.nom,
                 rewards: selectedCommandeRewards.map(r => ({ name: r.name, points: r.points })),
                 totalPointsUsed: totalPointsToDeduct,
@@ -1236,14 +1240,14 @@ async function validateCommande() {
         });
 
         if (response.ok) {
-            alert('Points utilisés avec succès !');
-            document.getElementById('biz-client-result').style.display = 'none';
+            showGlassToast('Points utilisés avec succès !', 'success');
+            document.getElementById('scan-entry-result').style.display = 'none';
             lastFoundClient = null;
             scannedClientId = null;
             selectedCommandeRewards = [];
-            selectedCommandeProducts = [];
+            startClientScanner();
         } else {
-            alert('Erreur lors de la validation');
+            showGlassToast('Erreur lors de la validation', 'error');
         }
     } catch (error) {
         console.error('Validation error:', error);
@@ -1264,28 +1268,52 @@ function generateBusinessQRCodes() {
     new QRCode(entryDiv, { text: entryUrl, width: 200, height: 200 });
 }
 
-// ===== QR SCANNER MODULE (Entreprise scans client QR) =====
+// ===== QR SCANNER MODULE (Entreprise — Entrée / Bar) =====
 let html5QrScanner = null;
 let scannedClientId = null;
+let currentScanMode = 'entree'; // 'entree' or 'bar'
+
+function switchScanTab(tab) {
+    currentScanMode = tab;
+    // Update tab styles
+    const entreeTab = document.getElementById('scan-tab-entree');
+    const barTab = document.getElementById('scan-tab-bar');
+    if (tab === 'entree') {
+        entreeTab.style.background = 'var(--primary)'; entreeTab.style.color = 'white';
+        barTab.style.background = 'transparent'; barTab.style.color = 'var(--text-dim)';
+    } else {
+        barTab.style.background = '#059669'; barTab.style.color = 'white';
+        entreeTab.style.background = 'transparent'; entreeTab.style.color = 'var(--text-dim)';
+    }
+    // Hide results, restart scanner
+    document.getElementById('scan-entry-result').style.display = 'none';
+    document.getElementById('scan-bar-result').style.display = 'none';
+    startClientScanner();
+}
 
 function startClientScanner() {
     const readerEl = document.getElementById('biz-qr-reader');
     if (!readerEl) return;
 
-    document.getElementById('btn-start-scanner').style.display = 'none';
-    document.getElementById('btn-stop-scanner').style.display = 'block';
-    document.getElementById('biz-client-result').style.display = 'none';
+    // Stop previous scanner if running
+    if (html5QrScanner) {
+        html5QrScanner.stop().catch(() => {});
+        html5QrScanner = null;
+    }
+
+    document.getElementById('scan-camera-zone').style.display = 'block';
+    document.getElementById('scan-entry-result').style.display = 'none';
+    document.getElementById('scan-bar-result').style.display = 'none';
 
     html5QrScanner = new Html5Qrcode('biz-qr-reader');
     html5QrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         onClientQRScanned,
-        () => {} // ignore scan failures
+        () => {}
     ).catch(err => {
         console.error('Scanner error:', err);
-        alert('Impossible d\'accéder à la caméra. Vérifiez les permissions.');
-        stopClientScanner();
+        showGlassToast('Impossible d\'accéder à la caméra', 'error');
     });
 }
 
@@ -1294,67 +1322,87 @@ function stopClientScanner() {
         html5QrScanner.stop().catch(() => {});
         html5QrScanner = null;
     }
-    document.getElementById('btn-start-scanner').style.display = 'block';
-    document.getElementById('btn-stop-scanner').style.display = 'none';
 }
 
 async function onClientQRScanned(decodedText) {
-    // Stop scanner immediately
     stopClientScanner();
+    document.getElementById('scan-camera-zone').style.display = 'none';
 
-    // Parse the QR data — expected format: suggesto_client:<uuid>
     let clientId = null;
     if (decodedText.startsWith('suggesto_client:')) {
         clientId = decodedText.replace('suggesto_client:', '');
     } else {
-        alert('QR code non reconnu.');
+        showGlassToast('QR code non reconnu', 'error');
+        startClientScanner();
         return;
     }
 
     scannedClientId = clientId;
 
-    // Fetch client info from webhook
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'search_client',
-                clientId: clientId
-            })
-        });
+        // Fetch from Supabase profiles_users
+        const profiles = await supabase.select('profiles_users', `id=eq.${clientId}`);
+        if (!profiles || profiles.length === 0) {
+            showGlassToast('Client non trouvé', 'error');
+            startClientScanner();
+            return;
+        }
 
-        if (response.ok) {
-            const client = await response.json();
-            lastFoundClient = client;
-            scannedClientId = client.uuid || clientId;
+        const client = profiles[0];
+        lastFoundClient = {
+            uuid: client.id,
+            name: client.nom,
+            points: parseInt(client.points) || 0,
+            total_commande: parseInt(client.total_commande) || 0
+        };
 
-            document.getElementById('res-client-name').textContent = client.name;
-            document.getElementById('res-client-points').textContent = client.points;
-            document.getElementById('biz-client-result').style.display = 'block';
-
-            // Reset selections
-            selectedCommandeRewards = [];
-            selectedCommandeProducts = [];
-
-            // Only show rewards the client can afford
-            renderCommandeRewards(client.points);
-            updateCommandeRecap();
+        if (currentScanMode === 'entree') {
+            showEntryResult(lastFoundClient);
         } else {
-            alert('Client non trouvé.');
+            showBarResult(lastFoundClient);
         }
     } catch (error) {
         console.error('Client search error:', error);
-        alert('Erreur de connexion.');
+        showGlassToast('Erreur de connexion', 'error');
+        startClientScanner();
     }
 }
 
+function showEntryResult(client) {
+    const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('entry-client-initials').textContent = initials;
+    document.getElementById('entry-client-name').textContent = client.name;
+    document.getElementById('entry-client-points').textContent = client.points;
+    document.getElementById('scan-entry-result').style.display = 'block';
+
+    selectedCommandeRewards = [];
+    renderCommandeRewards(client.points);
+    updateCommandeRecap();
+}
+
+function showBarResult(client) {
+    const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('bar-client-initials').textContent = initials;
+    document.getElementById('bar-client-name').textContent = client.name;
+    document.getElementById('bar-client-points').textContent = client.points;
+    document.getElementById('bar-client-commandes').textContent = client.total_commande;
+    document.getElementById('scan-bar-result').style.display = 'block';
+}
+
+function validateBarScan() {
+    showGlassToast('Passage validé !', 'success');
+    document.getElementById('scan-bar-result').style.display = 'none';
+    lastFoundClient = null;
+    scannedClientId = null;
+    startClientScanner();
+}
+
 function cancelCommande() {
-    document.getElementById('biz-client-result').style.display = 'none';
+    document.getElementById('scan-entry-result').style.display = 'none';
     lastFoundClient = null;
     scannedClientId = null;
     selectedCommandeRewards = [];
-    selectedCommandeProducts = [];
+    startClientScanner();
 }
 
 function downloadBusinessQR(containerId, filename) {
@@ -3125,6 +3173,9 @@ function switchBizSection(sectionId) {
         toggleBizMenu();
     }
 
+    // Stop scanner if leaving scan section
+    if (html5QrScanner) stopClientScanner();
+
     // Update active states immediately (lightweight DOM ops)
     document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('#biz-side-menu .menu-link').forEach(l => l.classList.remove('active'));
@@ -3141,7 +3192,7 @@ function switchBizSection(sectionId) {
             calendrier: t('nav.calendar'),
             rewards: t('nav.rewards'),
             produits: t('nav.products'),
-            commandes: t('nav.orders'),
+            commandes: 'Scan',
             stats: t('nav.stats'),
             qrcodes: t('nav.my_qr')
         };
@@ -3156,6 +3207,7 @@ function switchBizSection(sectionId) {
             if (sectionId === 'stats') updateStats();
             if (sectionId === 'qrcodes') generateBusinessQRCodes();
             if (sectionId === 'produits') renderProductsList();
+            if (sectionId === 'commandes') startClientScanner();
         }, 30);
     }
 }
