@@ -1,5 +1,23 @@
 let currentBusiness = JSON.parse(localStorage.getItem('businessUser')) || null;
 
+// ===== GLOBAL TOAST NOTIFICATION =====
+function showGlassToast(message, type = 'error', duration = 4000) {
+    let toast = document.getElementById('glass-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'glass-toast';
+        toast.className = 'glass-toast';
+        toast.innerHTML = '<div class="toast-icon"></div><span class="toast-msg"></span>';
+        document.body.appendChild(toast);
+    }
+    toast.className = `glass-toast ${type}`;
+    toast.querySelector('.toast-icon').textContent = type === 'error' ? '!' : '\u2713';
+    toast.querySelector('.toast-msg').textContent = message;
+    requestAnimationFrame(() => toast.classList.add('active'));
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('active'), duration);
+}
+
 // Initialize View on Load
 document.addEventListener('DOMContentLoaded', async () => {
     const isBusinessView = document.body.classList.contains('view-entreprise');
@@ -197,7 +215,7 @@ async function handleOAuthCallback(isBusinessView) {
             if (profiles.length === 0) {
                 // No profile = not registered, redirect to signup
                 await supabase.auth.signOut();
-                alert('Aucun compte entreprise trouvé. Veuillez d\'abord vous inscrire.');
+                showGlassToast('Aucun compte entreprise trouvé, veuillez vous inscrire !', 'error');
                 return;
             }
             const profile = profiles[0];
@@ -216,7 +234,7 @@ async function handleOAuthCallback(isBusinessView) {
             if (profiles.length === 0) {
                 // No profile = not registered, redirect to signup
                 await supabase.auth.signOut();
-                alert('Aucun compte trouvé. Veuillez d\'abord vous inscrire.');
+                showGlassToast('Aucun compte trouvé, veuillez vous inscrire !', 'error');
                 return;
             }
             const profile = profiles[0];
