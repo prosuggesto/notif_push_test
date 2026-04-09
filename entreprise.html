@@ -482,17 +482,17 @@
 
                 <!-- Section: Scan -->
                 <section id="biz-section-commandes" class="biz-section">
-                    <!-- Tabs: Entrée / Bar -->
-                    <div style="display: flex; justify-content: center; margin-bottom: 24px;">
-                        <div class="scan-tabs" style="display: inline-flex; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 4px;">
-                            <button class="scan-tab active" id="scan-tab-entree" onclick="switchScanTab('entree')" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Entrée</button>
-                            <button class="scan-tab" id="scan-tab-bar" onclick="switchScanTab('bar')" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Bar</button>
-                            <button class="scan-tab" id="scan-tab-sortie" onclick="switchScanTab('sortie')" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Sortie</button>
+                    <!-- Tabs: Entrée / Bar / Sortie -->
+                    <div style="display: flex; justify-content: center; margin-bottom: 24px; position: relative; z-index: 20;">
+                        <div class="scan-tabs" style="display: inline-flex; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 4px; position: relative; z-index: 20;">
+                            <button class="scan-tab active" id="scan-tab-entree" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Entrée</button>
+                            <button class="scan-tab" id="scan-tab-bar" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Bar</button>
+                            <button class="scan-tab" id="scan-tab-sortie" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Sortie</button>
                         </div>
                     </div>
 
-                    <!-- Scanner (shared between both tabs) -->
-                    <div id="scan-camera-zone" style="max-width: 380px; margin: 0 auto;">
+                    <!-- Scanner (shared between all tabs) -->
+                    <div id="scan-camera-zone" style="max-width: 380px; margin: 0 auto; position: relative; z-index: 1;">
                         <div id="biz-qr-reader" style="width: 100%; border-radius: 16px; overflow: hidden;"></div>
                     </div>
 

@@ -1344,6 +1344,23 @@ let html5QrScanner = null;
 let scannedClientId = null;
 let currentScanMode = 'entree'; // 'entree', 'bar', or 'sortie'
 
+// Bind scan tab buttons via addEventListener (inline onclick can be blocked)
+(function initScanTabs() {
+    function bind() {
+        const entreeBtn = document.getElementById('scan-tab-entree');
+        const barBtn = document.getElementById('scan-tab-bar');
+        const sortieBtn = document.getElementById('scan-tab-sortie');
+        if (entreeBtn) entreeBtn.addEventListener('click', function(e) { e.stopPropagation(); switchScanTab('entree'); });
+        if (barBtn) barBtn.addEventListener('click', function(e) { e.stopPropagation(); switchScanTab('bar'); });
+        if (sortieBtn) sortieBtn.addEventListener('click', function(e) { e.stopPropagation(); switchScanTab('sortie'); });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bind);
+    } else {
+        bind();
+    }
+})();
+
 function switchScanTab(tab) {
     currentScanMode = tab;
     const entreeTab = document.getElementById('scan-tab-entree');
