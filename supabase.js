@@ -146,5 +146,57 @@ const supabase = {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Erreur mise à jour');
         return Array.isArray(data) ? data[0] : data;
+    },
+
+    async delete(table, filters) {
+        const token = this.auth.getToken();
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
+            }
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Erreur suppression');
+        }
+        return true;
+    },
+
+    // --- STORAGE ---
+    storage: {
+        async upload(bucket, path, file) {
+            const token = supabase.auth.getToken();
+            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`,
+                    'Content-Type': file.type || 'application/octet-stream',
+                    'x-upsert': 'true'
+                },
+                body: file
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || data.error || 'Erreur upload');
+            return data;
+        },
+        getPublicUrl(bucket, path) {
+            return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodeURIComponent(path)}`;
+        },
+        async remove(bucket, paths) {
+            const token = supabase.auth.getToken();
+            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ prefixes: Array.isArray(paths) ? paths : [paths] })
+            });
+            return res.ok;
+        }
     }
 };

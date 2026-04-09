@@ -409,6 +409,8 @@ let lastFoundClient = null;
 // ===== COMMANDE MODULE =====
 let selectedCommandeRewards = [];
 let selectedCommandeProducts = [];
+let bizRewards = [];
+let pendingRewardImageFile = null;
 
 // searchClientForCommande replaced by QR scanner (startClientScanner)
 
@@ -994,99 +996,186 @@ function saveBusinessData() {
     // Optional: push to server
 }
 
-// ----- Rewards Logic -----
-function handleCreateReward(e) {
-    e.preventDefault();
-    const name = document.getElementById('rew-name').value;
-    const points = parseInt(document.getElementById('rew-points').value);
-    const image = document.getElementById('rew-image').value;
-    const basePrice = document.getElementById('rew-base-price')?.value || '';
-    const code = document.getElementById('rew-code')?.value || '';
-    
-    const newRew = {
-        id: 'rew_' + Date.now(),
-        name: name,
-        points: points,
-        image: image,
-        basePrice: basePrice,
-        secretCode: code
-    };
-    
-    bizRewards.push(newRew);
-    currentBusiness.rewards = bizRewards;
-    
-    renderRewardsList();
-    e.target.reset();
-    
-    // Reset image preview
-    const preview = document.getElementById('rew-image-preview');
-    if (preview) {
-        preview.className = 'rew-image-placeholder';
-        preview.innerHTML = `
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <span>Ajouter une image</span>
-        `;
-    }
-    
-    saveBusinessData();
-    showSaveToast();
-}
-
+// ----- Rewards Logic (Supabase) -----
 function handleRewardImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+    pendingRewardImageFile = file;
+    // Local preview only (not persisted until form submit)
     const reader = new FileReader();
     reader.onload = function(e) {
-        document.getElementById('rew-image').value = e.target.result;
         const preview = document.getElementById('rew-image-preview');
-        preview.className = 'rew-image-placeholder has-image';
-        preview.innerHTML = `<img src="${e.target.result}" alt="Reward preview">`;
+        if (preview) {
+            preview.className = 'rew-image-placeholder has-image';
+            preview.innerHTML = `<img src="${e.target.result}" alt="Reward preview">`;
+        }
     };
     reader.readAsDataURL(file);
+}
+
+async function loadBizRewards() {
+    if (!currentBusiness || !currentBusiness.uuid) {
+        bizRewards = [];
+        return;
+    }
+    try {
+        const rows = await supabase.select('rewards', `boite_id=eq.${currentBusiness.uuid}&order=created_at.desc`);
+        bizRewards = Array.isArray(rows) ? rows : [];
+    } catch (err) {
+        console.error('loadBizRewards error:', err);
+        bizRewards = [];
+    }
+}
+
+async function handleCreateReward(e) {
+    e.preventDefault();
+    if (!currentBusiness || !currentBusiness.uuid) {
+        showGlassToast('Session entreprise invalide', 'error');
+        return;
+    }
+
+    const titreReward = document.getElementById('rew-titre').value.trim();
+    const nomRecompense = document.getElementById('rew-name').value.trim();
+    const pointsNecessaires = parseInt(document.getElementById('rew-points').value);
+    const prixBase = document.getElementById('rew-base-price')?.value.trim() || '';
+    const prixApresReduction = document.getElementById('rew-discounted-price')?.value.trim() || '';
+    const codeId = document.getElementById('rew-code')?.value.trim() || '';
+
+    if (!titreReward || !nomRecompense || isNaN(pointsNecessaires)) {
+        showGlassToast('Titre, nom et points requis', 'error');
+        return;
+    }
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.6'; }
+
+    try {
+        // 1. Check uniqueness of titre_reward for this boite
+        const existing = await supabase.select('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titreReward)}`);
+        if (existing && existing.length > 0) {
+            showGlassToast('Ce titre de reward existe déjà', 'error');
+            return;
+        }
+
+        // 2. Upload image to Supabase Storage (if provided)
+        let imageLink = '';
+        if (pendingRewardImageFile) {
+            const ext = (pendingRewardImageFile.name.split('.').pop() || 'jpg').toLowerCase();
+            const safeTitle = titreReward.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const path = `${currentBusiness.uuid}/${safeTitle}-${Date.now()}.${ext}`;
+            await supabase.storage.upload('rewards', path, pendingRewardImageFile);
+            imageLink = supabase.storage.getPublicUrl('rewards', path);
+        }
+
+        // 3. Insert reward row
+        const row = {
+            id: Math.floor(Math.random() * 2147483647),
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            titre_reward: titreReward,
+            nom_recompense: nomRecompense,
+            points_necessaires: pointsNecessaires,
+            prix_base: prixBase,
+            prix_apres_reduction: prixApresReduction,
+            code_id: codeId,
+            link: imageLink
+        };
+        const inserted = await supabase.insert('rewards', row);
+
+        // 4. Update local state
+        bizRewards.unshift(inserted || row);
+        renderRewardsList();
+
+        // 5. Reset form
+        e.target.reset();
+        pendingRewardImageFile = null;
+        const preview = document.getElementById('rew-image-preview');
+        if (preview) {
+            preview.className = 'rew-image-placeholder';
+            preview.innerHTML = `
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Ajouter une image</span>
+            `;
+        }
+
+        showGlassToast('Récompense créée !', 'success');
+    } catch (err) {
+        console.error('handleCreateReward error:', err);
+        showGlassToast(err.message || 'Erreur création reward', 'error');
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+    }
 }
 
 function renderRewardsList() {
     const grid = document.getElementById('biz-rewards-grid');
     if (!grid) return;
-    
-    if (bizRewards.length === 0) {
+
+    if (!bizRewards || bizRewards.length === 0) {
         grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
             ${t('biz.no_reward_created')}
         </p>`;
         return;
     }
 
-    grid.innerHTML = bizRewards.map(r => `
+    grid.innerHTML = bizRewards.map(r => {
+        const img = r.link || '';
+        const nom = r.nom_recompense || '';
+        const pts = r.points_necessaires || 0;
+        const prix = r.prix_base || '';
+        const titre = (r.titre_reward || '').replace(/'/g, "\\'");
+        return `
         <div class="reward-card">
-            <div class="reward-card-image" style="${r.image ? `background-image: url('${r.image}')` : ''}">
-                ${!r.image ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
+            <div class="reward-card-image" style="${img ? `background-image: url('${img}')` : ''}">
+                ${!img ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
             </div>
             <div class="reward-card-body">
-                <div class="reward-card-name">${r.name}</div>
+                <div class="reward-card-name">${nom}</div>
                 <div class="reward-card-meta">
-                    <span class="badge badge-points">⭐ ${r.points} pts</span>
-                    ${r.basePrice ? `<span class="badge badge-price">💰 ${r.basePrice}</span>` : ''}
+                    <span class="badge badge-points">⭐ ${pts} pts</span>
+                    ${prix ? `<span class="badge badge-price">💰 ${prix}</span>` : ''}
                 </div>
                 <div class="reward-card-actions">
-                    <button class="btn-rew-delete" onclick="deleteReward('${r.id}')">
+                    <button class="btn-rew-delete" onclick="deleteReward('${titre}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                         Supprimer
                     </button>
                 </div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
-function deleteReward(id) {
+function deleteReward(titre) {
     showConfirmModal(
         'Supprimer cette récompense ?',
         'Cette action est irréversible.',
-        () => {
-            bizRewards = bizRewards.filter(r => r.id !== id);
-            currentBusiness.rewards = bizRewards;
-            renderRewardsList();
-            saveBusinessData();
+        async () => {
+            try {
+                const reward = bizRewards.find(r => r.titre_reward === titre);
+                if (!reward) return;
+
+                // Delete from Supabase rewards table
+                await supabase.delete('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titre)}`);
+
+                // Try to remove image from storage (best-effort)
+                if (reward.link) {
+                    const marker = '/storage/v1/object/public/rewards/';
+                    const idx = reward.link.indexOf(marker);
+                    if (idx !== -1) {
+                        const path = decodeURIComponent(reward.link.substring(idx + marker.length));
+                        await supabase.storage.remove('rewards', path).catch(() => {});
+                    }
+                }
+
+                bizRewards = bizRewards.filter(r => r.titre_reward !== titre);
+                renderRewardsList();
+                showGlassToast('Récompense supprimée', 'success');
+            } catch (err) {
+                console.error('deleteReward error:', err);
+                showGlassToast(err.message || 'Erreur suppression', 'error');
+            }
         }
     );
 }
@@ -1150,7 +1239,7 @@ function renderCommandeRewards(points) {
     list.innerHTML = '';
 
     // Only show rewards the client can afford
-    const affordableRewards = bizRewards.filter(r => points >= r.points);
+    const affordableRewards = bizRewards.filter(r => points >= (r.points_necessaires || 0));
 
     if (affordableRewards.length === 0) {
         list.innerHTML = '<p style="font-size:13px; color:var(--text-dim); grid-column: 1/-1;">Pas assez de points pour un reward.</p>';
@@ -1158,19 +1247,19 @@ function renderCommandeRewards(points) {
     }
 
     affordableRewards.forEach(r => {
-        const isSelected = selectedCommandeRewards.find(sr => sr.id === r.id);
+        const isSelected = selectedCommandeRewards.find(sr => sr.titre_reward === r.titre_reward);
 
         const item = document.createElement('div');
         item.className = `reward-item-sel ${isSelected ? 'active' : ''}`;
         item.style = `background: var(--surface); padding: 12px; border-radius: 12px; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; text-align: center; cursor: pointer; transition: all 0.2s;`;
 
         item.innerHTML = `
-            <h5 style="font-size: 13px; margin-bottom: 2px;">${r.name}</h5>
-            <p style="font-size: 11px; color: var(--primary-light); font-weight: bold;">${r.points} pts</p>
+            <h5 style="font-size: 13px; margin-bottom: 2px;">${r.nom_recompense || ''}</h5>
+            <p style="font-size: 11px; color: var(--primary-light); font-weight: bold;">${r.points_necessaires || 0} pts</p>
         `;
 
         item.onclick = () => {
-            const idx = selectedCommandeRewards.findIndex(sr => sr.id === r.id);
+            const idx = selectedCommandeRewards.findIndex(sr => sr.titre_reward === r.titre_reward);
             if (idx > -1) {
                 selectedCommandeRewards.splice(idx, 1);
             } else {
@@ -1192,11 +1281,12 @@ function updateCommandeRecap() {
     let totalPoints = 0;
 
     selectedCommandeRewards.forEach(r => {
+        const pts = r.points_necessaires || 0;
         html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
-                    <span>🎁 ${r.name}</span>
-                    <span style="color:#ef4444;">-${r.points} pts</span>
+                    <span>🎁 ${r.nom_recompense || ''}</span>
+                    <span style="color:#ef4444;">-${pts} pts</span>
                  </div>`;
-        totalPoints += r.points;
+        totalPoints += pts;
     });
 
     if (html === '') {
@@ -1274,7 +1364,7 @@ async function recalculateCalendrierStats(calendrierId) {
 async function validateCommande() {
     if (!lastFoundClient) return;
 
-    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + r.points, 0);
+    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + (r.points_necessaires || 0), 0);
 
     if (totalPointsToDeduct > lastFoundClient.points) {
         const excess = totalPointsToDeduct - lastFoundClient.points;
@@ -3457,7 +3547,7 @@ function refreshActiveFetardView() {
 }
 
 // ----- Business Dashboard Management -----
-function showBusinessDashboard() {
+async function showBusinessDashboard() {
     const authScreen = document.getElementById('business-auth-screen');
     const dashboardScreen = document.getElementById('business-dashboard-screen');
 
@@ -3469,7 +3559,7 @@ function showBusinessDashboard() {
         dashboardScreen.classList.add('active');
         dashboardScreen.style.display = 'block';
     }
-    
+
     if (currentBusiness) {
         const bizName = currentBusiness.name || currentBusiness.nom || 'Club';
         const bizClubName = document.getElementById('biz-club-name');
@@ -3480,9 +3570,12 @@ function showBusinessDashboard() {
         // Sync local arrays with currentBusiness data
         bizTemplates = currentBusiness.bizTemplates || [];
         announcementTemplates = currentBusiness.announcementTemplates || [];
-        bizRewards = currentBusiness.rewards || [];
         bizProducts = currentBusiness.products || [];
         bizSchedule = currentBusiness.schedule || {};
+
+        // Load rewards from Supabase (source of truth)
+        await loadBizRewards();
+        renderRewardsList();
     }
 
     // Default view
