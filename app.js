@@ -1364,60 +1364,59 @@ function switchScanTab(tab) {
         sortieTab.style.background = '#ef4444'; sortieTab.style.color = 'white';
     }
 
-    // Hide all results
+    // Hide all results, show camera
     const entryResult = document.getElementById('scan-entry-result');
     const barResult = document.getElementById('scan-bar-result');
     const sortieResult = document.getElementById('scan-sortie-result');
     if (entryResult) entryResult.style.display = 'none';
     if (barResult) barResult.style.display = 'none';
     if (sortieResult) sortieResult.style.display = 'none';
+    document.getElementById('scan-camera-zone').style.display = 'block';
 
-    try { startClientScanner(); } catch (e) { console.error('Scanner start error:', e); }
+    // Only start scanner if it's not already running
+    if (!html5QrScanner) {
+        startClientScanner();
+    }
 }
 
-function startClientScanner() {
+async function startClientScanner() {
     const readerEl = document.getElementById('biz-qr-reader');
     if (!readerEl) return;
 
-    // Stop previous scanner if running
+    // Stop previous scanner and wait for it to fully stop
     if (html5QrScanner) {
-        html5QrScanner.stop().catch(() => {});
+        try { await html5QrScanner.stop(); } catch (e) { /* ignore */ }
         html5QrScanner = null;
     }
 
+    // Clear leftover DOM from previous scanner instance
+    readerEl.innerHTML = '';
+
     document.getElementById('scan-camera-zone').style.display = 'block';
-    const entryResult = document.getElementById('scan-entry-result');
-    const barResult = document.getElementById('scan-bar-result');
-    const sortieResult = document.getElementById('scan-sortie-result');
-    if (entryResult) entryResult.style.display = 'none';
-    if (barResult) barResult.style.display = 'none';
-    if (sortieResult) sortieResult.style.display = 'none';
 
     try {
         html5QrScanner = new Html5Qrcode('biz-qr-reader');
-        html5QrScanner.start(
+        await html5QrScanner.start(
             { facingMode: 'environment' },
             { fps: 10, qrbox: { width: 250, height: 250 } },
             onClientQRScanned,
             () => {}
-        ).catch(err => {
-            console.error('Scanner error:', err);
-            showGlassToast("Impossible d'accéder à la caméra", 'error');
-        });
-    } catch (e) {
-        console.error('Scanner init error:', e);
+        );
+    } catch (err) {
+        console.error('Scanner error:', err);
+        showGlassToast("Impossible d'accéder à la caméra", 'error');
     }
 }
 
-function stopClientScanner() {
+async function stopClientScanner() {
     if (html5QrScanner) {
-        html5QrScanner.stop().catch(() => {});
+        try { await html5QrScanner.stop(); } catch (e) { /* ignore */ }
         html5QrScanner = null;
     }
 }
 
 async function onClientQRScanned(decodedText) {
-    stopClientScanner();
+    await stopClientScanner();
     document.getElementById('scan-camera-zone').style.display = 'none';
 
     let clientId = null;
