@@ -1431,8 +1431,9 @@ async function getOrCreateTodayCalendrier() {
 }
 
 function getGenderField(sexe) {
-    if (sexe === 'homme') return 'homme';
-    if (sexe === 'femme') return 'femme';
+    const s = (sexe || '').toString().trim().toLowerCase();
+    if (s === 'homme' || s === 'h' || s === 'male' || s === 'm') return 'homme';
+    if (s === 'femme' || s === 'f' || s === 'female' || s === 'w') return 'femme';
     return 'non_binaire';
 }
 
@@ -1476,32 +1477,22 @@ async function validateCommande() {
     if (!lastFoundClient) return;
 
     const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + (parseInt(r.points_necessaires) || 0), 0);
+    const currentPoints = parseInt(lastFoundClient.points) || 0;
 
-    if (totalPointsToDeduct > lastFoundClient.points) {
-        const excess = totalPointsToDeduct - lastFoundClient.points;
+    if (totalPointsToDeduct > currentPoints) {
+        const excess = totalPointsToDeduct - currentPoints;
         showGlassToast(`Pas assez de points ! Enlève ${excess} pts de rewards.`, 'error');
         return;
     }
 
     try {
-        // 1. Deduct points if rewards were selected
-        if (totalPointsToDeduct > 0) {
-            await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-                points: lastFoundClient.points - totalPointsToDeduct
-            });
-        }
-
-        // 2. Get or create today's calendrier entry
-        const cal = await getOrCreateTodayCalendrier();
-
-        // 3. Update calendrier: +1 affluence, +1 gender
-        const genderField = getGenderField(lastFoundClient.sexe);
-        await supabase.update('calendrier', `id=eq.${cal.id}`, {
-            affluence: (parseInt(cal.affluence) || 0) + 1,
-            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        // 1. +1 point for the entry, minus any rewards redeemed
+        const newPoints = currentPoints + 1 - totalPointsToDeduct;
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: String(newPoints) // column is TEXT
         });
 
-        // 4. Log to dynamicstats
+        // 2. Log to dynamicstats (entrée)
         await supabase.insert('dynamicstats', {
             nom_boite: currentBusiness.name,
             boite_id: currentBusiness.uuid,
@@ -1511,18 +1502,32 @@ async function validateCommande() {
             statut: 'entrée'
         });
 
-        // 5. Recalculate top_pays, top_ville, top_age
+        // 3. Get or create today's calendrier entry
+        const cal = await getOrCreateTodayCalendrier();
+
+        // 4. Update calendrier: +1 affluence, +1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: (parseInt(cal.affluence) || 0) + 1,
+            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        });
+
+        // 5. Recalculate top_pays, top_ville, top_age (entrée only, today)
         await recalculateCalendrierStats(cal.id);
 
-        showGlassToast('Entrée validée !', 'success');
+        const msg = totalPointsToDeduct > 0
+            ? `Entrée validée — ${totalPointsToDeduct} pts déduits, +1 pt entrée`
+            : 'Entrée validée (+1 pt)';
+        showGlassToast(msg, 'success');
+    } catch (error) {
+        console.error('Entry validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+    } finally {
         document.getElementById('scan-entry-result').style.display = 'none';
         lastFoundClient = null;
         scannedClientId = null;
         selectedCommandeRewards = [];
         startClientScanner();
-    } catch (error) {
-        console.error('Entry validation error:', error);
-        showGlassToast('Erreur lors de la validation', 'error');
     }
 }
 
@@ -1783,17 +1788,13 @@ async function cancelCommande() {
     }
 
     try {
-        // 1. Get or create today's calendrier entry
-        const cal = await getOrCreateTodayCalendrier();
-
-        // 2. Update calendrier: +1 affluence, +1 gender
-        const genderField = getGenderField(lastFoundClient.sexe);
-        await supabase.update('calendrier', `id=eq.${cal.id}`, {
-            affluence: (parseInt(cal.affluence) || 0) + 1,
-            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        // 1. +1 point for the entry
+        const currentPoints = parseInt(lastFoundClient.points) || 0;
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: String(currentPoints + 1) // column is TEXT
         });
 
-        // 3. Log to dynamicstats
+        // 2. Log to dynamicstats (entrée)
         await supabase.insert('dynamicstats', {
             nom_boite: currentBusiness.name,
             boite_id: currentBusiness.uuid,
@@ -1803,10 +1804,20 @@ async function cancelCommande() {
             statut: 'entrée'
         });
 
-        // 4. Recalculate stats
+        // 3. Get or create today's calendrier entry
+        const cal = await getOrCreateTodayCalendrier();
+
+        // 4. Update calendrier: +1 affluence, +1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: (parseInt(cal.affluence) || 0) + 1,
+            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        });
+
+        // 5. Recalculate stats (entrée only, today)
         await recalculateCalendrierStats(cal.id);
 
-        showGlassToast('Entrée validée (sans rewards)', 'success');
+        showGlassToast('Entrée validée (+1 pt)', 'success');
     } catch (error) {
         console.error('Entry (no rewards) validation error:', error);
         showGlassToast('Erreur lors de la validation', 'error');
