@@ -92,17 +92,65 @@ const supabase = {
             if (data.access_token) {
                 localStorage.setItem('sb_access_token', data.access_token);
                 localStorage.setItem('sb_refresh_token', data.refresh_token);
+                // Persist expiry timestamp (seconds since epoch)
+                if (data.expires_at) {
+                    localStorage.setItem('sb_expires_at', String(data.expires_at));
+                } else if (data.expires_in) {
+                    localStorage.setItem('sb_expires_at', String(Math.floor(Date.now() / 1000) + Number(data.expires_in)));
+                }
             }
         },
 
         getToken() {
             return localStorage.getItem('sb_access_token');
+        },
+
+        // Refresh access token using the stored refresh_token
+        async refreshSession() {
+            const refreshToken = localStorage.getItem('sb_refresh_token');
+            if (!refreshToken) return null;
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                if (!res.ok) {
+                    // Refresh failed: clear session
+                    localStorage.removeItem('sb_access_token');
+                    localStorage.removeItem('sb_refresh_token');
+                    localStorage.removeItem('sb_expires_at');
+                    return null;
+                }
+                const data = await res.json();
+                this._saveSession(data);
+                return data.access_token || null;
+            } catch (err) {
+                console.error('refreshSession error:', err);
+                return null;
+            }
+        },
+
+        // Returns a valid access token, refreshing if needed. Null if no session.
+        async getValidToken() {
+            const token = localStorage.getItem('sb_access_token');
+            if (!token) return null;
+            const expiresAt = parseInt(localStorage.getItem('sb_expires_at') || '0', 10);
+            const now = Math.floor(Date.now() / 1000);
+            // Refresh if token expires in less than 60s
+            if (expiresAt && now >= expiresAt - 60) {
+                return await this.refreshSession();
+            }
+            return token;
         }
     },
 
     // --- DATABASE (PostgREST) ---
     async insert(table, row) {
-        const token = this.auth.getToken();
+        const token = await this.auth.getValidToken();
         const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
             method: 'POST',
             headers: {
@@ -119,7 +167,7 @@ const supabase = {
     },
 
     async select(table, filters = '') {
-        const token = this.auth.getToken();
+        const token = await this.auth.getValidToken();
         const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -132,7 +180,7 @@ const supabase = {
     },
 
     async update(table, filters, row) {
-        const token = this.auth.getToken();
+        const token = await this.auth.getValidToken();
         const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
             method: 'PATCH',
             headers: {
@@ -149,7 +197,7 @@ const supabase = {
     },
 
     async delete(table, filters) {
-        const token = this.auth.getToken();
+        const token = await this.auth.getValidToken();
         const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
             method: 'DELETE',
             headers: {
@@ -171,7 +219,7 @@ const supabase = {
             return String(path).split('/').map(encodeURIComponent).join('/');
         },
         async upload(bucket, path, file) {
-            const token = supabase.auth.getToken();
+            const token = await supabase.auth.getValidToken();
             const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${this._encodePath(path)}`, {
                 method: 'POST',
                 headers: {
@@ -190,7 +238,7 @@ const supabase = {
             return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${this._encodePath(path)}`;
         },
         async remove(bucket, paths) {
-            const token = supabase.auth.getToken();
+            const token = await supabase.auth.getValidToken();
             const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
                 method: 'DELETE',
                 headers: {
