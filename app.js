@@ -1014,12 +1014,13 @@ function handleRewardImageUpload(event) {
 }
 
 async function loadBizRewards() {
-    if (!currentBusiness || !currentBusiness.uuid) {
+    if (!currentBusiness || !currentBusiness.name) {
         bizRewards = [];
         return;
     }
     try {
-        const rows = await supabase.select('rewards', `boite_id=eq.${currentBusiness.uuid}&order=created_at.desc`);
+        // Filter by nom_boite (string) to avoid boite_id column type mismatches
+        const rows = await supabase.select('rewards', `nom_boite=eq.${encodeURIComponent(currentBusiness.name)}&order=created_at.desc`);
         bizRewards = Array.isArray(rows) ? rows : [];
     } catch (err) {
         console.error('loadBizRewards error:', err);
@@ -1034,45 +1035,41 @@ async function handleCreateReward(e) {
         return;
     }
 
-    const titreReward = document.getElementById('rew-titre').value.trim();
     const nomRecompense = document.getElementById('rew-name').value.trim();
     const pointsNecessaires = parseInt(document.getElementById('rew-points').value);
     const prixBase = document.getElementById('rew-base-price')?.value.trim() || '';
     const prixApresReduction = document.getElementById('rew-discounted-price')?.value.trim() || '';
     const codeId = document.getElementById('rew-code')?.value.trim() || '';
 
-    if (!titreReward || !nomRecompense || isNaN(pointsNecessaires)) {
-        showGlassToast('Titre, nom et points requis', 'error');
+    if (!nomRecompense || isNaN(pointsNecessaires)) {
+        showGlassToast('Nom et points requis', 'error');
         return;
     }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.6'; }
+    if (submitBtn) submitBtn.classList.add('loading');
+
+    // Capture the current image data-URL for the fly animation (before reset)
+    const previewImg = document.getElementById('rew-image-preview')?.querySelector('img');
+    const imageDataUrl = previewImg?.src || '';
 
     try {
-        // 1. Check uniqueness of titre_reward for this boite
-        const existing = await supabase.select('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titreReward)}`);
-        if (existing && existing.length > 0) {
-            showGlassToast('Ce titre de reward existe déjà', 'error');
-            return;
-        }
-
-        // 2. Upload image to Supabase Storage (if provided)
+        // 1. Upload image to Supabase Storage (if provided)
         let imageLink = '';
         if (pendingRewardImageFile) {
             const ext = (pendingRewardImageFile.name.split('.').pop() || 'jpg').toLowerCase();
-            const safeTitle = titreReward.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const safeTitle = nomRecompense.replace(/[^a-zA-Z0-9_-]/g, '_');
             const path = `${currentBusiness.uuid}/${safeTitle}-${Date.now()}.${ext}`;
             await supabase.storage.upload('rewards', path, pendingRewardImageFile);
             imageLink = supabase.storage.getPublicUrl('rewards', path);
         }
 
-        // 3. Insert reward row
+        // 2. Insert reward row (titre_reward = nom_recompense, auto)
+        // boite_id omitted: table column type is integer in user's schema, we identify by nom_boite
         const row = {
             id: Math.floor(Math.random() * 2147483647),
             nom_boite: currentBusiness.name,
-            boite_id: currentBusiness.uuid,
-            titre_reward: titreReward,
+            titre_reward: nomRecompense,
             nom_recompense: nomRecompense,
             points_necessaires: pointsNecessaires,
             prix_base: prixBase,
@@ -1082,11 +1079,12 @@ async function handleCreateReward(e) {
         };
         const inserted = await supabase.insert('rewards', row);
 
-        // 4. Update local state
+        // 3. Update local state + fly animation
         bizRewards.unshift(inserted || row);
+        animateRewardToGrid(nomRecompense, pointsNecessaires, prixBase, imageLink || imageDataUrl);
         renderRewardsList();
 
-        // 5. Reset form
+        // 4. Reset form
         e.target.reset();
         pendingRewardImageFile = null;
         const preview = document.getElementById('rew-image-preview');
@@ -1098,13 +1096,92 @@ async function handleCreateReward(e) {
             `;
         }
 
-        showGlassToast('Récompense créée !', 'success');
+        showSaveToast();
     } catch (err) {
         console.error('handleCreateReward error:', err);
         showGlassToast(err.message || 'Erreur création reward', 'error');
     } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+        if (submitBtn) submitBtn.classList.remove('loading');
     }
+}
+
+// ----- Reward fly-to-grid animation (mirrors annonces template animation) -----
+function animateRewardToGrid(nom, points, prix, imageSrc) {
+    if (window.innerWidth <= 768) return;
+    const form = document.getElementById('biz-reward-form');
+    if (!form) return;
+
+    const CARD_W = 220;
+    const CARD_H = 260;
+
+    const clone = document.createElement('div');
+    clone.className = 'reward-card fly-card-clone';
+    clone.style.cssText = `
+        position: fixed;
+        width: ${CARD_W}px;
+        height: ${CARD_H}px;
+        z-index: 1000000;
+        margin: 0;
+        pointer-events: none;
+        transition: none;
+        opacity: 0;
+    `;
+    clone.innerHTML = `
+        <div class="reward-card-image" style="${imageSrc ? `background-image: url('${imageSrc}')` : ''}">
+            ${!imageSrc ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
+        </div>
+        <div class="reward-card-body">
+            <div class="reward-card-name">${nom}</div>
+            <div class="reward-card-meta">
+                <span class="badge badge-points">⭐ ${points} pts</span>
+                ${prix ? `<span class="badge badge-price">💰 ${prix}</span>` : ''}
+            </div>
+        </div>
+    `;
+
+    // Start position: centered on the form card
+    const formRect = form.getBoundingClientRect();
+    const startX = formRect.left + formRect.width / 2 - CARD_W / 2;
+    const startY = formRect.top + formRect.height / 2 - CARD_H / 2;
+    clone.style.left = startX + 'px';
+    clone.style.top = startY + 'px';
+
+    document.body.appendChild(clone);
+    void clone.offsetHeight;
+
+    // Step 1: fly to center of screen, scale up
+    requestAnimationFrame(() => {
+        const centerX = (window.innerWidth / 2) - CARD_W / 2;
+        const centerY = (window.innerHeight / 2) - CARD_H / 2;
+        const previewScale = window.innerWidth < 480 ? 1.05 : 1.15;
+
+        clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+        clone.style.opacity = '1';
+        clone.style.left = centerX + 'px';
+        clone.style.top = centerY + 'px';
+        clone.style.transform = `scale(${previewScale})`;
+        clone.style.boxShadow = '0 0 120px rgba(99, 102, 241, 0.8)';
+
+        setTimeout(() => {
+            // Step 2: slide to first reward card slot in the grid
+            const grid = document.getElementById('biz-rewards-grid');
+            const firstCard = grid?.querySelector('.reward-card');
+            const targetRect = firstCard?.getBoundingClientRect()
+                || grid?.getBoundingClientRect()
+                || { left: window.innerWidth - 280, top: 200, width: CARD_W, height: CARD_H };
+
+            const scaleX = (targetRect.width || CARD_W) / CARD_W;
+            const scaleY = (targetRect.height || CARD_H) / CARD_H;
+            const translateX = targetRect.left - centerX;
+            const translateY = targetRect.top - centerY;
+
+            clone.style.transition = 'all 0.9s cubic-bezier(0.19, 1, 0.22, 1)';
+            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX * 0.9}, ${scaleY * 0.9})`;
+            clone.style.opacity = '0';
+
+            setTimeout(() => clone.remove(), 900);
+        }, 1200);
+    });
 }
 
 function renderRewardsList() {
@@ -1156,8 +1233,8 @@ function deleteReward(titre) {
                 const reward = bizRewards.find(r => r.titre_reward === titre);
                 if (!reward) return;
 
-                // Delete from Supabase rewards table
-                await supabase.delete('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titre)}`);
+                // Delete from Supabase rewards table (filter by nom_boite + titre_reward)
+                await supabase.delete('rewards', `nom_boite=eq.${encodeURIComponent(currentBusiness.name)}&titre_reward=eq.${encodeURIComponent(titre)}`);
 
                 // Try to remove image from storage (best-effort)
                 if (reward.link) {
