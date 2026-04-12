@@ -220,13 +220,15 @@ const supabase = {
         },
         async upload(bucket, path, file) {
             const token = await supabase.auth.getValidToken();
+            // No x-upsert header: avoids INSERT ... ON CONFLICT DO UPDATE
+            // which forces Postgres to evaluate both INSERT and UPDATE policies
+            // simultaneously. Paths are already unique (Date.now() + UUID folder).
             const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${this._encodePath(path)}`, {
                 method: 'POST',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`,
-                    'Content-Type': file.type || 'application/octet-stream',
-                    'x-upsert': 'true'
+                    'Content-Type': file.type || 'application/octet-stream'
                 },
                 body: file
             });
