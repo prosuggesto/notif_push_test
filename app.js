@@ -1332,15 +1332,41 @@ function renderCommandeRewards(points) {
     }
 
     affordableRewards.forEach(r => {
-        const isSelected = selectedCommandeRewards.find(sr => sr.titre_reward === r.titre_reward);
+        const isSelected = !!selectedCommandeRewards.find(sr => sr.titre_reward === r.titre_reward);
+        const img = r.link || '';
+        const nom = r.nom_recompense || '';
+        const pts = parseInt(r.points_necessaires) || 0;
+        const prix = r.prix_apres_reduction || r.prix_base || '';
 
         const item = document.createElement('div');
-        item.className = `reward-item-sel ${isSelected ? 'active' : ''}`;
-        item.style = `background: var(--surface); padding: 12px; border-radius: 12px; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; text-align: center; cursor: pointer; transition: all 0.2s;`;
+        item.className = `reward-card reward-commande-card ${isSelected ? 'selected' : ''}`;
+        item.style.cssText = `
+            background: var(--surface);
+            border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--border)'};
+            border-radius: 14px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            ${isSelected ? 'box-shadow: 0 0 0 3px rgba(99,102,241,0.25); transform: scale(1.02);' : ''}
+            display: flex;
+            flex-direction: column;
+        `;
 
         item.innerHTML = `
-            <h5 style="font-size: 13px; margin-bottom: 2px;">${r.nom_recompense || ''}</h5>
-            <p style="font-size: 11px; color: var(--primary-light); font-weight: bold;">${r.points_necessaires || 0} pts</p>
+            <div style="
+                width: 100%;
+                aspect-ratio: 1;
+                ${img ? `background: url('${img}') center/cover no-repeat;` : 'background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15)); display:flex; align-items:center; justify-content:center;'}
+            ">
+                ${!img ? '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-dim);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
+            </div>
+            <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2;">${nom}</div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+                    <span style="font-size: 11px; font-weight: 700; color: var(--primary-light); background: rgba(99,102,241,0.15); padding: 3px 7px; border-radius: 6px;">⭐ ${pts} pts</span>
+                    ${prix ? `<span style="font-size: 11px; color: var(--text-dim);">${prix}</span>` : ''}
+                </div>
+            </div>
         `;
 
         item.onclick = () => {
@@ -1748,12 +1774,49 @@ async function validateSortie() {
 }
 
 // ===== CANCEL ACTIONS =====
-function cancelCommande() {
-    document.getElementById('scan-entry-result').style.display = 'none';
-    lastFoundClient = null;
-    scannedClientId = null;
-    selectedCommandeRewards = [];
-    startClientScanner();
+// "J'utilise pas" = valider l'entrée sans déduire de points (client entre mais n'utilise pas ses rewards)
+async function cancelCommande() {
+    if (!lastFoundClient) {
+        document.getElementById('scan-entry-result').style.display = 'none';
+        startClientScanner();
+        return;
+    }
+
+    try {
+        // 1. Get or create today's calendrier entry
+        const cal = await getOrCreateTodayCalendrier();
+
+        // 2. Update calendrier: +1 affluence, +1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: (parseInt(cal.affluence) || 0) + 1,
+            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        });
+
+        // 3. Log to dynamicstats
+        await supabase.insert('dynamicstats', {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            age: lastFoundClient.age,
+            ville: lastFoundClient.ville,
+            pays: lastFoundClient.pays,
+            statut: 'entrée'
+        });
+
+        // 4. Recalculate stats
+        await recalculateCalendrierStats(cal.id);
+
+        showGlassToast('Entrée validée (sans rewards)', 'success');
+    } catch (error) {
+        console.error('Entry (no rewards) validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+    } finally {
+        document.getElementById('scan-entry-result').style.display = 'none';
+        lastFoundClient = null;
+        scannedClientId = null;
+        selectedCommandeRewards = [];
+        startClientScanner();
+    }
 }
 
 function cancelBarScan() {
