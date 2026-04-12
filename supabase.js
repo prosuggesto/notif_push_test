@@ -166,9 +166,13 @@ const supabase = {
 
     // --- STORAGE ---
     storage: {
+        // Encode each path segment but preserve slashes as folder separators
+        _encodePath(path) {
+            return String(path).split('/').map(encodeURIComponent).join('/');
+        },
         async upload(bucket, path, file) {
             const token = supabase.auth.getToken();
-            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`, {
+            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${this._encodePath(path)}`, {
                 method: 'POST',
                 headers: {
                     'apikey': SUPABASE_ANON_KEY,
@@ -183,7 +187,7 @@ const supabase = {
             return data;
         },
         getPublicUrl(bucket, path) {
-            return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodeURIComponent(path)}`;
+            return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${this._encodePath(path)}`;
         },
         async remove(bucket, paths) {
             const token = supabase.auth.getToken();
