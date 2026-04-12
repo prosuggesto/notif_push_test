@@ -36,6 +36,14 @@ const supabase = {
             if (accessToken) {
                 localStorage.setItem('sb_access_token', accessToken);
                 localStorage.setItem('sb_refresh_token', refreshToken);
+                // Persist expiry (OAuth hash includes expires_at and expires_in)
+                const expiresAt = params.get('expires_at');
+                const expiresIn = params.get('expires_in');
+                if (expiresAt) {
+                    localStorage.setItem('sb_expires_at', expiresAt);
+                } else if (expiresIn) {
+                    localStorage.setItem('sb_expires_at', String(Math.floor(Date.now() / 1000) + Number(expiresIn)));
+                }
                 // Clean URL
                 window.history.replaceState(null, '', window.location.pathname + window.location.search);
                 return { access_token: accessToken, refresh_token: refreshToken };
@@ -134,14 +142,35 @@ const supabase = {
             }
         },
 
+        // Decode the exp claim from a JWT without verifying the signature
+        _decodeJwtExp(token) {
+            try {
+                const payload = token.split('.')[1];
+                // Base64url → base64
+                const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+                const json = atob(b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '='));
+                const claims = JSON.parse(json);
+                return claims.exp ? Number(claims.exp) : 0;
+            } catch {
+                return 0;
+            }
+        },
+
         // Returns a valid access token, refreshing if needed. Null if no session.
         async getValidToken() {
             const token = localStorage.getItem('sb_access_token');
             if (!token) return null;
-            const expiresAt = parseInt(localStorage.getItem('sb_expires_at') || '0', 10);
+            let expiresAt = parseInt(localStorage.getItem('sb_expires_at') || '0', 10);
+            // Fallback: decode the JWT to read exp if not stored
+            if (!expiresAt) {
+                expiresAt = this._decodeJwtExp(token);
+                if (expiresAt) {
+                    localStorage.setItem('sb_expires_at', String(expiresAt));
+                }
+            }
             const now = Math.floor(Date.now() / 1000);
-            // Refresh if token expires in less than 60s
-            if (expiresAt && now >= expiresAt - 60) {
+            // Refresh if expired or expires in less than 60s
+            if (!expiresAt || now >= expiresAt - 60) {
                 return await this.refreshSession();
             }
             return token;
