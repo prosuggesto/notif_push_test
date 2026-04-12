@@ -1014,13 +1014,12 @@ function handleRewardImageUpload(event) {
 }
 
 async function loadBizRewards() {
-    if (!currentBusiness || !currentBusiness.name) {
+    if (!currentBusiness || !currentBusiness.uuid) {
         bizRewards = [];
         return;
     }
     try {
-        // Filter by nom_boite (string) to avoid boite_id column type mismatches
-        const rows = await supabase.select('rewards', `nom_boite=eq.${encodeURIComponent(currentBusiness.name)}&order=created_at.desc`);
+        const rows = await supabase.select('rewards', `boite_id=eq.${currentBusiness.uuid}&order=created_at.desc`);
         bizRewards = Array.isArray(rows) ? rows : [];
     } catch (err) {
         console.error('loadBizRewards error:', err);
@@ -1065,13 +1064,13 @@ async function handleCreateReward(e) {
         }
 
         // 2. Insert reward row (titre_reward = nom_recompense, auto)
-        // boite_id omitted: table column type is integer in user's schema, we identify by nom_boite
         const row = {
             id: Math.floor(Math.random() * 2147483647),
             nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
             titre_reward: nomRecompense,
             nom_recompense: nomRecompense,
-            points_necessaires: pointsNecessaires,
+            points_necessaires: String(pointsNecessaires),
             prix_base: prixBase,
             prix_apres_reduction: prixApresReduction,
             code_id: codeId,
@@ -1198,7 +1197,7 @@ function renderRewardsList() {
     grid.innerHTML = bizRewards.map(r => {
         const img = r.link || '';
         const nom = r.nom_recompense || '';
-        const pts = r.points_necessaires || 0;
+        const pts = parseInt(r.points_necessaires) || 0;
         const prix = r.prix_base || '';
         const titre = (r.titre_reward || '').replace(/'/g, "\\'");
         return `
@@ -1233,8 +1232,8 @@ function deleteReward(titre) {
                 const reward = bizRewards.find(r => r.titre_reward === titre);
                 if (!reward) return;
 
-                // Delete from Supabase rewards table (filter by nom_boite + titre_reward)
-                await supabase.delete('rewards', `nom_boite=eq.${encodeURIComponent(currentBusiness.name)}&titre_reward=eq.${encodeURIComponent(titre)}`);
+                // Delete from Supabase rewards table (filter by boite_id + titre_reward)
+                await supabase.delete('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titre)}`);
 
                 // Try to remove image from storage (best-effort)
                 if (reward.link) {
@@ -1315,8 +1314,8 @@ function renderCommandeRewards(points) {
     if (!list) return;
     list.innerHTML = '';
 
-    // Only show rewards the client can afford
-    const affordableRewards = bizRewards.filter(r => points >= (r.points_necessaires || 0));
+    // Only show rewards the client can afford (points_necessaires is TEXT in DB)
+    const affordableRewards = bizRewards.filter(r => points >= (parseInt(r.points_necessaires) || 0));
 
     if (affordableRewards.length === 0) {
         list.innerHTML = '<p style="font-size:13px; color:var(--text-dim); grid-column: 1/-1;">Pas assez de points pour un reward.</p>';
@@ -1358,7 +1357,7 @@ function updateCommandeRecap() {
     let totalPoints = 0;
 
     selectedCommandeRewards.forEach(r => {
-        const pts = r.points_necessaires || 0;
+        const pts = parseInt(r.points_necessaires) || 0;
         html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
                     <span>🎁 ${r.nom_recompense || ''}</span>
                     <span style="color:#ef4444;">-${pts} pts</span>
@@ -1441,7 +1440,7 @@ async function recalculateCalendrierStats(calendrierId) {
 async function validateCommande() {
     if (!lastFoundClient) return;
 
-    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + (r.points_necessaires || 0), 0);
+    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + (parseInt(r.points_necessaires) || 0), 0);
 
     if (totalPointsToDeduct > lastFoundClient.points) {
         const excess = totalPointsToDeduct - lastFoundClient.points;
