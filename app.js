@@ -42,6 +42,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (fetarsEl) fetarsEl.style.display = 'none';
         if (entrepriseEl) entrepriseEl.style.display = 'block';
 
+        // Guard: if we have a stale businessUser without a valid auth token,
+        // clear it and force login (avoids requests sent as anon which break RLS)
+        const hasToken = !!localStorage.getItem('sb_access_token');
+        if (currentBusiness && !hasToken) {
+            console.warn('businessUser present but no auth token — forcing re-login');
+            localStorage.removeItem('businessUser');
+            currentBusiness = null;
+        }
+
         // Use the globally defined currentBusiness
         if (currentBusiness) {
             showBusinessDashboard();
