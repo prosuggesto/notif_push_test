@@ -328,7 +328,7 @@ function showOAuthEnrichScreen(user, isBusinessView) {
         if (tabs) tabs.style.display = 'none';
         if (enrichForm) {
             enrichForm.classList.add('active');
-            enrichForm.style.display = 'block';
+            enrichForm.style.display = 'flex';
         }
         const emailEl = document.getElementById('biz-oauth-enrich-email');
         const nameEl = document.getElementById('biz-oauth-enrich-name');
@@ -349,7 +349,7 @@ function showOAuthEnrichScreen(user, isBusinessView) {
         if (tabs) tabs.style.display = 'none';
         if (enrichForm) {
             enrichForm.classList.add('active');
-            enrichForm.style.display = 'block';
+            enrichForm.style.display = 'flex';
         }
         const emailEl = document.getElementById('oauth-enrich-email');
         const nameEl = document.getElementById('oauth-enrich-name');
