@@ -318,12 +318,14 @@ function showOAuthEnrichScreen(user, isBusinessView) {
             bizAuthScreen.classList.add('active');
             bizAuthScreen.style.display = 'flex';
         }
-        // Hide login + signup, show enrichment
+        // Hide login + signup + tabs, show enrichment
         const loginForm = document.getElementById('business-login-form');
         const signupForm = document.getElementById('business-signup-form');
         const enrichForm = document.getElementById('biz-oauth-enrich-form');
+        const tabs = document.querySelector('#business-auth-screen .auth-tabs');
         if (loginForm) { loginForm.classList.remove('active'); loginForm.style.display = 'none'; }
         if (signupForm) { signupForm.classList.remove('active'); signupForm.style.display = 'none'; }
+        if (tabs) tabs.style.display = 'none';
         if (enrichForm) {
             enrichForm.classList.add('active');
             enrichForm.style.display = 'block';
@@ -341,8 +343,10 @@ function showOAuthEnrichScreen(user, isBusinessView) {
         const loginForm = document.getElementById('login-form');
         const signupForm = document.getElementById('signup-form');
         const enrichForm = document.getElementById('oauth-enrich-form');
+        const tabs = document.querySelector('#auth-screen .tab-switcher');
         if (loginForm) { loginForm.classList.remove('active'); loginForm.style.display = 'none'; }
         if (signupForm) { signupForm.classList.remove('active'); signupForm.style.display = 'none'; }
+        if (tabs) tabs.style.display = 'none';
         if (enrichForm) {
             enrichForm.classList.add('active');
             enrichForm.style.display = 'block';
