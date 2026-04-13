@@ -248,6 +248,10 @@ async function handleLogin(e) {
 }
 
 // ===== OAUTH CALLBACK HANDLER =====
+// Pending OAuth user while the enrichment form is shown (so handlers can access it
+// without re-fetching from the auth endpoint).
+let pendingOAuthUser = null;
+
 async function handleOAuthCallback(isBusinessView) {
     try {
         const user = await supabase.auth.getUser();
@@ -261,9 +265,10 @@ async function handleOAuthCallback(isBusinessView) {
             try { profiles = await supabase.select('profiles_business', `id=eq.${userId}`); } catch(e) {}
 
             if (profiles.length === 0) {
-                // No profile = not registered, redirect to signup
-                await supabase.auth.signOut();
-                showGlassToast('Aucun compte entreprise trouvé, veuillez vous inscrire !', 'error');
+                // No profile = show enrichment form instead of signing out.
+                // The auth.users row created by Google stays — we'll attach a
+                // profile to it once the user fills the missing fields.
+                showOAuthEnrichScreen(user, true);
                 return;
             }
             const profile = profiles[0];
@@ -280,9 +285,8 @@ async function handleOAuthCallback(isBusinessView) {
             try { profiles = await supabase.select('profiles_users', `id=eq.${userId}`); } catch(e) {}
 
             if (profiles.length === 0) {
-                // No profile = not registered, redirect to signup
-                await supabase.auth.signOut();
-                showGlassToast('Aucun compte trouvé, veuillez vous inscrire !', 'error');
+                // No profile = show enrichment form instead of signing out.
+                showOAuthEnrichScreen(user, false);
                 return;
             }
             const profile = profiles[0];
@@ -299,6 +303,185 @@ async function handleOAuthCallback(isBusinessView) {
         }
     } catch (err) {
         console.error('OAuth callback error:', err);
+    }
+}
+
+// Display the enrichment form pre-filled with the data Google provided.
+function showOAuthEnrichScreen(user, isBusinessView) {
+    pendingOAuthUser = user;
+    const fullName = user.user_metadata?.full_name || '';
+    const email = user.email || '';
+
+    if (isBusinessView) {
+        const bizAuthScreen = document.getElementById('business-auth-screen');
+        if (bizAuthScreen) {
+            bizAuthScreen.classList.add('active');
+            bizAuthScreen.style.display = 'flex';
+        }
+        // Hide login + signup, show enrichment
+        const loginForm = document.getElementById('business-login-form');
+        const signupForm = document.getElementById('business-signup-form');
+        const enrichForm = document.getElementById('biz-oauth-enrich-form');
+        if (loginForm) { loginForm.classList.remove('active'); loginForm.style.display = 'none'; }
+        if (signupForm) { signupForm.classList.remove('active'); signupForm.style.display = 'none'; }
+        if (enrichForm) {
+            enrichForm.classList.add('active');
+            enrichForm.style.display = 'block';
+        }
+        const emailEl = document.getElementById('biz-oauth-enrich-email');
+        const nameEl = document.getElementById('biz-oauth-enrich-name');
+        if (emailEl) emailEl.value = email;
+        if (nameEl && fullName && !nameEl.value) nameEl.value = fullName;
+    } else {
+        const authScreen = document.getElementById('auth-screen');
+        if (authScreen) {
+            authScreen.classList.add('active');
+            authScreen.style.display = 'flex';
+        }
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const enrichForm = document.getElementById('oauth-enrich-form');
+        if (loginForm) { loginForm.classList.remove('active'); loginForm.style.display = 'none'; }
+        if (signupForm) { signupForm.classList.remove('active'); signupForm.style.display = 'none'; }
+        if (enrichForm) {
+            enrichForm.classList.add('active');
+            enrichForm.style.display = 'block';
+        }
+        const emailEl = document.getElementById('oauth-enrich-email');
+        const nameEl = document.getElementById('oauth-enrich-name');
+        if (emailEl) emailEl.value = email;
+        if (nameEl && fullName) nameEl.value = fullName;
+    }
+    // Clear loading overlay if any
+    document.body.classList.remove('view-loading');
+}
+
+function selectOAuthEnrichGender(value) {
+    const hidden = document.getElementById('oauth-enrich-sexe');
+    const label = document.getElementById('oauth-enrich-selected-gender');
+    const dropdown = document.getElementById('oauth-enrich-gender-dropdown');
+    if (hidden) hidden.value = value;
+    if (label) label.textContent = value;
+    if (dropdown) dropdown.classList.remove('active');
+}
+
+// Finalize client (fêtard) signup after OAuth: INSERT into profiles_users with
+// the existing auth UUID. No signUp call → no "compte existe déjà" error.
+async function handleOAuthEnrichClient(e) {
+    e.preventDefault();
+    if (!pendingOAuthUser) {
+        showMessage('oauth-enrich-message', 'Session expirée, recommencez.', 'error');
+        return;
+    }
+    const name = document.getElementById('oauth-enrich-name').value.trim();
+    const age = document.getElementById('oauth-enrich-age').value.trim();
+    const sexe = document.getElementById('oauth-enrich-sexe').value;
+    const city = document.getElementById('oauth-enrich-city').value.trim();
+    const country = document.getElementById('oauth-enrich-country').value.trim();
+
+    if (!name || !age || !sexe || !city || !country) {
+        showMessage('oauth-enrich-message', 'Veuillez remplir tous les champs.', 'error');
+        return;
+    }
+
+    setLoading('oauth-enrich-btn', true);
+    showMessage('oauth-enrich-message', '', '');
+
+    try {
+        const userId = pendingOAuthUser.id;
+        await supabase.insert('profiles_users', {
+            id: userId,
+            nom: name,
+            age: parseInt(age),
+            sexe: sexe,
+            ville: city,
+            pays: country
+        });
+
+        if (window.OneSignal) {
+            OneSignal.login(userId);
+        }
+
+        const userData = {
+            name: name,
+            uuid: userId,
+            age: age,
+            sexe: sexe,
+            city: city,
+            country: country
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        pendingOAuthUser = null;
+        showMessage('oauth-enrich-message', 'Inscription réussie ! Redirection...', 'success');
+        setTimeout(() => { showDashboard(name); }, 600);
+    } catch (err) {
+        console.error('OAuth enrich client error:', err);
+        showMessage('oauth-enrich-message', err.message || 'Erreur lors de la finalisation.', 'error');
+    } finally {
+        setLoading('oauth-enrich-btn', false);
+    }
+}
+
+// Finalize business signup after OAuth.
+async function handleOAuthEnrichBusiness(e) {
+    e.preventDefault();
+    if (!pendingOAuthUser) {
+        const msg = document.getElementById('biz-oauth-enrich-message');
+        if (msg) { msg.textContent = 'Session expirée, recommencez.'; msg.className = 'form-message error'; }
+        return;
+    }
+    const name = document.getElementById('biz-oauth-enrich-name').value.trim();
+    const bizCity = document.getElementById('biz-oauth-enrich-city').value.trim();
+    const bizCountry = document.getElementById('biz-oauth-enrich-country').value.trim();
+    const btn = document.getElementById('biz-oauth-enrich-btn');
+    const msg = document.getElementById('biz-oauth-enrich-message');
+
+    if (!name || !bizCity || !bizCountry) {
+        if (msg) { msg.textContent = 'Veuillez remplir tous les champs.'; msg.className = 'form-message error'; }
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Création en cours...';
+
+    try {
+        const userId = pendingOAuthUser.id;
+        await supabase.insert('profiles_business', {
+            id: userId,
+            nom_boite: name,
+            ville: bizCity,
+            pays: bizCountry
+        });
+
+        currentBusiness = {
+            name: name,
+            uuid: userId,
+            city: bizCity,
+            country: bizCountry
+        };
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        pendingOAuthUser = null;
+        if (msg) { msg.textContent = 'Inscription réussie ! Redirection...'; msg.className = 'form-message success'; }
+        setTimeout(() => showBusinessDashboard(), 300);
+    } catch (error) {
+        if (msg) { msg.textContent = 'Erreur: ' + error.message; msg.className = 'form-message error'; }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Finaliser mon inscription';
+    }
+}
+
+// Cancel enrichment: delete the dangling auth.users row via self-service RPC,
+// sign out, and return to the login view. Requires the SQL function
+// public.delete_my_auth_user() to be installed in Supabase.
+async function cancelOAuthEnrich(isBusinessView) {
+    try {
+        try { await supabase.rpc('delete_my_auth_user'); } catch (e) { console.warn('delete_my_auth_user failed:', e); }
+        await supabase.auth.signOut();
+    } finally {
+        pendingOAuthUser = null;
+        // Reload the page to cleanly return to the login view
+        window.location.href = window.location.pathname;
     }
 }
 

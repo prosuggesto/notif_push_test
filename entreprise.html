@@ -142,6 +142,48 @@
                     <button type="submit" class="btn-primary" id="biz-signup-btn" data-i18n="auth.biz_signup">Créer mon compte</button>
                     <div id="biz-signup-message" class="form-message"></div>
                 </form>
+
+                <!-- OAuth Enrichment Form (shown after Google login when no profile exists yet) -->
+                <form id="biz-oauth-enrich-form" class="auth-form" onsubmit="handleOAuthEnrichBusiness(event)" style="display:none;">
+                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">
+                        Bienvenue ! Finalisez votre inscription en complétant les informations manquantes.
+                    </p>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <input type="email" id="biz-oauth-enrich-email" placeholder="email@votreclub.com" readonly>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Nom de la boîte de nuit</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/></svg>
+                            <input type="text" id="biz-oauth-enrich-name" placeholder="Ex: Le Macumba" required>
+                        </div>
+                    </div>
+                    <div class="registration-grid">
+                        <div class="input-group">
+                            <label>Ville</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <input type="text" id="biz-oauth-enrich-city" placeholder="Ville de l'établissement" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Pays</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                <input type="text" id="biz-oauth-enrich-country" placeholder="Pays" required>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="biz-oauth-enrich-btn">Finaliser mon inscription</button>
+                    <button type="button" class="btn-secondary" onclick="cancelOAuthEnrich(true)" style="margin-top: 10px; width: 100%; background: transparent; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; cursor: pointer;">
+                        Annuler
+                    </button>
+                    <div id="biz-oauth-enrich-message" class="form-message"></div>
+                </form>
             </div>
         </div>
 

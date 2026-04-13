@@ -225,6 +225,26 @@ const supabase = {
         return Array.isArray(data) ? data[0] : data;
     },
 
+    // --- RPC (Postgres functions) ---
+    async rpc(fn, params = {}) {
+        const token = await this.auth.getValidToken();
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify(params)
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Erreur RPC');
+        }
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
+    },
+
     async delete(table, filters) {
         const token = await this.auth.getValidToken();
         const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
