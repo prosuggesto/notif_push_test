@@ -42,13 +42,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (fetarsEl) fetarsEl.style.display = 'none';
         if (entrepriseEl) entrepriseEl.style.display = 'block';
 
-        // Guard: if we have a stale businessUser without a valid auth token,
-        // clear it and force login (avoids requests sent as anon which break RLS)
-        const hasToken = !!localStorage.getItem('sb_access_token');
-        if (currentBusiness && !hasToken) {
-            console.warn('businessUser present but no auth token — forcing re-login');
-            localStorage.removeItem('businessUser');
-            currentBusiness = null;
+        // Guard: verify stored businessUser matches the currently authenticated JWT.
+        // This prevents cross-account session leakage (e.g. logged in as client Diego,
+        // then re-opened as business le joselina — old businessUser remained in LS).
+        const validToken = await supabase.auth.getValidToken();
+        if (currentBusiness) {
+            if (!validToken) {
+                console.warn('businessUser present but no valid auth token — forcing re-login');
+                localStorage.removeItem('businessUser');
+                currentBusiness = null;
+            } else {
+                const authUser = await supabase.auth.getUser();
+                if (!authUser || !authUser.id || authUser.id !== currentBusiness.uuid) {
+                    console.warn('businessUser UUID does not match authenticated user — forcing re-login', {
+                        expected: currentBusiness.uuid,
+                        actual: authUser && authUser.id
+                    });
+                    localStorage.removeItem('businessUser');
+                    // Also clear any stale client session to avoid cross-contamination
+                    localStorage.removeItem('user');
+                    await supabase.auth.signOut();
+                    currentBusiness = null;
+                }
+            }
         }
 
         // Use the globally defined currentBusiness
@@ -65,13 +81,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (fetarsEl) fetarsEl.style.display = 'block';
         if (entrepriseEl) entrepriseEl.style.display = 'none';
 
+        // Same guard pattern for client localStorage: ensure stored `user.uuid`
+        // matches the authenticated JWT, otherwise clear it.
+        const stored = localStorage.getItem('user');
+        if (stored) {
+            const storedUser = JSON.parse(stored);
+            const validToken = await supabase.auth.getValidToken();
+            if (!validToken) {
+                console.warn('user present but no valid auth token — clearing');
+                localStorage.removeItem('user');
+            } else {
+                const authUser = await supabase.auth.getUser();
+                if (!authUser || !authUser.id || (storedUser.uuid && authUser.id !== storedUser.uuid)) {
+                    console.warn('user UUID does not match authenticated user — clearing', {
+                        expected: storedUser.uuid,
+                        actual: authUser && authUser.id
+                    });
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('businessUser');
+                    await supabase.auth.signOut();
+                }
+            }
+        }
+
         const params = new URLSearchParams(window.location.search);
         if (params.get('action') === 'scan' || params.get('clubId')) {
             handleNativeScan();
         } else {
-            const stored = localStorage.getItem('user');
-            if (stored) {
-                const user = JSON.parse(stored);
+            const freshStored = localStorage.getItem('user');
+            if (freshStored) {
+                const user = JSON.parse(freshStored);
                 showDashboard(user.name || 'Utilisateur');
             }
         }
