@@ -545,52 +545,48 @@
                         <div id="biz-qr-reader" style="width: 100%; border-radius: 16px; overflow: hidden;"></div>
                     </div>
 
-                    <!-- ENTRY RESULT (after scanning in Entrée mode) — kiosk-style layout -->
-                    <div id="scan-entry-result" style="display: none; max-width: 720px; margin: 24px auto 0;">
-                        <div class="biz-card entry-kiosk" style="padding: 0; overflow: hidden; border-radius: 20px;">
-                            <!-- Header : client name on the right, points below -->
-                            <div class="entry-client-header" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 24px; background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(124,58,237,0.05)); border-bottom: 1px solid var(--border);">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div id="entry-client-initials" style="width: 52px; height: 52px; background: linear-gradient(135deg, var(--primary), #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; font-weight: 700;">?</div>
-                                    <div>
-                                        <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;">Client</div>
-                                        <h3 id="entry-client-name" style="font-size: 18px; margin: 0; font-weight: 700;">—</h3>
-                                    </div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;">Solde</div>
-                                    <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--primary-glow); padding: 6px 14px; border-radius: 20px;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                                        <span id="entry-client-points" style="color: var(--primary-light); font-weight: 800; font-size: 20px;">0</span>
-                                        <span style="color: var(--primary-light); font-weight: 500; font-size: 13px;">pts</span>
-                                    </div>
-                                </div>
+                    <!-- ENTRY RESULT (after scanning in Entrée mode) — full-page kiosk layout -->
+                    <div id="scan-entry-result" style="display: none; margin: 24px auto 0; max-width: 640px; padding: 0 20px;">
+                        <!-- Client header -->
+                        <div class="kiosk-user-header">
+                            <div class="kiosk-user-avatar" id="entry-client-initials">?</div>
+                            <div class="kiosk-user-info">
+                                <h3 id="entry-client-name">—</h3>
+                                <span class="kiosk-club-name">Client fidélité</span>
                             </div>
-
-                            <!-- Rewards grid, scrollable if many -->
-                            <div class="entry-rewards-section" style="padding: 20px 24px; max-height: 55vh; overflow-y: auto;">
-                                <h4 style="font-size: 13px; color: var(--text-dim); text-transform: uppercase; margin: 0 0 14px 0; letter-spacing: 0.08em;">Récompenses accessibles</h4>
-                                <div id="biz-commande-rewards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;"></div>
+                            <div class="kiosk-points-badge">
+                                <span class="kiosk-pts-icon">&#x1F48E;</span>
+                                <strong id="entry-client-points">0</strong>
+                                <span>pts</span>
                             </div>
-
-                            <!-- Sticky action bar -->
-                            <div class="entry-action-bar" style="border-top: 1px solid var(--border); padding: 16px 24px; background: rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
-                                    <span style="color: var(--text-dim);">Points à déduire</span>
-                                    <strong id="biz-commande-total-pts" style="font-size: 18px; color: #ef4444; font-weight: 800;">0 pts</strong>
-                                </div>
-                                <div style="display: flex; gap: 10px;">
-                                    <button class="btn-primary" onclick="validateCommande()" style="flex: 2; padding: 14px; font-size: 15px; font-weight: 700;">
-                                        Je les utilise
-                                    </button>
-                                    <button class="btn-secondary" onclick="cancelCommande()" style="flex: 1; padding: 14px; font-size: 14px;">
-                                        J'utilise pas
-                                    </button>
-                                </div>
-                            </div>
-                            <!-- hidden recap kept for legacy updateCommandeRecap() -->
-                            <div id="biz-commande-recap" style="display: none;"></div>
                         </div>
+
+                        <!-- Rewards Section -->
+                        <div class="kiosk-section">
+                            <div class="kiosk-section-title">
+                                <span>&#x1F381; Récompenses accessibles</span>
+                                <span class="kiosk-section-subtitle">Sélectionnez pour utiliser</span>
+                            </div>
+                            <div id="biz-commande-rewards" class="kiosk-grid">
+                                <!-- Injected by renderCommandeRewards() -->
+                            </div>
+                        </div>
+
+                        <!-- Sticky cart footer -->
+                        <div class="kiosk-cart-footer" style="display: flex;">
+                            <div class="kiosk-cart-summary">
+                                <div class="kiosk-cart-count">Points à déduire</div>
+                                <div class="kiosk-cart-total"><span id="biz-commande-total-pts">0</span> <span style="font-size:14px; color:var(--text-dim); font-weight:500;">pts</span></div>
+                            </div>
+                            <button type="button" class="btn-secondary" onclick="cancelCommande()" style="padding: 12px 16px; border-radius: 14px; font-size: 13px;">
+                                J'utilise pas
+                            </button>
+                            <button type="button" class="btn-primary kiosk-btn-order" onclick="validateCommande()">
+                                Je les utilise
+                            </button>
+                        </div>
+                        <!-- hidden recap kept for legacy updateCommandeRecap() -->
+                        <div id="biz-commande-recap" style="display: none;"></div>
                     </div>
 
                     <!-- BAR RESULT (after scanning in Bar mode) -->

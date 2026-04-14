@@ -1553,7 +1553,7 @@ function renderCommandeRewards(points) {
     const affordableRewards = bizRewards.filter(r => points >= (parseInt(r.points_necessaires) || 0));
 
     if (affordableRewards.length === 0) {
-        list.innerHTML = '<p style="font-size:13px; color:var(--text-dim); grid-column: 1/-1;">Pas assez de points pour un reward.</p>';
+        list.innerHTML = '<p class="text-dim" style="text-align:center; padding:20px; font-size:13px;">Pas assez de points pour un reward.</p>';
         return;
     }
 
@@ -1565,37 +1565,26 @@ function renderCommandeRewards(points) {
         const prix = r.prix_apres_reduction || r.prix_base || '';
 
         const item = document.createElement('div');
-        item.className = `reward-card reward-commande-card ${isSelected ? 'selected' : ''}`;
-        item.style.cssText = `
-            background: var(--surface);
-            border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--border)'};
-            border-radius: 14px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-            ${isSelected ? 'box-shadow: 0 0 0 3px rgba(99,102,241,0.25); transform: scale(1.02);' : ''}
-            display: flex;
-            flex-direction: column;
-        `;
+        item.className = 'kiosk-item' + (isSelected ? ' kiosk-item-selected' : '');
+        item.style.cursor = 'pointer';
+
+        const imgStyle = img
+            ? `background-image: url('${img}')`
+            : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
 
         item.innerHTML = `
-            <div style="
-                width: 100%;
-                aspect-ratio: 1;
-                ${img ? `background: url('${img}') center/cover no-repeat;` : 'background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15)); display:flex; align-items:center; justify-content:center;'}
-            ">
-                ${!img ? '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-dim);"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
+            <div class="kiosk-item-img" style="${imgStyle}"></div>
+            <div class="kiosk-item-body">
+                <div class="kiosk-item-name">${nom}</div>
+                <div class="kiosk-item-price">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
             </div>
-            <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
-                <div style="font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2;">${nom}</div>
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
-                    <span style="font-size: 11px; font-weight: 700; color: var(--primary-light); background: rgba(99,102,241,0.15); padding: 3px 7px; border-radius: 6px;">⭐ ${pts} pts</span>
-                    ${prix ? `<span style="font-size: 11px; color: var(--text-dim);">${prix}</span>` : ''}
-                </div>
+            <div class="kiosk-item-action">
+                <button type="button" class="kiosk-add-btn" aria-label="Sélectionner">${isSelected ? '&#10003;' : '+'}</button>
             </div>
         `;
 
-        item.onclick = () => {
+        const toggle = (e) => {
+            if (e) e.stopPropagation();
             const idx = selectedCommandeRewards.findIndex(sr => sr.titre_reward === r.titre_reward);
             if (idx > -1) {
                 selectedCommandeRewards.splice(idx, 1);
@@ -1605,6 +1594,9 @@ function renderCommandeRewards(points) {
             renderCommandeRewards(points);
             updateCommandeRecap();
         };
+        item.onclick = toggle;
+        const addBtn = item.querySelector('.kiosk-add-btn');
+        if (addBtn) addBtn.onclick = toggle;
         list.appendChild(item);
     });
 }
@@ -1631,7 +1623,7 @@ function updateCommandeRecap() {
     }
 
     recap.innerHTML = html;
-    totalPtsEl.textContent = `${totalPoints} pts`;
+    if (totalPtsEl) totalPtsEl.textContent = String(totalPoints);
 }
 
 // ===== HELPERS: Calendrier & Stats =====
