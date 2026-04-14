@@ -1596,18 +1596,26 @@ function renderCommandeRewards(points) {
 
 // Global so inline onclick="toggleBizReward(..)" works
 function toggleBizReward(bizIdx) {
-    const target = bizRewards[bizIdx];
-    if (!target) return;
-    const idx = selectedCommandeRewards.indexOf(target);
-    if (idx > -1) {
-        selectedCommandeRewards.splice(idx, 1);
-    } else {
-        selectedCommandeRewards.push(target);
+    try {
+        const target = bizRewards[bizIdx];
+        if (!target) {
+            showGlassToast('Reward introuvable (idx=' + bizIdx + ')', 'error');
+            return;
+        }
+        const idx = selectedCommandeRewards.indexOf(target);
+        if (idx > -1) {
+            selectedCommandeRewards.splice(idx, 1);
+        } else {
+            selectedCommandeRewards.push(target);
+        }
+        const list = document.getElementById('biz-commande-rewards');
+        const currentPts = parseInt(list && list.dataset.clientPoints) || 0;
+        renderCommandeRewards(currentPts);
+        updateCommandeRecap();
+    } catch (err) {
+        showGlassToast('Erreur click: ' + err.message, 'error');
+        console.error('toggleBizReward error:', err);
     }
-    const list = document.getElementById('biz-commande-rewards');
-    const currentPts = parseInt(list && list.dataset.clientPoints) || 0;
-    renderCommandeRewards(currentPts);
-    updateCommandeRecap();
 }
 window.toggleBizReward = toggleBizReward;
 
