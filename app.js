@@ -1562,7 +1562,8 @@ function renderCommandeRewards(points) {
         return;
     }
 
-    let html = '';
+    // DEBUG: test button to verify clicks fire in this zone at all
+    let html = `<button type="button" onclick="showGlassToast('&#x2705; Click OK dans la zone rewards', 'success')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 10px; font-weight: 700; margin-bottom: 8px; cursor: pointer; -webkit-tap-highlight-color: rgba(255,255,255,0.3);">TEST CLICK (tape ici)</button>`;
     affordableRewards.forEach(r => {
         const bizIdx = bizRewards.indexOf(r);
         const isSelected = selectedCommandeRewards.indexOf(r) > -1;
@@ -1580,15 +1581,18 @@ function renderCommandeRewards(points) {
         const badgeBg = isSelected ? '#10b981' : 'var(--primary)';
         const badgeChar = isSelected ? '&#10003;' : '+';
 
+        // <div role="button"> with cursor:pointer + explicit ontouchend/onclick — the
+        // most reliable combo on iOS Safari. No pointer-events:none on children
+        // (can break tap detection in some iOS versions).
         html += `
-            <button type="button" onclick="toggleBizReward(${bizIdx})" style="display: flex; align-items: center; gap: 12px; padding: 10px; width: 100%; background: ${bg}; border: 2px solid ${borderColor}; border-radius: 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: left; font-family: inherit; color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">
-                <span style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0; display: block; pointer-events: none;"></span>
-                <span style="flex: 1; min-width: 0; pointer-events: none;">
-                    <span style="display:block; font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</span>
-                    <span style="display:block; font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</span>
-                </span>
-                <span style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${badgeBg}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none;">${badgeChar}</span>
-            </button>
+            <div role="button" tabindex="0" onclick="toggleBizReward(${bizIdx})" ontouchend="event.preventDefault(); toggleBizReward(${bizIdx})" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: ${bg}; border: 2px solid ${borderColor}; border-radius: 14px; cursor: pointer; -webkit-tap-highlight-color: rgba(99,102,241,0.2); touch-action: manipulation; user-select: none;">
+                <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0;"></div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</div>
+                    <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
+                </div>
+                <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${badgeBg}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1;">${badgeChar}</div>
+            </div>
         `;
     });
     list.innerHTML = html;
