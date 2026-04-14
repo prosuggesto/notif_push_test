@@ -1549,6 +1549,9 @@ function renderCommandeRewards(points) {
     if (!list) return;
     list.innerHTML = '';
 
+    // Remember current points for the delegated click handler
+    list.dataset.clientPoints = String(points);
+
     // Only show rewards the client can afford (points_necessaires is TEXT in DB)
     // Sort ascending: cheapest first
     const affordableRewards = bizRewards
@@ -1561,8 +1564,8 @@ function renderCommandeRewards(points) {
         return;
     }
 
-    affordableRewards.forEach(r => {
-        const isSelected = !!selectedCommandeRewards.find(sr => sr.titre_reward === r.titre_reward);
+    affordableRewards.forEach((r, i) => {
+        const isSelected = selectedCommandeRewards.indexOf(r) > -1;
         const img = r.link || '';
         const nom = r.nom_recompense || '';
         const pts = parseInt(r.points_necessaires) || 0;
@@ -1572,9 +1575,12 @@ function renderCommandeRewards(points) {
             ? `background: url('${img}') center/cover no-repeat;`
             : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
 
-        // Use <button> for bulletproof click support on mobile/desktop
         const item = document.createElement('button');
         item.type = 'button';
+        item.className = 'biz-reward-row';
+        // Use the reward's index inside bizRewards so we can always retrieve the exact object
+        const bizIdx = bizRewards.indexOf(r);
+        item.dataset.bizIdx = String(bizIdx);
         item.style.cssText = `
             display: flex;
             align-items: center;
@@ -1601,21 +1607,30 @@ function renderCommandeRewards(points) {
             </div>
             <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${isSelected ? '#10b981' : 'var(--primary)'}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none;">${isSelected ? '&#10003;' : '+'}</div>
         `;
+        list.appendChild(item);
+    });
 
-        item.addEventListener('click', (e) => {
+    // Attach delegated click listener once
+    if (!list.dataset.delegated) {
+        list.dataset.delegated = '1';
+        list.addEventListener('click', (e) => {
+            const btn = e.target.closest('.biz-reward-row');
+            if (!btn) return;
             e.preventDefault();
-            e.stopPropagation();
-            const idx = selectedCommandeRewards.findIndex(sr => sr.titre_reward === r.titre_reward);
+            const bizIdx = parseInt(btn.dataset.bizIdx);
+            const target = bizRewards[bizIdx];
+            if (!target) return;
+            const idx = selectedCommandeRewards.indexOf(target);
             if (idx > -1) {
                 selectedCommandeRewards.splice(idx, 1);
             } else {
-                selectedCommandeRewards.push(r);
+                selectedCommandeRewards.push(target);
             }
-            renderCommandeRewards(points);
+            const currentPts = parseInt(list.dataset.clientPoints) || 0;
+            renderCommandeRewards(currentPts);
             updateCommandeRecap();
         });
-        list.appendChild(item);
-    });
+    }
 }
 
 function updateCommandeRecap() {
