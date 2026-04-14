@@ -1548,8 +1548,6 @@ function renderCommandeRewards(points) {
     const list = document.getElementById('biz-commande-rewards');
     if (!list) return;
     list.innerHTML = '';
-
-    // Remember current points for the delegated click handler
     list.dataset.clientPoints = String(points);
 
     // Only show rewards the client can afford (points_necessaires is TEXT in DB)
@@ -1564,74 +1562,54 @@ function renderCommandeRewards(points) {
         return;
     }
 
-    affordableRewards.forEach((r, i) => {
+    let html = '';
+    affordableRewards.forEach(r => {
+        const bizIdx = bizRewards.indexOf(r);
         const isSelected = selectedCommandeRewards.indexOf(r) > -1;
         const img = r.link || '';
-        const nom = r.nom_recompense || '';
+        const nom = (r.nom_recompense || '').replace(/"/g, '&quot;');
         const pts = parseInt(r.points_necessaires) || 0;
         const prix = r.prix_apres_reduction || r.prix_base || '';
 
         const imgStyle = img
-            ? `background: url('${img}') center/cover no-repeat;`
+            ? `background: url(&quot;${img}&quot;) center/cover no-repeat;`
             : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
 
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'biz-reward-row';
-        // Use the reward's index inside bizRewards so we can always retrieve the exact object
-        const bizIdx = bizRewards.indexOf(r);
-        item.dataset.bizIdx = String(bizIdx);
-        item.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px;
-            width: 100%;
-            background: ${isSelected ? 'rgba(99,102,241,0.12)' : 'var(--surface)'};
-            border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--border)'};
-            border-radius: 14px;
-            cursor: pointer;
-            transition: border-color 0.15s, background 0.15s;
-            text-align: left;
-            font-family: inherit;
-            color: inherit;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        `;
+        const bg = isSelected ? 'rgba(99,102,241,0.18)' : 'var(--surface)';
+        const borderColor = isSelected ? 'var(--primary)' : 'var(--border)';
+        const badgeBg = isSelected ? '#10b981' : 'var(--primary)';
+        const badgeChar = isSelected ? '&#10003;' : '+';
 
-        item.innerHTML = `
-            <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0; pointer-events: none;"></div>
-            <div style="flex: 1; min-width: 0; pointer-events: none;">
-                <div style="font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</div>
-                <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
-            </div>
-            <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${isSelected ? '#10b981' : 'var(--primary)'}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none;">${isSelected ? '&#10003;' : '+'}</div>
+        html += `
+            <button type="button" onclick="toggleBizReward(${bizIdx})" style="display: flex; align-items: center; gap: 12px; padding: 10px; width: 100%; background: ${bg}; border: 2px solid ${borderColor}; border-radius: 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: left; font-family: inherit; color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation;">
+                <span style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0; display: block; pointer-events: none;"></span>
+                <span style="flex: 1; min-width: 0; pointer-events: none;">
+                    <span style="display:block; font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</span>
+                    <span style="display:block; font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</span>
+                </span>
+                <span style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${badgeBg}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none;">${badgeChar}</span>
+            </button>
         `;
-        list.appendChild(item);
     });
-
-    // Attach delegated click listener once
-    if (!list.dataset.delegated) {
-        list.dataset.delegated = '1';
-        list.addEventListener('click', (e) => {
-            const btn = e.target.closest('.biz-reward-row');
-            if (!btn) return;
-            e.preventDefault();
-            const bizIdx = parseInt(btn.dataset.bizIdx);
-            const target = bizRewards[bizIdx];
-            if (!target) return;
-            const idx = selectedCommandeRewards.indexOf(target);
-            if (idx > -1) {
-                selectedCommandeRewards.splice(idx, 1);
-            } else {
-                selectedCommandeRewards.push(target);
-            }
-            const currentPts = parseInt(list.dataset.clientPoints) || 0;
-            renderCommandeRewards(currentPts);
-            updateCommandeRecap();
-        });
-    }
+    list.innerHTML = html;
 }
+
+// Global so inline onclick="toggleBizReward(..)" works
+function toggleBizReward(bizIdx) {
+    const target = bizRewards[bizIdx];
+    if (!target) return;
+    const idx = selectedCommandeRewards.indexOf(target);
+    if (idx > -1) {
+        selectedCommandeRewards.splice(idx, 1);
+    } else {
+        selectedCommandeRewards.push(target);
+    }
+    const list = document.getElementById('biz-commande-rewards');
+    const currentPts = parseInt(list && list.dataset.clientPoints) || 0;
+    renderCommandeRewards(currentPts);
+    updateCommandeRecap();
+}
+window.toggleBizReward = toggleBizReward;
 
 function updateCommandeRecap() {
     const recap = document.getElementById('biz-commande-recap');
