@@ -1550,7 +1550,11 @@ function renderCommandeRewards(points) {
     list.innerHTML = '';
 
     // Only show rewards the client can afford (points_necessaires is TEXT in DB)
-    const affordableRewards = bizRewards.filter(r => points >= (parseInt(r.points_necessaires) || 0));
+    // Sort ascending: cheapest first
+    const affordableRewards = bizRewards
+        .filter(r => points >= (parseInt(r.points_necessaires) || 0))
+        .slice()
+        .sort((a, b) => (parseInt(a.points_necessaires) || 0) - (parseInt(b.points_necessaires) || 0));
 
     if (affordableRewards.length === 0) {
         list.innerHTML = '<p style="text-align:center; padding:24px 12px; font-size:13px; color:var(--text-dim);">Pas assez de points pour un reward.</p>';
@@ -1568,30 +1572,39 @@ function renderCommandeRewards(points) {
             ? `background: url('${img}') center/cover no-repeat;`
             : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
 
-        const item = document.createElement('div');
+        // Use <button> for bulletproof click support on mobile/desktop
+        const item = document.createElement('button');
+        item.type = 'button';
         item.style.cssText = `
             display: flex;
             align-items: center;
             gap: 12px;
             padding: 10px;
+            width: 100%;
             background: ${isSelected ? 'rgba(99,102,241,0.12)' : 'var(--surface)'};
             border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--border)'};
             border-radius: 14px;
             cursor: pointer;
             transition: border-color 0.15s, background 0.15s;
-            user-select: none;
+            text-align: left;
+            font-family: inherit;
+            color: inherit;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         `;
 
         item.innerHTML = `
-            <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0;"></div>
-            <div style="flex: 1; min-width: 0;">
+            <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0; pointer-events: none;"></div>
+            <div style="flex: 1; min-width: 0; pointer-events: none;">
                 <div style="font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</div>
                 <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
             </div>
             <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${isSelected ? '#10b981' : 'var(--primary)'}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none;">${isSelected ? '&#10003;' : '+'}</div>
         `;
 
-        item.onclick = () => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const idx = selectedCommandeRewards.findIndex(sr => sr.titre_reward === r.titre_reward);
             if (idx > -1) {
                 selectedCommandeRewards.splice(idx, 1);
@@ -1600,7 +1613,7 @@ function renderCommandeRewards(points) {
             }
             renderCommandeRewards(points);
             updateCommandeRecap();
-        };
+        });
         list.appendChild(item);
     });
 }
