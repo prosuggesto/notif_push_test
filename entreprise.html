@@ -545,45 +545,38 @@
                         <div id="biz-qr-reader" style="width: 100%; border-radius: 16px; overflow: hidden;"></div>
                     </div>
 
-                    <!-- ENTRY RESULT (after scanning in Entrée mode) — full-page kiosk layout -->
-                    <div id="scan-entry-result" style="display: none; margin: 24px auto 0; max-width: 640px; padding: 0 20px;">
+                    <!-- ENTRY RESULT (after scanning in Entrée mode) -->
+                    <div id="scan-entry-result" style="display: none; margin: 24px auto 0; max-width: 640px; padding: 0 16px 120px;">
                         <!-- Client header -->
-                        <div class="kiosk-user-header">
-                            <div class="kiosk-user-avatar" id="entry-client-initials">?</div>
-                            <div class="kiosk-user-info">
-                                <h3 id="entry-client-name">—</h3>
-                                <span class="kiosk-club-name">Client fidélité</span>
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px;">
+                            <div id="entry-client-initials" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0;">?</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <h3 id="entry-client-name" style="font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</h3>
+                                <span style="font-size: 11px; color: var(--primary-light); font-weight: 500;">Client fidélité</span>
                             </div>
-                            <div class="kiosk-points-badge">
-                                <span class="kiosk-pts-icon">&#x1F48E;</span>
-                                <strong id="entry-client-points">0</strong>
-                                <span>pts</span>
-                            </div>
-                        </div>
-
-                        <!-- Rewards Section -->
-                        <div class="kiosk-section">
-                            <div class="kiosk-section-title">
-                                <span>&#x1F381; Récompenses accessibles</span>
-                                <span class="kiosk-section-subtitle">Sélectionnez pour utiliser</span>
-                            </div>
-                            <div id="biz-commande-rewards" class="kiosk-grid">
-                                <!-- Injected by renderCommandeRewards() -->
+                            <div style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); border-radius: 14px; flex-shrink: 0;">
+                                <strong id="entry-client-points" style="font-size: 15px; color: #fff; font-weight: 800; line-height: 1;">0</strong>
+                                <span style="font-size: 11px; color: var(--primary-light); font-weight: 600; line-height: 1;">pts</span>
                             </div>
                         </div>
 
-                        <!-- Sticky cart footer -->
-                        <div class="kiosk-cart-footer" style="display: flex;">
-                            <div class="kiosk-cart-summary">
-                                <div class="kiosk-cart-count">Points à déduire</div>
-                                <div class="kiosk-cart-total"><span id="biz-commande-total-pts">0</span> <span style="font-size:14px; color:var(--text-dim); font-weight:500;">pts</span></div>
+                        <!-- Section title -->
+                        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                            <span style="font-size: 15px; font-weight: 700; color: #fff;">&#x1F381; Récompenses accessibles</span>
+                            <span style="font-size: 11px; color: var(--text-dim);">Touchez pour sélectionner</span>
+                        </div>
+
+                        <!-- Rewards list -->
+                        <div id="biz-commande-rewards" style="display: flex; flex-direction: column; gap: 10px;"></div>
+
+                        <!-- Sticky footer -->
+                        <div style="position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(12,12,30,0.96); backdrop-filter: blur(20px); border-top: 1px solid rgba(99,102,241,0.25); display: flex; align-items: center; gap: 10px; z-index: 50;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.05em;">À déduire</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #fff; line-height: 1;"><span id="biz-commande-total-pts">0</span> <span style="font-size: 12px; color: var(--text-dim); font-weight: 500;">pts</span></div>
                             </div>
-                            <button type="button" class="btn-secondary" onclick="cancelCommande()" style="padding: 12px 16px; border-radius: 14px; font-size: 13px;">
-                                J'utilise pas
-                            </button>
-                            <button type="button" class="btn-primary kiosk-btn-order" onclick="validateCommande()">
-                                Je les utilise
-                            </button>
+                            <button type="button" id="btn-commande-cancel" onclick="cancelCommande()" style="flex: 0 0 auto; padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit;">J'utilise pas</button>
+                            <button type="button" id="btn-commande-validate" onclick="validateCommande()" style="flex: 0 0 auto; padding: 10px 16px; border-radius: 12px; background: var(--primary); border: none; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit;">Je les utilise</button>
                         </div>
                         <!-- hidden recap kept for legacy updateCommandeRecap() -->
                         <div id="biz-commande-recap" style="display: none;"></div>

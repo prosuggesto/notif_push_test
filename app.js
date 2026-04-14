@@ -1553,7 +1553,7 @@ function renderCommandeRewards(points) {
     const affordableRewards = bizRewards.filter(r => points >= (parseInt(r.points_necessaires) || 0));
 
     if (affordableRewards.length === 0) {
-        list.innerHTML = '<p class="text-dim" style="text-align:center; padding:20px; font-size:13px;">Pas assez de points pour un reward.</p>';
+        list.innerHTML = '<p style="text-align:center; padding:24px 12px; font-size:13px; color:var(--text-dim);">Pas assez de points pour un reward.</p>';
         return;
     }
 
@@ -1564,27 +1564,34 @@ function renderCommandeRewards(points) {
         const pts = parseInt(r.points_necessaires) || 0;
         const prix = r.prix_apres_reduction || r.prix_base || '';
 
-        const item = document.createElement('div');
-        item.className = 'kiosk-item' + (isSelected ? ' kiosk-item-selected' : '');
-        item.style.cursor = 'pointer';
-
         const imgStyle = img
-            ? `background-image: url('${img}')`
+            ? `background: url('${img}') center/cover no-repeat;`
             : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
 
-        item.innerHTML = `
-            <div class="kiosk-item-img" style="${imgStyle}"></div>
-            <div class="kiosk-item-body">
-                <div class="kiosk-item-name">${nom}</div>
-                <div class="kiosk-item-price">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
-            </div>
-            <div class="kiosk-item-action">
-                <button type="button" class="kiosk-add-btn" aria-label="Sélectionner">${isSelected ? '&#10003;' : '+'}</button>
-            </div>
+        const item = document.createElement('div');
+        item.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: ${isSelected ? 'rgba(99,102,241,0.12)' : 'var(--surface)'};
+            border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--border)'};
+            border-radius: 14px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            user-select: none;
         `;
 
-        const toggle = (e) => {
-            if (e) e.stopPropagation();
+        item.innerHTML = `
+            <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0;"></div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</div>
+                <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
+            </div>
+            <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${isSelected ? '#10b981' : 'var(--primary)'}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none;">${isSelected ? '&#10003;' : '+'}</div>
+        `;
+
+        item.onclick = () => {
             const idx = selectedCommandeRewards.findIndex(sr => sr.titre_reward === r.titre_reward);
             if (idx > -1) {
                 selectedCommandeRewards.splice(idx, 1);
@@ -1594,9 +1601,6 @@ function renderCommandeRewards(points) {
             renderCommandeRewards(points);
             updateCommandeRecap();
         };
-        item.onclick = toggle;
-        const addBtn = item.querySelector('.kiosk-add-btn');
-        if (addBtn) addBtn.onclick = toggle;
         list.appendChild(item);
     });
 }
@@ -1691,8 +1695,9 @@ async function recalculateCalendrierStats(calendrierId) {
 }
 
 // ===== VALIDATE ENTRY (Entrée — with rewards) =====
+let isProcessingEntry = false;
 async function validateCommande() {
-    if (!lastFoundClient) return;
+    if (isProcessingEntry || !lastFoundClient) return;
 
     const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + (parseInt(r.points_necessaires) || 0), 0);
     const currentPoints = parseInt(lastFoundClient.points) || 0;
@@ -1702,6 +1707,14 @@ async function validateCommande() {
         showGlassToast(`Pas assez de points ! Enlève ${excess} pts de rewards.`, 'error');
         return;
     }
+
+    isProcessingEntry = true;
+    // Immediately hide the result and disable buttons to prevent double-submit
+    document.getElementById('scan-entry-result').style.display = 'none';
+    const vBtn = document.getElementById('btn-commande-validate');
+    const cBtn = document.getElementById('btn-commande-cancel');
+    if (vBtn) vBtn.disabled = true;
+    if (cBtn) cBtn.disabled = true;
 
     try {
         // 1. +1 point for the entry, minus any rewards redeemed
@@ -1742,9 +1755,14 @@ async function validateCommande() {
         showGlassToast('Erreur lors de la validation', 'error');
     } finally {
         document.getElementById('scan-entry-result').style.display = 'none';
+        const vBtn2 = document.getElementById('btn-commande-validate');
+        const cBtn2 = document.getElementById('btn-commande-cancel');
+        if (vBtn2) vBtn2.disabled = false;
+        if (cBtn2) cBtn2.disabled = false;
         lastFoundClient = null;
         scannedClientId = null;
         selectedCommandeRewards = [];
+        isProcessingEntry = false;
         startClientScanner();
     }
 }
@@ -1999,11 +2017,20 @@ async function validateSortie() {
 // ===== CANCEL ACTIONS =====
 // "J'utilise pas" = valider l'entrée sans déduire de points (client entre mais n'utilise pas ses rewards)
 async function cancelCommande() {
+    if (isProcessingEntry) return;
     if (!lastFoundClient) {
         document.getElementById('scan-entry-result').style.display = 'none';
         startClientScanner();
         return;
     }
+
+    isProcessingEntry = true;
+    // Immediately hide result and disable buttons to prevent double-submit
+    document.getElementById('scan-entry-result').style.display = 'none';
+    const vBtn = document.getElementById('btn-commande-validate');
+    const cBtn = document.getElementById('btn-commande-cancel');
+    if (vBtn) vBtn.disabled = true;
+    if (cBtn) cBtn.disabled = true;
 
     try {
         // 1. +1 point for the entry
@@ -2041,9 +2068,14 @@ async function cancelCommande() {
         showGlassToast('Erreur lors de la validation', 'error');
     } finally {
         document.getElementById('scan-entry-result').style.display = 'none';
+        const vBtn2 = document.getElementById('btn-commande-validate');
+        const cBtn2 = document.getElementById('btn-commande-cancel');
+        if (vBtn2) vBtn2.disabled = false;
+        if (cBtn2) cBtn2.disabled = false;
         lastFoundClient = null;
         scannedClientId = null;
         selectedCommandeRewards = [];
+        isProcessingEntry = false;
         startClientScanner();
     }
 }
