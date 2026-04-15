@@ -1888,8 +1888,13 @@ async function startClientScanner() {
 async function stopClientScanner() {
     if (html5QrScanner) {
         try { await html5QrScanner.stop(); } catch (e) { /* ignore */ }
+        try { await html5QrScanner.clear(); } catch (e) { /* ignore */ }
         html5QrScanner = null;
     }
+    // Defensive: wipe any leftover video/canvas elements from the reader
+    // (html5-qrcode sometimes leaves them behind, which can overlay the page)
+    const reader = document.getElementById('biz-qr-reader');
+    if (reader) reader.innerHTML = '';
 }
 
 async function onClientQRScanned(decodedText) {
