@@ -37,7 +37,32 @@
                 appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
                 allowLocalhostAsSecureOrigin: true,
                 notifyButton: { enable: false },
+                promptOptions: {
+                  slidedown: {
+                    prompts: [{
+                      type: "push",
+                      autoPrompt: true,
+                      text: {
+                        actionMessage: "Recevez les notifications de votre établissement.",
+                        acceptButton: "Activer",
+                        cancelButton: "Plus tard"
+                      },
+                      delay: { pageViews: 1, timeDelay: 0 }
+                    }]
+                  }
+                }
               });
+              try {
+                if (OneSignal.Notifications && OneSignal.Notifications.permission === false) {
+                  if (OneSignal.Slidedown && typeof OneSignal.Slidedown.promptPush === 'function') {
+                    await OneSignal.Slidedown.promptPush({ force: true });
+                  } else if (OneSignal.Notifications.requestPermission) {
+                    await OneSignal.Notifications.requestPermission();
+                  }
+                }
+              } catch (e) {
+                console.warn("OneSignal prompt failed:", e);
+              }
             });
           };
           document.head.appendChild(s);

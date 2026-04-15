@@ -35,13 +35,27 @@
                 appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
                 allowLocalhostAsSecureOrigin: true,
                 notifyButton: { enable: true },
+                promptOptions: {
+                  slidedown: {
+                    prompts: [{
+                      type: "push",
+                      autoPrompt: true,
+                      text: {
+                        actionMessage: "Recevez les invitations et offres de vos clubs favoris.",
+                        acceptButton: "Activer",
+                        cancelButton: "Plus tard"
+                      },
+                      delay: { pageViews: 1, timeDelay: 0 }
+                    }]
+                  }
+                }
               });
               try {
-                if (!OneSignal.Notifications.permission) {
-                  if (typeof OneSignal.slidedown !== 'undefined') {
-                    OneSignal.slidedown.prompt({force: true});
-                  } else {
-                    OneSignal.Notifications.requestPermission();
+                if (OneSignal.Notifications && OneSignal.Notifications.permission === false) {
+                  if (OneSignal.Slidedown && typeof OneSignal.Slidedown.promptPush === 'function') {
+                    await OneSignal.Slidedown.promptPush({ force: true });
+                  } else if (OneSignal.Notifications.requestPermission) {
+                    await OneSignal.Notifications.requestPermission();
                   }
                 }
               } catch (e) {
