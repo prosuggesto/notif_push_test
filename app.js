@@ -1937,7 +1937,8 @@ async function onClientQRScanned(decodedText) {
             // Auto-validate immediately on scan (no confirmation screen)
             await validateBarScan();
         } else if (currentScanMode === 'sortie') {
-            showSortieResult(lastFoundClient);
+            // Auto-validate immediately on scan (no confirmation screen)
+            await validateSortie();
         }
     } catch (error) {
         console.error('Client search error:', error);
@@ -2010,8 +2011,10 @@ async function validateBarScan() {
 }
 
 // ===== VALIDATE SORTIE =====
+let isProcessingSortie = false;
 async function validateSortie() {
-    if (!lastFoundClient) return;
+    if (isProcessingSortie || !lastFoundClient) return;
+    isProcessingSortie = true;
 
     try {
         // 1. Update calendrier: -1 affluence, -1 gender
@@ -2034,13 +2037,19 @@ async function validateSortie() {
         });
 
         showGlassToast('Sortie validée !', 'success');
-        document.getElementById('scan-sortie-result').style.display = 'none';
+        const sortieRes = document.getElementById('scan-sortie-result');
+        if (sortieRes) sortieRes.style.display = 'none';
         lastFoundClient = null;
         scannedClientId = null;
+        isProcessingSortie = false;
         startClientScanner();
     } catch (error) {
         console.error('Sortie validation error:', error);
         showGlassToast('Erreur lors de la validation', 'error');
+        isProcessingSortie = false;
+        lastFoundClient = null;
+        scannedClientId = null;
+        startClientScanner();
     }
 }
 
