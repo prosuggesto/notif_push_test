@@ -1562,8 +1562,7 @@ function renderCommandeRewards(points) {
         return;
     }
 
-    // DEBUG: test button to verify clicks fire in this zone at all
-    let html = `<button type="button" onclick="showGlassToast('&#x2705; Click OK dans la zone rewards', 'success')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 10px; font-weight: 700; margin-bottom: 8px; cursor: pointer; -webkit-tap-highlight-color: rgba(255,255,255,0.3);">TEST CLICK (tape ici)</button>`;
+    let html = '';
     affordableRewards.forEach(r => {
         const bizIdx = bizRewards.indexOf(r);
         const isSelected = selectedCommandeRewards.indexOf(r) > -1;
@@ -1935,7 +1934,8 @@ async function onClientQRScanned(decodedText) {
         if (currentScanMode === 'entree') {
             showEntryResult(lastFoundClient);
         } else if (currentScanMode === 'bar') {
-            showBarResult(lastFoundClient);
+            // Auto-validate immediately on scan (no confirmation screen)
+            await validateBarScan();
         } else if (currentScanMode === 'sortie') {
             showSortieResult(lastFoundClient);
         }
@@ -1975,8 +1975,10 @@ function showSortieResult(client) {
 }
 
 // ===== VALIDATE BAR =====
+let isProcessingBar = false;
 async function validateBarScan() {
-    if (!lastFoundClient) return;
+    if (isProcessingBar || !lastFoundClient) return;
+    isProcessingBar = true;
 
     try {
         // +1 points and +1 total_commande for user
@@ -1991,14 +1993,19 @@ async function validateBarScan() {
             total_commande: (parseInt(cal.total_commande) || 0) + 1
         });
 
-        showGlassToast('Commande validée ! +1 point', 'success');
+        showGlassToast('Scan validé ! +1 point', 'success');
         document.getElementById('scan-bar-result').style.display = 'none';
         lastFoundClient = null;
         scannedClientId = null;
+        isProcessingBar = false;
         startClientScanner();
     } catch (error) {
         console.error('Bar validation error:', error);
         showGlassToast('Erreur lors de la validation', 'error');
+        isProcessingBar = false;
+        lastFoundClient = null;
+        scannedClientId = null;
+        startClientScanner();
     }
 }
 
