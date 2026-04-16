@@ -44,15 +44,19 @@ function translateDOM() {
         const key = el.getAttribute('data-i18n');
         const translation = t(key);
         if (translation !== key) {
-            // Check if it's an input placeholder
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                if (el.hasAttribute('placeholder')) {
-                    el.placeholder = translation;
-                }
+                el.placeholder = translation;
             } else {
-                // If it contains HTML we shouldn't overwrite it blindly, but for standard text nodes:
-                // We'll just set textContent or innerHTML based on if it's purely text.
-                el.innerText = translation;
+                // Only update text nodes to preserve SVG/HTML children
+                const textNode = Array.from(el.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+                if (textNode) {
+                    textNode.textContent = translation;
+                } else if (!el.children.length) {
+                    el.textContent = translation;
+                } else {
+                    // Element has children but no direct text node - append one
+                    el.appendChild(document.createTextNode(translation));
+                }
             }
         }
     });
@@ -80,6 +84,14 @@ window.changeLanguage = async function(lang) {
         await loadTranslations(lang);
         translateDOM();
         updateLanguageSelectorUI(lang);
+        // Re-render active biz section to update dynamic JS content
+        if (typeof refreshActiveBizSection === 'function') {
+            refreshActiveBizSection();
+        }
+        // Re-render active fêtard view
+        if (typeof refreshActiveFetardView === 'function') {
+            refreshActiveFetardView();
+        }
     }
 };
 
@@ -97,4 +109,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentLang = detectLanguage();
     await loadTranslations(currentLang);
     translateDOM();
+    updateLanguageSelectorUI(currentLang);
+    // Lightweight fix: only re-translate dynamic texts that were built with raw keys
+    // because app.js ran before translations were loaded.
+    // Do NOT call heavy refresh functions (renderCalendar, renderTemplatesGrid, etc.)
+    fixDynamicTextsAfterTranslationsReady();
 });
+
+// Fix only the specific dynamic texts that app.js generated with raw t() keys
+function fixDynamicTextsAfterTranslationsReady() {
+    // Fix biz header title
+    const bizHeaderTitle = document.getElementById('biz-header-title');
+    if (bizHeaderTitle) {
+        const activeSection = document.querySelector('.biz-section.active');
+        if (activeSection) {
+            const id = activeSection.id.replace('biz-section-', '');
+            const titleMap = {
+                annonces: t('nav.annonces'), calendrier: t('nav.calendar'),
+                rewards: t('nav.rewards'), produits: t('nav.products'),
+                commandes: t('nav.orders'), stats: t('nav.stats'),
+                qrcodes: t('nav.my_qr')
+            };
+            bizHeaderTitle.textContent = titleMap[id] || id;
+        }
+    }
+    // Fix fêtard header title
+    const fetardHeaderTitle = document.getElementById('header-title');
+    if (fetardHeaderTitle) {
+        const activeView = document.querySelector('.main-view.active');
+        if (activeView) {
+            const id = activeView.id.replace('-view', '');
+            const titleMap = { home: t('nav.home'), search: t('nav.search'), favorites: t('nav.favorites'), code: t('nav.code'), qr: t('nav.qr') };
+            if (titleMap[id]) fetardHeaderTitle.textContent = titleMap[id];
+        }
+    }
+    // Fix announcement preview card (uses t() for labels in innerHTML)
+    if (typeof updateAnnoncesPreview === 'function') {
+        updateAnnoncesPreview();
+    }
+}

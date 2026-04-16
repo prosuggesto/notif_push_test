@@ -1,12 +1,25 @@
 let currentBusiness = JSON.parse(localStorage.getItem('businessUser')) || null;
-let bizTemplates = [];
-let announcementTemplates = [];
-let bizRewards = [];
-let bizSchedule = {};
-let calendarDate = new Date();
+
+// ===== GLOBAL TOAST NOTIFICATION =====
+function showGlassToast(message, type = 'error', duration = 4000) {
+    let toast = document.getElementById('glass-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'glass-toast';
+        toast.className = 'glass-toast';
+        toast.innerHTML = '<div class="toast-icon"></div><span class="toast-msg"></span>';
+        document.body.appendChild(toast);
+    }
+    toast.className = `glass-toast ${type}`;
+    toast.querySelector('.toast-icon').textContent = type === 'error' ? '!' : '\u2713';
+    toast.querySelector('.toast-msg').textContent = message;
+    requestAnimationFrame(() => toast.classList.add('active'));
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('active'), duration);
+}
 
 // Initialize View on Load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const isBusinessView = document.body.classList.contains('view-entreprise');
     const fetarsEl = document.getElementById('fetars-view');
     const entrepriseEl = document.getElementById('entreprise-view');
@@ -17,10 +30,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('App Init - isBusinessView:', isBusinessView, 'Action:', action);
 
+    // Handle OAuth callback (Google login redirect)
+    const oauthSession = supabase.auth.getSessionFromUrl();
+    if (oauthSession) {
+        await handleOAuthCallback(isBusinessView);
+        return;
+    }
+
     if (isBusinessView) {
         // Mode Entreprise
         if (fetarsEl) fetarsEl.style.display = 'none';
         if (entrepriseEl) entrepriseEl.style.display = 'block';
+
+        // Guard: verify stored businessUser matches the currently authenticated JWT.
+        // This prevents cross-account session leakage (e.g. logged in as client Diego,
+        // then re-opened as business le joselina — old businessUser remained in LS).
+        const validToken = await supabase.auth.getValidToken();
+        if (currentBusiness) {
+            if (!validToken) {
+                console.warn('businessUser present but no valid auth token — forcing re-login');
+                localStorage.removeItem('businessUser');
+                currentBusiness = null;
+            } else {
+                const authUser = await supabase.auth.getUser();
+                if (!authUser || !authUser.id || authUser.id !== currentBusiness.uuid) {
+                    console.warn('businessUser UUID does not match authenticated user — forcing re-login', {
+                        expected: currentBusiness.uuid,
+                        actual: authUser && authUser.id
+                    });
+                    localStorage.removeItem('businessUser');
+                    // Also clear any stale client session to avoid cross-contamination
+                    localStorage.removeItem('user');
+                    await supabase.auth.signOut();
+                    currentBusiness = null;
+                }
+            }
+        }
 
         // Use the globally defined currentBusiness
         if (currentBusiness) {
@@ -36,13 +81,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fetarsEl) fetarsEl.style.display = 'block';
         if (entrepriseEl) entrepriseEl.style.display = 'none';
 
+        // Same guard pattern for client localStorage: ensure stored `user.uuid`
+        // matches the authenticated JWT, otherwise clear it.
+        const stored = localStorage.getItem('user');
+        if (stored) {
+            const storedUser = JSON.parse(stored);
+            const validToken = await supabase.auth.getValidToken();
+            if (!validToken) {
+                console.warn('user present but no valid auth token — clearing');
+                localStorage.removeItem('user');
+            } else {
+                const authUser = await supabase.auth.getUser();
+                if (!authUser || !authUser.id || (storedUser.uuid && authUser.id !== storedUser.uuid)) {
+                    console.warn('user UUID does not match authenticated user — clearing', {
+                        expected: storedUser.uuid,
+                        actual: authUser && authUser.id
+                    });
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('businessUser');
+                    await supabase.auth.signOut();
+                }
+            }
+        }
+
         const params = new URLSearchParams(window.location.search);
         if (params.get('action') === 'scan' || params.get('clubId')) {
             handleNativeScan();
         } else {
-            const stored = localStorage.getItem('user');
-            if (stored) {
-                const user = JSON.parse(stored);
+            const freshStored = localStorage.getItem('user');
+            if (freshStored) {
+                const user = JSON.parse(freshStored);
                 showDashboard(user.name || 'Utilisateur');
             }
         }
@@ -135,10 +203,11 @@ function showMessage(elementId, message, type) {
 // ===== LOGIN HANDLER =====
 async function handleLogin(e) {
     e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value.trim();
 
-    if (!password) {
-        showMessage('login-message', t('errors.fill_all'), 'error');
+    if (!email || !password) {
+        showMessage('login-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
 
@@ -146,52 +215,277 @@ async function handleLogin(e) {
     showMessage('login-message', '', '');
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/valide_mdp', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'valid.mdp': 'valid.mdp.01'
-            },
-            body: JSON.stringify({ password: password })
-        });
+        const authData = await supabase.auth.signIn(email, password);
+        supabase.auth._saveSession(authData);
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
-        console.log('Login response:', response.status, data);
+        const userId = authData.user.id;
 
-        if (!data) {
-            showMessage('login-message', t('errors.default'), 'error');
-        } else if (data.statut === 'invalid') {
-            showMessage('login-message', data.phrase || t('errors.wrong_creds'), 'error');
-        } else {
-            showMessage('login-message', t('common.loading'), 'success');
-            
-            // On récupère le userid renvoyé par le webhook n8n
-            const userId = data.userid || data.uuid; 
-            const userCode = data.user_code || data.code || generateUserCode();
-            
-            // Identify user in OneSignal if we have an ID
-            if (window.OneSignal && userId) {
-                console.log("Identifying OneSignal user with ID:", userId);
-                OneSignal.login(userId);
-            }
+        // Fetch profile from profiles_users
+        const profiles = await supabase.select('profiles_users', `id=eq.${userId}`);
+        const profile = profiles[0] || {};
 
-            const userData = { 
-                name: data.nom || 'Utilisateur', 
-                uuid: userId,
-                code: userCode,
-                age: data.age,
-                sexe: data.sexe,
-                city: data.ville
-            };
-            localStorage.setItem('user', JSON.stringify(userData));
-            setTimeout(() => { showDashboard(userData.name); }, 800);
+        if (window.OneSignal && userId) {
+            OneSignal.login(userId);
         }
+
+        const userData = {
+            name: profile.nom || authData.user.email,
+            uuid: userId,
+            age: profile.age,
+            sexe: profile.sexe,
+            city: profile.ville,
+            country: profile.pays
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        showMessage('login-message', 'Connexion validée !', 'success');
+        setTimeout(() => { showDashboard(userData.name); }, 300);
     } catch (err) {
-        console.error('Login webhook error:', err);
-        showMessage('login-message', t('errors.default'), 'error');
+        console.error('Login error:', err);
+        showMessage('login-message', err.message || 'Erreur de connexion.', 'error');
     } finally {
         setLoading('login-btn', false);
+    }
+}
+
+// ===== OAUTH CALLBACK HANDLER =====
+// Pending OAuth user while the enrichment form is shown (so handlers can access it
+// without re-fetching from the auth endpoint).
+let pendingOAuthUser = null;
+
+async function handleOAuthCallback(isBusinessView) {
+    try {
+        const user = await supabase.auth.getUser();
+        if (!user) return;
+
+        const userId = user.id;
+        const fullName = user.user_metadata?.full_name || user.email;
+
+        if (isBusinessView) {
+            let profiles = [];
+            try { profiles = await supabase.select('profiles_business', `id=eq.${userId}`); } catch(e) {}
+
+            if (profiles.length === 0) {
+                // No profile = show enrichment form instead of signing out.
+                // The auth.users row created by Google stays — we'll attach a
+                // profile to it once the user fills the missing fields.
+                showOAuthEnrichScreen(user, true);
+                return;
+            }
+            const profile = profiles[0];
+            currentBusiness = {
+                name: profile.nom_boite || fullName,
+                uuid: userId,
+                city: profile.ville,
+                country: profile.pays
+            };
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+            showBusinessDashboard();
+        } else {
+            let profiles = [];
+            try { profiles = await supabase.select('profiles_users', `id=eq.${userId}`); } catch(e) {}
+
+            if (profiles.length === 0) {
+                // No profile = show enrichment form instead of signing out.
+                showOAuthEnrichScreen(user, false);
+                return;
+            }
+            const profile = profiles[0];
+            const userData = {
+                name: profile.nom || fullName,
+                uuid: userId,
+                age: profile.age,
+                sexe: profile.sexe,
+                city: profile.ville,
+                country: profile.pays
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            showDashboard(userData.name);
+        }
+    } catch (err) {
+        console.error('OAuth callback error:', err);
+    }
+}
+
+// Display the enrichment form pre-filled with the data Google provided.
+function showOAuthEnrichScreen(user, isBusinessView) {
+    pendingOAuthUser = user;
+    const fullName = user.user_metadata?.full_name || '';
+    const email = user.email || '';
+
+    if (isBusinessView) {
+        const bizAuthScreen = document.getElementById('business-auth-screen');
+        if (bizAuthScreen) {
+            bizAuthScreen.classList.add('active');
+            bizAuthScreen.style.display = 'flex';
+        }
+        // Hide login + signup + tabs, show enrichment
+        const loginForm = document.getElementById('business-login-form');
+        const signupForm = document.getElementById('business-signup-form');
+        const enrichForm = document.getElementById('biz-oauth-enrich-form');
+        const tabs = document.querySelector('#business-auth-screen .auth-tabs');
+        if (loginForm) { loginForm.classList.remove('active'); loginForm.style.display = 'none'; }
+        if (signupForm) { signupForm.classList.remove('active'); signupForm.style.display = 'none'; }
+        if (tabs) tabs.style.display = 'none';
+        if (enrichForm) {
+            enrichForm.classList.add('active');
+            enrichForm.style.display = 'flex';
+        }
+        const emailEl = document.getElementById('biz-oauth-enrich-email');
+        const nameEl = document.getElementById('biz-oauth-enrich-name');
+        if (emailEl) emailEl.value = email;
+        if (nameEl && fullName && !nameEl.value) nameEl.value = fullName;
+    } else {
+        const authScreen = document.getElementById('auth-screen');
+        if (authScreen) {
+            authScreen.classList.add('active');
+            authScreen.style.display = 'flex';
+        }
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const enrichForm = document.getElementById('oauth-enrich-form');
+        const tabs = document.querySelector('#auth-screen .tab-switcher');
+        if (loginForm) { loginForm.classList.remove('active'); loginForm.style.display = 'none'; }
+        if (signupForm) { signupForm.classList.remove('active'); signupForm.style.display = 'none'; }
+        if (tabs) tabs.style.display = 'none';
+        if (enrichForm) {
+            enrichForm.classList.add('active');
+            enrichForm.style.display = 'flex';
+        }
+        const emailEl = document.getElementById('oauth-enrich-email');
+        const nameEl = document.getElementById('oauth-enrich-name');
+        if (emailEl) emailEl.value = email;
+        if (nameEl && fullName) nameEl.value = fullName;
+    }
+    // Clear loading overlay if any
+    document.body.classList.remove('view-loading');
+}
+
+function selectOAuthEnrichGender(value) {
+    const hidden = document.getElementById('oauth-enrich-sexe');
+    const label = document.getElementById('oauth-enrich-selected-gender');
+    const dropdown = document.getElementById('oauth-enrich-gender-dropdown');
+    if (hidden) hidden.value = value;
+    if (label) label.textContent = value;
+    if (dropdown) dropdown.classList.remove('active');
+}
+
+// Finalize client (fêtard) signup after OAuth: INSERT into profiles_users with
+// the existing auth UUID. No signUp call → no "compte existe déjà" error.
+async function handleOAuthEnrichClient(e) {
+    e.preventDefault();
+    if (!pendingOAuthUser) {
+        showMessage('oauth-enrich-message', 'Session expirée, recommencez.', 'error');
+        return;
+    }
+    const name = document.getElementById('oauth-enrich-name').value.trim();
+    const age = document.getElementById('oauth-enrich-age').value.trim();
+    const sexe = document.getElementById('oauth-enrich-sexe').value;
+    const city = document.getElementById('oauth-enrich-city').value.trim();
+    const country = document.getElementById('oauth-enrich-country').value.trim();
+
+    if (!name || !age || !sexe || !city || !country) {
+        showMessage('oauth-enrich-message', 'Veuillez remplir tous les champs.', 'error');
+        return;
+    }
+
+    setLoading('oauth-enrich-btn', true);
+    showMessage('oauth-enrich-message', '', '');
+
+    try {
+        const userId = pendingOAuthUser.id;
+        await supabase.insert('profiles_users', {
+            id: userId,
+            nom: name,
+            age: parseInt(age),
+            sexe: sexe,
+            ville: city,
+            pays: country
+        });
+
+        if (window.OneSignal) {
+            OneSignal.login(userId);
+        }
+
+        const userData = {
+            name: name,
+            uuid: userId,
+            age: age,
+            sexe: sexe,
+            city: city,
+            country: country
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        pendingOAuthUser = null;
+        showMessage('oauth-enrich-message', 'Inscription réussie ! Redirection...', 'success');
+        setTimeout(() => { showDashboard(name); }, 600);
+    } catch (err) {
+        console.error('OAuth enrich client error:', err);
+        showMessage('oauth-enrich-message', err.message || 'Erreur lors de la finalisation.', 'error');
+    } finally {
+        setLoading('oauth-enrich-btn', false);
+    }
+}
+
+// Finalize business signup after OAuth.
+async function handleOAuthEnrichBusiness(e) {
+    e.preventDefault();
+    if (!pendingOAuthUser) {
+        const msg = document.getElementById('biz-oauth-enrich-message');
+        if (msg) { msg.textContent = 'Session expirée, recommencez.'; msg.className = 'form-message error'; }
+        return;
+    }
+    const name = document.getElementById('biz-oauth-enrich-name').value.trim();
+    const bizCity = document.getElementById('biz-oauth-enrich-city').value.trim();
+    const bizCountry = document.getElementById('biz-oauth-enrich-country').value.trim();
+    const btn = document.getElementById('biz-oauth-enrich-btn');
+    const msg = document.getElementById('biz-oauth-enrich-message');
+
+    if (!name || !bizCity || !bizCountry) {
+        if (msg) { msg.textContent = 'Veuillez remplir tous les champs.'; msg.className = 'form-message error'; }
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Création en cours...';
+
+    try {
+        const userId = pendingOAuthUser.id;
+        await supabase.insert('profiles_business', {
+            id: userId,
+            nom_boite: name,
+            ville: bizCity,
+            pays: bizCountry
+        });
+
+        currentBusiness = {
+            name: name,
+            uuid: userId,
+            city: bizCity,
+            country: bizCountry
+        };
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        pendingOAuthUser = null;
+        if (msg) { msg.textContent = 'Inscription réussie ! Redirection...'; msg.className = 'form-message success'; }
+        setTimeout(() => showBusinessDashboard(), 300);
+    } catch (error) {
+        if (msg) { msg.textContent = 'Erreur: ' + error.message; msg.className = 'form-message error'; }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Finaliser mon inscription';
+    }
+}
+
+// Cancel enrichment: delete the dangling auth.users row via self-service RPC,
+// sign out, and return to the login view. Requires the SQL function
+// public.delete_my_auth_user() to be installed in Supabase.
+async function cancelOAuthEnrich(isBusinessView) {
+    try {
+        try { await supabase.rpc('delete_my_auth_user'); } catch (e) { console.warn('delete_my_auth_user failed:', e); }
+        await supabase.auth.signOut();
+    } finally {
+        pendingOAuthUser = null;
+        // Reload the page to cleanly return to the login view
+        window.location.href = window.location.pathname;
     }
 }
 
@@ -239,6 +533,7 @@ function toggleSidebar() {
 }
 
 function handleBusinessLogout() {
+    supabase.auth.signOut();
     localStorage.removeItem('businessUser');
     document.body.classList.remove('logged-in-biz');
     location.reload();
@@ -247,64 +542,49 @@ function handleBusinessLogout() {
 async function handleBusinessSignup(e) {
     e.preventDefault();
     const name = document.getElementById('biz-signup-name').value.trim();
+    const email = document.getElementById('biz-signup-email').value.trim();
     const bizCity = document.getElementById('biz-signup-city')?.value.trim() || '';
     const bizCountry = document.getElementById('biz-signup-country')?.value.trim() || '';
     const password = document.getElementById('biz-signup-password').value.trim();
-    const email = name.toLowerCase().replace(/\s+/g, '') + '@suggesto.biz';
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
-    if (!name || !password) {
-        showMessage('biz-signup-message', t('errors.fill_all'), 'error');
+    if (!name || !email || !password || !bizCity || !bizCountry) {
+        showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = t('common.loading');
-
-    const uuid = generateUUID();
-    const userCode = generateUserCode();
+    btn.textContent = 'Création en cours...';
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/inscription', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'inscription.setter': 'inscription.setter.01'
-            },
-            body: JSON.stringify({
-                nom: name,
-                email: email, 
-                password: password,
-                uuid: uuid,
-                user_code: userCode,
-                role: 'business',
-                age: 'N/A',
-                sexe: 'Autre',
-                ville: bizCity,
-                pays: bizCountry
-            })
+        // 1. Create auth user in Supabase Auth
+        const authData = await supabase.auth.signUp(email, password, {
+            full_name: name,
+            role: 'business'
+        });
+        supabase.auth._saveSession(authData);
+
+        const userId = authData.user.id;
+
+        // 2. Insert profile in profiles_business
+        await supabase.insert('profiles_business', {
+            id: userId,
+            nom_boite: name,
+            ville: bizCity,
+            pays: bizCountry
         });
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
-
-        if (response.ok && data && data.statut !== 'invalid') {
-            currentBusiness = {
-                name: name,
-                uuid: uuid,
-                user_code: userCode,
-                city: bizCity,
-                country: bizCountry,
-                ...data
-            };
-            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            msg.textContent = t('common.loading');
-            msg.className = 'form-message success';
-            setTimeout(() => showBusinessDashboard(), 500);
-        } else {
-            throw new Error(data?.phrase || t('errors.default'));
-        }
+        currentBusiness = {
+            name: name,
+            uuid: userId,
+            city: bizCity,
+            country: bizCountry
+        };
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        msg.textContent = 'Inscription réussie ! Redirection...';
+        msg.className = 'form-message success';
+        setTimeout(() => showBusinessDashboard(), 200);
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
         msg.className = 'form-message error';
@@ -316,42 +596,37 @@ async function handleBusinessSignup(e) {
 
 async function handleBusinessLogin(e) {
     e.preventDefault();
+    const email = document.getElementById('biz-login-email').value.trim();
     const password = document.getElementById('biz-login-password').value.trim();
     const btn = document.getElementById('biz-login-btn');
     const msg = document.getElementById('biz-login-message');
 
-    if (!password) {
-        showMessage('biz-login-message', t('errors.fill_all'), 'error');
+    if (!email || !password) {
+        showMessage('biz-login-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
 
     btn.disabled = true;
-    btn.textContent = t('common.loading');
+    btn.textContent = 'Connexion...';
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/valide_mdp', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'valid.mdp': 'valid.mdp.01'
-            },
-            body: JSON.stringify({ password: password })
-        });
+        const authData = await supabase.auth.signIn(email, password);
+        supabase.auth._saveSession(authData);
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
+        const userId = authData.user.id;
 
-        if (response.ok && data && data.statut !== 'invalid') {
-            currentBusiness = { 
-                name: data.nom || 'Club Partenaire', 
-                uuid: data.userid || data.uuid,
-                ...data 
-            };
-            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-            showBusinessDashboard();
-        } else {
-            throw new Error(data?.phrase || t('errors.wrong_creds'));
-        }
+        // Fetch business profile
+        const profiles = await supabase.select('profiles_business', `id=eq.${userId}`);
+        const profile = profiles[0] || {};
+
+        currentBusiness = {
+            name: profile.nom_boite || 'Club Partenaire',
+            uuid: userId,
+            city: profile.ville,
+            country: profile.pays
+        };
+        localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        showBusinessDashboard();
     } catch (error) {
         msg.textContent = 'Erreur: ' + error.message;
         msg.className = 'form-message error';
@@ -369,16 +644,10 @@ let lastFoundClient = null;
 // ===== COMMANDE MODULE =====
 let selectedCommandeRewards = [];
 let selectedCommandeProducts = [];
+let bizRewards = [];
+let pendingRewardImageFile = null;
 
-function searchClientForCommande() {
-    const code = document.getElementById('biz-client-code-search').value.trim();
-    if (!code) return;
-
-    // Reuse search logic but with commande UI
-    searchClientForReward(true); // Flag to indicate commande mode
-}
-
-// Note: searchClientForReward will be updated later to handle both modes
+// searchClientForCommande replaced by QR scanner (startClientScanner)
 
 function updateAnnoncesPreview() {
     const previewContainer = document.getElementById('annonces-preview-card');
@@ -387,11 +656,11 @@ function updateAnnoncesPreview() {
     // Get current values
     const clubName = document.getElementById('biz-club-name-hidden')?.value || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = document.getElementById('biz-club-image').value || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
-    const insta = document.getElementById('biz-club-insta').value || '@votreclub';
-    const desc = document.getElementById('biz-club-desc').value || 'Aucune description fournie.';
+    const insta = document.getElementById('biz-club-insta').value || t('biz.default_insta');
+    const desc = document.getElementById('biz-club-desc').value || t('biz.no_description');
     const price = document.getElementById('biz-club-price')?.value || '20€';
-    const partyName = document.getElementById('biz-party-name').value || 'Soirée Spéciale';
-    const partyTheme = document.getElementById('biz-party-theme').value || 'Ambiance & Cocktails';
+    const partyName = document.getElementById('biz-party-name').value || t('biz.default_party_name');
+    const partyTheme = document.getElementById('biz-party-theme').value || t('biz.default_party_theme');
 
     // Mock stats (ReadOnly)
     const stats = {
@@ -406,7 +675,7 @@ function updateAnnoncesPreview() {
         <div class="modal-club-hero editable-hero" style="background-image: url('${image}')">
             <div class="hero-overlay" onclick="document.getElementById('biz-club-image-input').click()">
                 <span class="vibe-badge">${stats.vibe}</span>
-                <div class="hero-edit-hint">📷 Changer l'image</div>
+                <div class="hero-edit-hint">📷 ${t('biz.change_image')}</div>
             </div>
             <div class="editable-text club-hero-name" contenteditable="true" data-field="biz-club-name-hidden">
                 ${clubName}
@@ -415,7 +684,7 @@ function updateAnnoncesPreview() {
         
         <div class="modal-content-inner">
             <div class="detail-section">
-                <h4>À propos de l'établissement</h4>
+                <h4>${t('biz.about_venue')}</h4>
                 <p class="text-dim editable-text" contenteditable="true" data-field="biz-club-desc" data-multi="true">${desc}</p>
                 <div class="insta-link-wrapper">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -425,11 +694,11 @@ function updateAnnoncesPreview() {
 
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label">Entrée</span>
+                    <span class="detail-label">${t('biz.entry_price')}</span>
                     <span class="detail-val editable-text" contenteditable="true" data-field="biz-club-price">${price}</span>
                 </div>
                 <div class="detail-item read-only biz-anchor-public">
-                    <span class="detail-label">Public (Live)</span>
+                    <span class="detail-label">${t('biz.public_live')}</span>
                     <span class="detail-val">${stats.count} pers.</span>
                 </div>
             </div>
@@ -451,7 +720,7 @@ function updateAnnoncesPreview() {
 
             <div class="detail-section">
                 <div class="theme-header">
-                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <span class="theme-tag">${t('biz.current_party')}</span>
                     <h4 class="editable-text" contenteditable="true" data-field="biz-party-name">${partyName}</h4>
                 </div>
                 <p class="text-small editable-text" contenteditable="true" data-field="biz-party-theme">${partyTheme}</p>
@@ -462,11 +731,11 @@ function updateAnnoncesPreview() {
     const defaultTexts = [
         (currentBusiness ? currentBusiness.name : 'Mon Club'),
         'Mon Club',
-        '@votreclub',
-        'Aucune description fournie.',
+        t('biz.default_insta'),
+        t('biz.no_description'),
         '20€',
-        'Soirée Spéciale',
-        'Ambiance & Cocktails'
+        t('biz.default_party_name'),
+        t('biz.default_party_theme')
     ];
 
     // Add event listeners to sync and clear contenteditable fields
@@ -531,6 +800,8 @@ function updateAnnoncesPreview() {
     });
 }
 
+// ----- Announcement Template Management -----
+let announcementTemplates = [];
 
 function initAnnouncementEditor() {
     // Load templates from current business profile
@@ -639,6 +910,8 @@ async function proceedWithSave(btn, templateName) {
 }
 
 function animateCardToGrid(card) {
+    // Skip heavy animation on mobile for performance
+    if (window.innerWidth <= 768) return;
     const rect = card.getBoundingClientRect();
     // Look for the "Public (Live)" anchor inside
     const anchor = card.querySelector('.biz-anchor-public')?.getBoundingClientRect() || rect;
@@ -849,7 +1122,7 @@ function renderTemplatesGrid() {
 
     if (filtered.length === 0) {
         grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-            ${templateSearchQuery ? 'Aucun résultat pour cette recherche.' : 'Aucun template pour le moment.'}
+            ${templateSearchQuery ? t('biz.search_template_no_result') : t('biz.no_template')}
         </p>`;
         return;
     }
@@ -861,7 +1134,7 @@ function renderTemplatesGrid() {
             <div class="template-card-hero" style="background-image: url('${t.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop'}')"></div>
             <div class="template-card-content">
                 <div class="template-card-title">${t.partyName || 'Sans nom'}</div>
-                <div class="template-card-desc">${t.partyTheme || 'Aucun thème'}</div>
+                <div class="template-card-desc">${t.partyTheme || window.t('biz.no_theme')}</div>
             </div>
             <div class="template-actions">
                 <button class="btn-mini btn-edit" onclick="loadAdminTemplate('${t.id}')">Modifier</button>
@@ -958,99 +1231,262 @@ function saveBusinessData() {
     // Optional: push to server
 }
 
-// ----- Rewards Logic -----
-function handleCreateReward(e) {
-    e.preventDefault();
-    const name = document.getElementById('rew-name').value;
-    const points = parseInt(document.getElementById('rew-points').value);
-    const image = document.getElementById('rew-image').value;
-    const basePrice = document.getElementById('rew-base-price')?.value || '';
-    const code = document.getElementById('rew-code')?.value || '';
-    
-    const newRew = {
-        id: 'rew_' + Date.now(),
-        name: name,
-        points: points,
-        image: image,
-        basePrice: basePrice,
-        secretCode: code
-    };
-    
-    bizRewards.push(newRew);
-    currentBusiness.rewards = bizRewards;
-    
-    renderRewardsList();
-    e.target.reset();
-    
-    // Reset image preview
-    const preview = document.getElementById('rew-image-preview');
-    if (preview) {
-        preview.className = 'rew-image-placeholder';
-        preview.innerHTML = `
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <span>Ajouter une image</span>
-        `;
-    }
-    
-    saveBusinessData();
-    showSaveToast();
-}
-
+// ----- Rewards Logic (Supabase) -----
 function handleRewardImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+    pendingRewardImageFile = file;
+    // Local preview only (not persisted until form submit)
     const reader = new FileReader();
     reader.onload = function(e) {
-        document.getElementById('rew-image').value = e.target.result;
         const preview = document.getElementById('rew-image-preview');
-        preview.className = 'rew-image-placeholder has-image';
-        preview.innerHTML = `<img src="${e.target.result}" alt="Reward preview">`;
+        if (preview) {
+            preview.className = 'rew-image-placeholder has-image';
+            preview.innerHTML = `<img src="${e.target.result}" alt="Reward preview">`;
+        }
     };
     reader.readAsDataURL(file);
+}
+
+async function loadBizRewards() {
+    if (!currentBusiness || !currentBusiness.uuid) {
+        bizRewards = [];
+        return;
+    }
+    try {
+        const rows = await supabase.select('rewards', `boite_id=eq.${currentBusiness.uuid}&order=created_at.desc`);
+        bizRewards = Array.isArray(rows) ? rows : [];
+    } catch (err) {
+        console.error('loadBizRewards error:', err);
+        bizRewards = [];
+    }
+}
+
+async function handleCreateReward(e) {
+    e.preventDefault();
+    if (!currentBusiness || !currentBusiness.uuid) {
+        showGlassToast('Session entreprise invalide', 'error');
+        return;
+    }
+
+    const nomRecompense = document.getElementById('rew-name').value.trim();
+    const pointsNecessaires = parseInt(document.getElementById('rew-points').value);
+    const prixBase = document.getElementById('rew-base-price')?.value.trim() || '';
+    const prixApresReduction = document.getElementById('rew-discounted-price')?.value.trim() || '';
+    const codeId = document.getElementById('rew-code')?.value.trim() || '';
+
+    if (!nomRecompense || isNaN(pointsNecessaires)) {
+        showGlassToast('Nom et points requis', 'error');
+        return;
+    }
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.classList.add('loading');
+
+    // Capture the current image data-URL for the fly animation (before reset)
+    const previewImg = document.getElementById('rew-image-preview')?.querySelector('img');
+    const imageDataUrl = previewImg?.src || '';
+
+    try {
+        // 1. Upload image to Supabase Storage (if provided)
+        let imageLink = '';
+        if (pendingRewardImageFile) {
+            const ext = (pendingRewardImageFile.name.split('.').pop() || 'jpg').toLowerCase();
+            const safeTitle = nomRecompense.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const path = `${currentBusiness.uuid}/${safeTitle}-${Date.now()}.${ext}`;
+            await supabase.storage.upload('rewards', path, pendingRewardImageFile);
+            imageLink = supabase.storage.getPublicUrl('rewards', path);
+        }
+
+        // 2. Insert reward row (titre_reward = nom_recompense, auto)
+        const row = {
+            id: Math.floor(Math.random() * 2147483647),
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            titre_reward: nomRecompense,
+            nom_recompense: nomRecompense,
+            points_necessaires: String(pointsNecessaires),
+            prix_base: prixBase,
+            prix_apres_reduction: prixApresReduction,
+            code_id: codeId,
+            link: imageLink
+        };
+        const inserted = await supabase.insert('rewards', row);
+
+        // 3. Update local state + fly animation
+        bizRewards.unshift(inserted || row);
+        animateRewardToGrid(nomRecompense, pointsNecessaires, prixBase, imageLink || imageDataUrl);
+        renderRewardsList();
+
+        // 4. Reset form
+        e.target.reset();
+        pendingRewardImageFile = null;
+        const preview = document.getElementById('rew-image-preview');
+        if (preview) {
+            preview.className = 'rew-image-placeholder';
+            preview.innerHTML = `
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Ajouter une image</span>
+            `;
+        }
+
+        showSaveToast();
+    } catch (err) {
+        console.error('handleCreateReward error:', err);
+        showGlassToast(err.message || 'Erreur création reward', 'error');
+    } finally {
+        if (submitBtn) submitBtn.classList.remove('loading');
+    }
+}
+
+// ----- Reward fly-to-grid animation (mirrors annonces template animation) -----
+function animateRewardToGrid(nom, points, prix, imageSrc) {
+    if (window.innerWidth <= 768) return;
+    const form = document.getElementById('biz-reward-form');
+    if (!form) return;
+
+    const CARD_W = 220;
+    const CARD_H = 260;
+
+    const clone = document.createElement('div');
+    clone.className = 'reward-card fly-card-clone';
+    clone.style.cssText = `
+        position: fixed;
+        width: ${CARD_W}px;
+        height: ${CARD_H}px;
+        z-index: 1000000;
+        margin: 0;
+        pointer-events: none;
+        transition: none;
+        opacity: 0;
+    `;
+    clone.innerHTML = `
+        <div class="reward-card-image" style="${imageSrc ? `background-image: url('${imageSrc}')` : ''}">
+            ${!imageSrc ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
+        </div>
+        <div class="reward-card-body">
+            <div class="reward-card-name">${nom}</div>
+            <div class="reward-card-meta">
+                <span class="badge badge-points">⭐ ${points} pts</span>
+                ${prix ? `<span class="badge badge-price">💰 ${prix}</span>` : ''}
+            </div>
+        </div>
+    `;
+
+    // Start position: centered on the form card
+    const formRect = form.getBoundingClientRect();
+    const startX = formRect.left + formRect.width / 2 - CARD_W / 2;
+    const startY = formRect.top + formRect.height / 2 - CARD_H / 2;
+    clone.style.left = startX + 'px';
+    clone.style.top = startY + 'px';
+
+    document.body.appendChild(clone);
+    void clone.offsetHeight;
+
+    // Step 1: fly to center of screen, scale up
+    requestAnimationFrame(() => {
+        const centerX = (window.innerWidth / 2) - CARD_W / 2;
+        const centerY = (window.innerHeight / 2) - CARD_H / 2;
+        const previewScale = window.innerWidth < 480 ? 1.05 : 1.15;
+
+        clone.style.transition = 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)';
+        clone.style.opacity = '1';
+        clone.style.left = centerX + 'px';
+        clone.style.top = centerY + 'px';
+        clone.style.transform = `scale(${previewScale})`;
+        clone.style.boxShadow = '0 0 120px rgba(99, 102, 241, 0.8)';
+
+        setTimeout(() => {
+            // Step 2: slide to first reward card slot in the grid
+            const grid = document.getElementById('biz-rewards-grid');
+            const firstCard = grid?.querySelector('.reward-card');
+            const targetRect = firstCard?.getBoundingClientRect()
+                || grid?.getBoundingClientRect()
+                || { left: window.innerWidth - 280, top: 200, width: CARD_W, height: CARD_H };
+
+            const scaleX = (targetRect.width || CARD_W) / CARD_W;
+            const scaleY = (targetRect.height || CARD_H) / CARD_H;
+            const translateX = targetRect.left - centerX;
+            const translateY = targetRect.top - centerY;
+
+            clone.style.transition = 'all 0.9s cubic-bezier(0.19, 1, 0.22, 1)';
+            clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX * 0.9}, ${scaleY * 0.9})`;
+            clone.style.opacity = '0';
+
+            setTimeout(() => clone.remove(), 900);
+        }, 1200);
+    });
 }
 
 function renderRewardsList() {
     const grid = document.getElementById('biz-rewards-grid');
     if (!grid) return;
-    
-    if (bizRewards.length === 0) {
+
+    if (!bizRewards || bizRewards.length === 0) {
         grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
-            Aucune récompense créée pour le moment.
+            ${t('biz.no_reward_created')}
         </p>`;
         return;
     }
 
-    grid.innerHTML = bizRewards.map(r => `
+    grid.innerHTML = bizRewards.map(r => {
+        const img = r.link || '';
+        const nom = r.nom_recompense || '';
+        const pts = parseInt(r.points_necessaires) || 0;
+        const prix = r.prix_base || '';
+        const titre = (r.titre_reward || '').replace(/'/g, "\\'");
+        return `
         <div class="reward-card">
-            <div class="reward-card-image" style="${r.image ? `background-image: url('${r.image}')` : ''}">
-                ${!r.image ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
+            <div class="reward-card-image" style="${img ? `background-image: url('${img}')` : ''}">
+                ${!img ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
             </div>
             <div class="reward-card-body">
-                <div class="reward-card-name">${r.name}</div>
+                <div class="reward-card-name">${nom}</div>
                 <div class="reward-card-meta">
-                    <span class="badge badge-points">⭐ ${r.points} pts</span>
-                    ${r.basePrice ? `<span class="badge badge-price">💰 ${r.basePrice}</span>` : ''}
+                    <span class="badge badge-points">⭐ ${pts} pts</span>
+                    ${prix ? `<span class="badge badge-price">💰 ${prix}</span>` : ''}
                 </div>
                 <div class="reward-card-actions">
-                    <button class="btn-rew-delete" onclick="deleteReward('${r.id}')">
+                    <button class="btn-rew-delete" onclick="deleteReward('${titre}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                         Supprimer
                     </button>
                 </div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
-function deleteReward(id) {
+function deleteReward(titre) {
     showConfirmModal(
         'Supprimer cette récompense ?',
         'Cette action est irréversible.',
-        () => {
-            bizRewards = bizRewards.filter(r => r.id !== id);
-            currentBusiness.rewards = bizRewards;
-            renderRewardsList();
-            saveBusinessData();
+        async () => {
+            try {
+                const reward = bizRewards.find(r => r.titre_reward === titre);
+                if (!reward) return;
+
+                // Delete from Supabase rewards table (filter by boite_id + titre_reward)
+                await supabase.delete('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titre)}`);
+
+                // Try to remove image from storage (best-effort)
+                if (reward.link) {
+                    const marker = '/storage/v1/object/public/rewards/';
+                    const idx = reward.link.indexOf(marker);
+                    if (idx !== -1) {
+                        const path = decodeURIComponent(reward.link.substring(idx + marker.length));
+                        await supabase.storage.remove('rewards', path).catch(() => {});
+                    }
+                }
+
+                bizRewards = bizRewards.filter(r => r.titre_reward !== titre);
+                renderRewardsList();
+                showGlassToast('Récompense supprimée', 'success');
+            } catch (err) {
+                console.error('deleteReward error:', err);
+                showGlassToast(err.message || 'Erreur suppression', 'error');
+            }
         }
     );
 }
@@ -1112,40 +1548,79 @@ function renderCommandeRewards(points) {
     const list = document.getElementById('biz-commande-rewards');
     if (!list) return;
     list.innerHTML = '';
-    
-    if (bizRewards.length === 0) {
-        list.innerHTML = '<p style="font-size:12px; color:var(--text-dim); grid-column: 1/-1;">Aucun reward.</p>';
+    list.dataset.clientPoints = String(points);
+
+    // Only show rewards the client can afford (points_necessaires is TEXT in DB)
+    // Sort ascending: cheapest first
+    const affordableRewards = bizRewards
+        .filter(r => points >= (parseInt(r.points_necessaires) || 0))
+        .slice()
+        .sort((a, b) => (parseInt(a.points_necessaires) || 0) - (parseInt(b.points_necessaires) || 0));
+
+    if (affordableRewards.length === 0) {
+        list.innerHTML = '<p style="text-align:center; padding:24px 12px; font-size:13px; color:var(--text-dim);">Pas assez de points pour un reward.</p>';
         return;
     }
 
-    bizRewards.forEach(r => {
-        const canAfford = points >= r.points;
-        const isSelected = selectedCommandeRewards.find(sr => sr.id === r.id);
-        
-        const item = document.createElement('div');
-        item.className = `reward-item-sel ${isSelected ? 'active' : ''}`;
-        item.style = `background: ${canAfford ? 'var(--surface)' : 'rgba(255,255,255,0.02)'}; padding: 12px; border-radius: 12px; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}; text-align: center; opacity: ${canAfford ? '1' : '0.5'}; cursor: ${canAfford ? 'pointer' : 'default'}; transition: all 0.2s;`;
-        
-        item.innerHTML = `
-            <h5 style="font-size: 13px; margin-bottom: 2px;">${r.name}</h5>
-            <p style="font-size: 11px; color: var(--primary-light); font-weight: bold;">${r.points} pts</p>
+    let html = '';
+    affordableRewards.forEach(r => {
+        const bizIdx = bizRewards.indexOf(r);
+        const isSelected = selectedCommandeRewards.indexOf(r) > -1;
+        const img = r.link || '';
+        const nom = (r.nom_recompense || '').replace(/"/g, '&quot;');
+        const pts = parseInt(r.points_necessaires) || 0;
+        const prix = r.prix_apres_reduction || r.prix_base || '';
+
+        const imgStyle = img
+            ? `background: url(&quot;${img}&quot;) center/cover no-repeat;`
+            : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
+
+        const bg = isSelected ? 'rgba(99,102,241,0.18)' : 'var(--surface)';
+        const borderColor = isSelected ? 'var(--primary)' : 'var(--border)';
+        const badgeBg = isSelected ? '#10b981' : 'var(--primary)';
+        const badgeChar = isSelected ? '&#10003;' : '+';
+
+        // <div role="button"> with cursor:pointer + explicit ontouchend/onclick — the
+        // most reliable combo on iOS Safari. No pointer-events:none on children
+        // (can break tap detection in some iOS versions).
+        html += `
+            <div role="button" tabindex="0" onclick="toggleBizReward(${bizIdx})" ontouchend="event.preventDefault(); toggleBizReward(${bizIdx})" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: ${bg}; border: 2px solid ${borderColor}; border-radius: 14px; cursor: pointer; -webkit-tap-highlight-color: rgba(99,102,241,0.2); touch-action: manipulation; user-select: none;">
+                <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0;"></div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</div>
+                    <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
+                </div>
+                <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${badgeBg}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1;">${badgeChar}</div>
+            </div>
         `;
-        
-        if (canAfford) {
-            item.onclick = () => {
-                const idx = selectedCommandeRewards.findIndex(sr => sr.id === r.id);
-                if (idx > -1) {
-                    selectedCommandeRewards.splice(idx, 1);
-                } else {
-                    selectedCommandeRewards.push(r);
-                }
-                renderCommandeRewards(points);
-                updateCommandeRecap();
-            };
-        }
-        list.appendChild(item);
     });
+    list.innerHTML = html;
 }
+
+// Global so inline onclick="toggleBizReward(..)" works
+function toggleBizReward(bizIdx) {
+    try {
+        const target = bizRewards[bizIdx];
+        if (!target) {
+            showGlassToast('Reward introuvable (idx=' + bizIdx + ')', 'error');
+            return;
+        }
+        const idx = selectedCommandeRewards.indexOf(target);
+        if (idx > -1) {
+            selectedCommandeRewards.splice(idx, 1);
+        } else {
+            selectedCommandeRewards.push(target);
+        }
+        const list = document.getElementById('biz-commande-rewards');
+        const currentPts = parseInt(list && list.dataset.clientPoints) || 0;
+        renderCommandeRewards(currentPts);
+        updateCommandeRecap();
+    } catch (err) {
+        showGlassToast('Erreur click: ' + err.message, 'error');
+        console.error('toggleBizReward error:', err);
+    }
+}
+window.toggleBizReward = toggleBizReward;
 
 function updateCommandeRecap() {
     const recap = document.getElementById('biz-commande-recap');
@@ -1156,72 +1631,512 @@ function updateCommandeRecap() {
     let totalPoints = 0;
 
     selectedCommandeRewards.forEach(r => {
+        const pts = parseInt(r.points_necessaires) || 0;
         html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
-                    <span>🎁 ${r.name}</span>
-                    <span style="color:#ef4444;">-${r.points} pts</span>
+                    <span>🎁 ${r.nom_recompense || ''}</span>
+                    <span style="color:#ef4444;">-${pts} pts</span>
                  </div>`;
-        totalPoints += r.points;
+        totalPoints += pts;
     });
 
     if (html === '') {
-        html = '<p style="font-size: 13px; color: var(--text-dim);">Aucune sélection.</p>';
+        html = '<p style="font-size: 13px; color: var(--text-dim);">' + t('biz.no_selection') + '</p>';
     }
 
     recap.innerHTML = html;
-    totalPtsEl.textContent = `${totalPoints} pts`;
+    if (totalPtsEl) totalPtsEl.textContent = String(totalPoints);
 }
 
+// ===== HELPERS: Calendrier & Stats =====
+function getTodayDateStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+async function getOrCreateTodayCalendrier() {
+    const today = getTodayDateStr();
+    const boiteId = currentBusiness.uuid;
+    const nomBoite = currentBusiness.name;
+
+    const rows = await supabase.select('calendrier', `boite_id=eq.${boiteId}&date_soiree=eq.${today}`);
+    if (rows && rows.length > 0) return rows[0];
+
+    return await supabase.insert('calendrier', {
+        nom_boite: nomBoite,
+        boite_id: boiteId,
+        nom_template: 'Soirée',
+        date_soiree: today
+    });
+}
+
+function getGenderField(sexe) {
+    const s = (sexe || '').toString().trim().toLowerCase();
+    if (s === 'homme' || s === 'h' || s === 'male' || s === 'm') return 'homme';
+    if (s === 'femme' || s === 'f' || s === 'female' || s === 'w') return 'femme';
+    return 'non_binaire';
+}
+
+async function recalculateCalendrierStats(calendrierId) {
+    const today = getTodayDateStr();
+    const boiteId = currentBusiness.uuid;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
+    const stats = await supabase.select('dynamicstats',
+        `boite_id=eq.${boiteId}&created_at=gte.${today}T00:00:00&created_at=lt.${tomorrowStr}T00:00:00&statut=eq.entrée`
+    );
+
+    if (!stats || stats.length === 0) return;
+
+    const paysCount = {};
+    const villeCount = {};
+    let totalAge = 0;
+    let ageCount = 0;
+
+    stats.forEach(s => {
+        if (s.pays) paysCount[s.pays] = (paysCount[s.pays] || 0) + 1;
+        if (s.ville) villeCount[s.ville] = (villeCount[s.ville] || 0) + 1;
+        if (s.age) { totalAge += s.age; ageCount++; }
+    });
+
+    const topPays = Object.entries(paysCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const topVille = Object.entries(villeCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const topAge = ageCount > 0 ? Math.ceil(totalAge / ageCount) : null;
+
+    await supabase.update('calendrier', `id=eq.${calendrierId}`, {
+        top_pays: topPays,
+        top_ville: topVille,
+        top_age: topAge
+    });
+}
+
+// ===== VALIDATE ENTRY (Entrée — with rewards) =====
+let isProcessingEntry = false;
 async function validateCommande() {
-    if (!lastFoundClient) return;
-    
-    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + r.points, 0);
-    
-    if (!confirm(`Valider la commande pour ${lastFoundClient.name} ? (+1 point de visite, -${totalPointsToDeduct} points rewards)`)) return;
+    if (isProcessingEntry || !lastFoundClient) return;
+
+    const totalPointsToDeduct = selectedCommandeRewards.reduce((sum, r) => sum + (parseInt(r.points_necessaires) || 0), 0);
+    const currentPoints = parseInt(lastFoundClient.points) || 0;
+
+    if (totalPointsToDeduct > currentPoints) {
+        const excess = totalPointsToDeduct - currentPoints;
+        showGlassToast(`Pas assez de points ! Enlève ${excess} pts de rewards.`, 'error');
+        return;
+    }
+
+    isProcessingEntry = true;
+    // Immediately hide the result and disable buttons to prevent double-submit
+    document.getElementById('scan-entry-result').style.display = 'none';
+    const vBtn = document.getElementById('btn-commande-validate');
+    const cBtn = document.getElementById('btn-commande-cancel');
+    if (vBtn) vBtn.disabled = true;
+    if (cBtn) cBtn.disabled = true;
 
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/0778847c-7164-42b7-873d-4c340d859d9c', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'validate_commande',
-                clientCode: lastFoundClient.code,
-                clubName: currentBusiness.name || currentBusiness.nom,
-                deductPoints: totalPointsToDeduct,
-                incrementVisit: 1,
-                items: selectedCommandeRewards.map(r => r.name)
-            })
+        // 1. +1 point for the entry, minus any rewards redeemed
+        const newPoints = currentPoints + 1 - totalPointsToDeduct;
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: String(newPoints) // column is TEXT
         });
 
-        if (response.ok) {
-            alert('Commande validée !');
-            document.getElementById('biz-client-result').style.display = 'none';
-            document.getElementById('biz-client-code-search').value = '';
-            updateStatsUI();
-        } else {
-            alert('Erreur lors de la validation');
-        }
+        // 2. Log to dynamicstats (entrée)
+        await supabase.insert('dynamicstats', {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            age: lastFoundClient.age,
+            ville: lastFoundClient.ville,
+            pays: lastFoundClient.pays,
+            statut: 'entrée'
+        });
+
+        // 3. Get or create today's calendrier entry
+        const cal = await getOrCreateTodayCalendrier();
+
+        // 4. Update calendrier: +1 affluence, +1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: (parseInt(cal.affluence) || 0) + 1,
+            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        });
+
+        // 5. Recalculate top_pays, top_ville, top_age (entrée only, today)
+        await recalculateCalendrierStats(cal.id);
+
+        const msg = totalPointsToDeduct > 0
+            ? `Entrée validée — ${totalPointsToDeduct} pts déduits, +1 pt entrée`
+            : 'Entrée validée (+1 pt)';
+        showGlassToast(msg, 'success');
     } catch (error) {
-        console.error('Validation error:', error);
+        console.error('Entry validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+    } finally {
+        document.getElementById('scan-entry-result').style.display = 'none';
+        const vBtn2 = document.getElementById('btn-commande-validate');
+        const cBtn2 = document.getElementById('btn-commande-cancel');
+        if (vBtn2) vBtn2.disabled = false;
+        if (cBtn2) cBtn2.disabled = false;
+        lastFoundClient = null;
+        scannedClientId = null;
+        selectedCommandeRewards = [];
+        isProcessingEntry = false;
+        startClientScanner();
     }
 }
 
 // ===== QR CODES MODULE =====
 function generateBusinessQRCodes() {
     const entryDiv = document.getElementById('qr-code-entry');
-    const barDiv = document.getElementById('qr-code-bar');
-    if (!entryDiv || !barDiv || !currentBusiness) return;
+    if (!entryDiv || !currentBusiness) return;
 
     entryDiv.innerHTML = '';
-    barDiv.innerHTML = '';
 
     const clubName = currentBusiness.name || currentBusiness.nom;
-    const baseUrl = window.location.origin + window.location.pathname.replace('entreprise.html', 'auth.html');
-    
-    const entryUrl = `${baseUrl}?action=scan&type=entry&club=${encodeURIComponent(clubName)}`;
-    const barUrl = `${baseUrl}?action=scan&type=bar&club=${encodeURIComponent(clubName)}`;
+    const baseUrl = window.location.origin + window.location.pathname.replace('entreprise.html', 'scan.html');
+    const entryUrl = `${baseUrl}?club=${encodeURIComponent(clubName)}`;
 
     new QRCode(entryDiv, { text: entryUrl, width: 200, height: 200 });
-    new QRCode(barDiv, { text: barUrl, width: 200, height: 200 });
+}
+
+// ===== QR SCANNER MODULE (Entreprise — Entrée / Bar / Sortie) =====
+let html5QrScanner = null;
+let scannedClientId = null;
+let currentScanMode = 'entree'; // 'entree', 'bar', or 'sortie'
+
+// Bind scan tab buttons via addEventListener (inline onclick can be blocked)
+(function initScanTabs() {
+    function bind() {
+        const entreeBtn = document.getElementById('scan-tab-entree');
+        const barBtn = document.getElementById('scan-tab-bar');
+        const sortieBtn = document.getElementById('scan-tab-sortie');
+        if (entreeBtn) entreeBtn.addEventListener('click', function(e) { e.stopPropagation(); switchScanTab('entree'); });
+        if (barBtn) barBtn.addEventListener('click', function(e) { e.stopPropagation(); switchScanTab('bar'); });
+        if (sortieBtn) sortieBtn.addEventListener('click', function(e) { e.stopPropagation(); switchScanTab('sortie'); });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bind);
+    } else {
+        bind();
+    }
+})();
+
+function switchScanTab(tab) {
+    currentScanMode = tab;
+    const entreeTab = document.getElementById('scan-tab-entree');
+    const barTab = document.getElementById('scan-tab-bar');
+    const sortieTab = document.getElementById('scan-tab-sortie');
+
+    // Reset all tabs
+    [entreeTab, barTab, sortieTab].forEach(t => {
+        if (t) { t.style.background = 'transparent'; t.style.color = 'var(--text-dim)'; }
+    });
+
+    // Activate selected tab
+    if (tab === 'entree' && entreeTab) {
+        entreeTab.style.background = 'var(--primary)'; entreeTab.style.color = 'white';
+    } else if (tab === 'bar' && barTab) {
+        barTab.style.background = '#059669'; barTab.style.color = 'white';
+    } else if (tab === 'sortie' && sortieTab) {
+        sortieTab.style.background = '#ef4444'; sortieTab.style.color = 'white';
+    }
+
+    // Hide all results, show camera
+    const entryResult = document.getElementById('scan-entry-result');
+    const barResult = document.getElementById('scan-bar-result');
+    const sortieResult = document.getElementById('scan-sortie-result');
+    if (entryResult) entryResult.style.display = 'none';
+    if (barResult) barResult.style.display = 'none';
+    if (sortieResult) sortieResult.style.display = 'none';
+    document.getElementById('scan-camera-zone').style.display = 'block';
+
+    // Only start scanner if it's not already running
+    if (!html5QrScanner) {
+        startClientScanner();
+    }
+}
+
+async function startClientScanner() {
+    const readerEl = document.getElementById('biz-qr-reader');
+    if (!readerEl) return;
+
+    // Stop previous scanner and wait for it to fully stop
+    if (html5QrScanner) {
+        try { await html5QrScanner.stop(); } catch (e) { /* ignore */ }
+        html5QrScanner = null;
+    }
+
+    // Clear leftover DOM from previous scanner instance
+    readerEl.innerHTML = '';
+
+    document.getElementById('scan-camera-zone').style.display = 'block';
+
+    try {
+        html5QrScanner = new Html5Qrcode('biz-qr-reader');
+        await html5QrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onClientQRScanned,
+            () => {}
+        );
+    } catch (err) {
+        console.error('Scanner error:', err);
+        showGlassToast("Impossible d'accéder à la caméra", 'error');
+    }
+}
+
+async function stopClientScanner() {
+    if (html5QrScanner) {
+        try { await html5QrScanner.stop(); } catch (e) { /* ignore */ }
+        try { await html5QrScanner.clear(); } catch (e) { /* ignore */ }
+        html5QrScanner = null;
+    }
+    // Defensive: wipe any leftover video/canvas elements from the reader
+    // (html5-qrcode sometimes leaves them behind, which can overlay the page)
+    const reader = document.getElementById('biz-qr-reader');
+    if (reader) reader.innerHTML = '';
+}
+
+async function onClientQRScanned(decodedText) {
+    await stopClientScanner();
+    document.getElementById('scan-camera-zone').style.display = 'none';
+
+    let clientId = null;
+    if (decodedText.startsWith('suggesto_client:')) {
+        clientId = decodedText.replace('suggesto_client:', '');
+    } else {
+        showGlassToast('QR code non reconnu', 'error');
+        startClientScanner();
+        return;
+    }
+
+    scannedClientId = clientId;
+
+    try {
+        const profiles = await supabase.select('profiles_users', `id=eq.${clientId}`);
+        if (!profiles || profiles.length === 0) {
+            showGlassToast('Client non trouvé', 'error');
+            startClientScanner();
+            return;
+        }
+
+        const client = profiles[0];
+        lastFoundClient = {
+            uuid: client.id,
+            name: client.nom,
+            points: parseInt(client.points) || 0,
+            total_commande: parseInt(client.total_commande) || 0,
+            age: parseInt(client.age) || null,
+            sexe: client.sexe || null,
+            ville: client.ville || null,
+            pays: client.pays || null
+        };
+
+        if (currentScanMode === 'entree') {
+            showEntryResult(lastFoundClient);
+        } else if (currentScanMode === 'bar') {
+            // Auto-validate immediately on scan (no confirmation screen)
+            await validateBarScan();
+        } else if (currentScanMode === 'sortie') {
+            // Auto-validate immediately on scan (no confirmation screen)
+            await validateSortie();
+        }
+    } catch (error) {
+        console.error('Client search error:', error);
+        showGlassToast('Erreur de connexion', 'error');
+        startClientScanner();
+    }
+}
+
+function showEntryResult(client) {
+    const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('entry-client-initials').textContent = initials;
+    document.getElementById('entry-client-name').textContent = client.name;
+    document.getElementById('entry-client-points').textContent = client.points;
+    document.getElementById('scan-entry-result').style.display = 'block';
+
+    selectedCommandeRewards = [];
+    renderCommandeRewards(client.points);
+    updateCommandeRecap();
+}
+
+function showBarResult(client) {
+    const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('bar-client-initials').textContent = initials;
+    document.getElementById('bar-client-name').textContent = client.name;
+    document.getElementById('bar-client-points').textContent = client.points;
+    document.getElementById('bar-client-commandes').textContent = client.total_commande;
+    document.getElementById('scan-bar-result').style.display = 'block';
+}
+
+function showSortieResult(client) {
+    const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+    document.getElementById('sortie-client-initials').textContent = initials;
+    document.getElementById('sortie-client-name').textContent = client.name;
+    document.getElementById('scan-sortie-result').style.display = 'block';
+}
+
+// ===== VALIDATE BAR =====
+let isProcessingBar = false;
+async function validateBarScan() {
+    if (isProcessingBar || !lastFoundClient) return;
+    isProcessingBar = true;
+
+    try {
+        // +1 points and +1 total_commande for user
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: lastFoundClient.points + 1,
+            total_commande: lastFoundClient.total_commande + 1
+        });
+
+        // +1 total_commande in today's calendrier
+        const cal = await getOrCreateTodayCalendrier();
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            total_commande: (parseInt(cal.total_commande) || 0) + 1
+        });
+
+        showGlassToast('Scan validé ! +1 point', 'success');
+        document.getElementById('scan-bar-result').style.display = 'none';
+        lastFoundClient = null;
+        scannedClientId = null;
+        isProcessingBar = false;
+        startClientScanner();
+    } catch (error) {
+        console.error('Bar validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+        isProcessingBar = false;
+        lastFoundClient = null;
+        scannedClientId = null;
+        startClientScanner();
+    }
+}
+
+// ===== VALIDATE SORTIE =====
+let isProcessingSortie = false;
+async function validateSortie() {
+    if (isProcessingSortie || !lastFoundClient) return;
+    isProcessingSortie = true;
+
+    try {
+        // 1. Update calendrier: -1 affluence, -1 gender
+        const cal = await getOrCreateTodayCalendrier();
+        const genderField = getGenderField(lastFoundClient.sexe);
+
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: Math.max(0, (parseInt(cal.affluence) || 0) - 1),
+            [genderField]: Math.max(0, (parseInt(cal[genderField]) || 0) - 1)
+        });
+
+        // 2. +1 point on user profile (reward for scanning at exit)
+        const currentPoints = parseInt(lastFoundClient.points) || 0;
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: String(currentPoints + 1) // column is TEXT
+        });
+
+        // 3. Log to dynamicstats with statut='sortie'
+        await supabase.insert('dynamicstats', {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            age: lastFoundClient.age,
+            ville: lastFoundClient.ville,
+            pays: lastFoundClient.pays,
+            statut: 'sortie'
+        });
+
+        showGlassToast('Sortie validée ! +1 point', 'success');
+        const sortieRes = document.getElementById('scan-sortie-result');
+        if (sortieRes) sortieRes.style.display = 'none';
+        lastFoundClient = null;
+        scannedClientId = null;
+        isProcessingSortie = false;
+        startClientScanner();
+    } catch (error) {
+        console.error('Sortie validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+        isProcessingSortie = false;
+        lastFoundClient = null;
+        scannedClientId = null;
+        startClientScanner();
+    }
+}
+
+// ===== CANCEL ACTIONS =====
+// "J'utilise pas" = valider l'entrée sans déduire de points (client entre mais n'utilise pas ses rewards)
+async function cancelCommande() {
+    if (isProcessingEntry) return;
+    if (!lastFoundClient) {
+        document.getElementById('scan-entry-result').style.display = 'none';
+        startClientScanner();
+        return;
+    }
+
+    isProcessingEntry = true;
+    // Immediately hide result and disable buttons to prevent double-submit
+    document.getElementById('scan-entry-result').style.display = 'none';
+    const vBtn = document.getElementById('btn-commande-validate');
+    const cBtn = document.getElementById('btn-commande-cancel');
+    if (vBtn) vBtn.disabled = true;
+    if (cBtn) cBtn.disabled = true;
+
+    try {
+        // 1. +1 point for the entry
+        const currentPoints = parseInt(lastFoundClient.points) || 0;
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: String(currentPoints + 1) // column is TEXT
+        });
+
+        // 2. Log to dynamicstats (entrée)
+        await supabase.insert('dynamicstats', {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            age: lastFoundClient.age,
+            ville: lastFoundClient.ville,
+            pays: lastFoundClient.pays,
+            statut: 'entrée'
+        });
+
+        // 3. Get or create today's calendrier entry
+        const cal = await getOrCreateTodayCalendrier();
+
+        // 4. Update calendrier: +1 affluence, +1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
+        await supabase.update('calendrier', `id=eq.${cal.id}`, {
+            affluence: (parseInt(cal.affluence) || 0) + 1,
+            [genderField]: (parseInt(cal[genderField]) || 0) + 1
+        });
+
+        // 5. Recalculate stats (entrée only, today)
+        await recalculateCalendrierStats(cal.id);
+
+        showGlassToast('Entrée validée (+1 pt)', 'success');
+    } catch (error) {
+        console.error('Entry (no rewards) validation error:', error);
+        showGlassToast('Erreur lors de la validation', 'error');
+    } finally {
+        document.getElementById('scan-entry-result').style.display = 'none';
+        const vBtn2 = document.getElementById('btn-commande-validate');
+        const cBtn2 = document.getElementById('btn-commande-cancel');
+        if (vBtn2) vBtn2.disabled = false;
+        if (cBtn2) cBtn2.disabled = false;
+        lastFoundClient = null;
+        scannedClientId = null;
+        selectedCommandeRewards = [];
+        isProcessingEntry = false;
+        startClientScanner();
+    }
+}
+
+function cancelBarScan() {
+    document.getElementById('scan-bar-result').style.display = 'none';
+    lastFoundClient = null;
+    scannedClientId = null;
+    startClientScanner();
+}
+
+function cancelSortie() {
+    document.getElementById('scan-sortie-result').style.display = 'none';
+    lastFoundClient = null;
+    scannedClientId = null;
+    startClientScanner();
 }
 
 function downloadBusinessQR(containerId, filename) {
@@ -1321,6 +2236,7 @@ function updateBar(id, percent) {
     }
 }
 
+let calendarDate = new Date();
 let calClickTimeout = null;
 
 function renderCalendar() {
@@ -1345,7 +2261,9 @@ function renderCalendar() {
     let startOffset = firstDay.getDay() - 1;
     if (startOffset === -1) startOffset = 6;
     
-    monthLabel.textContent = firstDay.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const calLocale = (typeof currentLang !== 'undefined' && currentLang) ? currentLang : 'fr';
+    const localeMap = { fr: 'fr-FR', es: 'es-ES', en: 'en-US' };
+    monthLabel.textContent = firstDay.toLocaleDateString(localeMap[calLocale] || 'fr-FR', { month: 'long', year: 'numeric' });
     grid.innerHTML = '';
     
     // Empty leading cells
@@ -1386,24 +2304,19 @@ function renderCalendar() {
             cell.appendChild(eventEl);
         }
         
-        // Single click = toggle selection, Double click = preview or picker
+        // Single click = instant selection (no delay)
         cell.addEventListener('click', (e) => {
             e.preventDefault();
-            if (calClickTimeout) {
-                clearTimeout(calClickTimeout);
-                calClickTimeout = null;
-                // Double click
-                if (bizSchedule[dateStr]) {
-                    openCalPreview(dateStr);
-                } else {
-                    handleCalendarDblClick(dateStr);
-                }
-                return;
+            toggleDateSelection(dateStr);
+        });
+        // Double click = preview or template picker (native browser event)
+        cell.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            if (bizSchedule[dateStr]) {
+                openCalPreview(dateStr);
+            } else {
+                handleCalendarDblClick(dateStr);
             }
-            calClickTimeout = setTimeout(() => {
-                calClickTimeout = null;
-                toggleDateSelection(dateStr);
-            }, 250);
         });
         
         grid.appendChild(cell);
@@ -1468,8 +2381,8 @@ function openCalPreview(dateStr) {
 
     const clubName = template.name || (currentBusiness ? currentBusiness.name : 'Mon Club');
     const image = template.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop';
-    const desc = template.description || 'Aucune description fournie.';
-    const insta = template.insta || '@votreclub';
+    const desc = template.description || t('biz.no_description');
+    const insta = template.insta || t('biz.default_insta');
     const price = template.price || '20€';
     const partyName = template.partyName || template.name || 'Soirée Spéciale';
     const partyTheme = template.partyTheme || template.theme || 'Ambiance & Cocktails';
@@ -1487,7 +2400,7 @@ function openCalPreview(dateStr) {
         </div>
         <div class="modal-content-inner">
             <div class="detail-section">
-                <h4>À propos de l'établissement</h4>
+                <h4>${t('biz.about_venue')}</h4>
                 <p class="text-dim">${desc}</p>
                 <div class="insta-link-wrapper">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -1496,11 +2409,11 @@ function openCalPreview(dateStr) {
             </div>
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label">Entrée</span>
+                    <span class="detail-label">${t('biz.entry_price')}</span>
                     <span class="detail-val">${price}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Public (Live)</span>
+                    <span class="detail-label">${t('biz.public_live')}</span>
                     <span class="detail-val">${stats.count} pers.</span>
                 </div>
             </div>
@@ -1519,7 +2432,7 @@ function openCalPreview(dateStr) {
             <hr class="modal-hr">
             <div class="detail-section">
                 <div class="theme-header">
-                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <span class="theme-tag">${t('biz.current_party')}</span>
                     <h4>${partyName}</h4>
                 </div>
                 <p class="text-small">${partyTheme}</p>
@@ -1634,7 +2547,7 @@ function renderCalendarPickerList(query) {
     `;
     
     if (filtered.length === 0 && query) {
-        html += `<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 13px;">Aucun template trouvé pour "${query}"</div>`;
+        html += `<div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 13px;">${t('biz.search_template_no_result')}</div>`;
     }
     
     filtered.forEach(t => {
@@ -1816,6 +2729,7 @@ window.addEventListener('load', () => {
 // ===== SIGNUP HANDLER =====
 async function handleSignup(e) {
     e.preventDefault();
+    const email = document.getElementById('signup-email').value.trim();
     const name = document.getElementById('signup-name').value.trim();
     const age = document.getElementById('signup-age').value.trim();
     const sexe = document.getElementById('signup-sexe').value;
@@ -1823,7 +2737,7 @@ async function handleSignup(e) {
     const country = document.getElementById('signup-country')?.value.trim() || '';
     const password = document.getElementById('signup-password').value.trim();
 
-    if (!name || !password || !age || !sexe || !city || !country) {
+    if (!email || !name || !password || !age || !sexe || !city || !country) {
         showMessage('signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -1831,57 +2745,44 @@ async function handleSignup(e) {
     setLoading('signup-btn', true);
     showMessage('signup-message', '', '');
 
-    const uuid = generateUUID();
-    const userCode = generateUserCode();
-
     try {
-        const response = await fetch('https://n8n.srv862127.hstgr.cloud/webhook/inscription', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'inscription.setter': 'inscription.setter.01'
-            },
-            body: JSON.stringify({
-                nom: name,
-                password: password,
-                uuid: uuid,
-                user_code: userCode,
-                age: age,
-                sexe: sexe,
-                ville: city,
-                pays: country
-            })
+        // 1. Create auth user in Supabase Auth
+        const authData = await supabase.auth.signUp(email, password, {
+            full_name: name,
+            role: 'client'
+        });
+        supabase.auth._saveSession(authData);
+
+        const userId = authData.user.id;
+
+        // 2. Insert profile in profiles_users
+        await supabase.insert('profiles_users', {
+            id: userId,
+            nom: name,
+            age: parseInt(age),
+            sexe: sexe,
+            ville: city,
+            pays: country
         });
 
-        const raw = await response.json().catch(() => null);
-        const data = Array.isArray(raw) ? raw[0] : raw;
-
-        if (!data) {
-            showMessage('signup-message', 'Erreur: impossible de lire la réponse du serveur.', 'error');
-        } else if (data.statut === 'invalid') {
-            showMessage('signup-message', data.phrase || 'Inscription refusée.', 'error');
-        } else {
-            showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
-
-            if (window.OneSignal) {
-                OneSignal.login(uuid);
-            }
-
-            const userData = {
-                name: name,
-                uuid: uuid,
-                code: userCode,
-                age: age,
-                sexe: sexe,
-                city: city,
-                country: country
-            };
-            localStorage.setItem('user', JSON.stringify(userData));
-            setTimeout(() => { showDashboard(name); }, 800);
+        if (window.OneSignal) {
+            OneSignal.login(userId);
         }
+
+        const userData = {
+            name: name,
+            uuid: userId,
+            age: age,
+            sexe: sexe,
+            city: city,
+            country: country
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        showMessage('signup-message', 'Inscription réussie ! Redirection...', 'success');
+        setTimeout(() => { showDashboard(name); }, 800);
     } catch (err) {
-        console.error('Signup webhook error:', err);
-        showMessage('signup-message', 'Erreur de connexion au serveur.', 'error');
+        console.error('Signup error:', err);
+        showMessage('signup-message', err.message || 'Erreur lors de l\'inscription.', 'error');
     } finally {
         setLoading('signup-btn', false);
     }
@@ -1889,20 +2790,64 @@ async function handleSignup(e) {
 
 // ===== SHOW DASHBOARD =====
 function showDashboard(username) {
-    document.getElementById('auth-screen').classList.remove('active');
-    document.getElementById('dashboard-screen').classList.add('active');
-    document.getElementById('user-display').textContent = username;
+    try {
+        console.log('--- SHOW DASHBOARD START ---', username);
+        const authScreen = document.getElementById('auth-screen');
+        const dashScreen = document.getElementById('dashboard-screen');
+        
+        if (authScreen) {
+            authScreen.classList.remove('active');
+            authScreen.style.display = 'none';
+        }
+        const authLangSel = document.getElementById('auth-lang-selector');
+        if (authLangSel) authLangSel.style.display = 'none';
+        
+        if (dashScreen) {
+            dashScreen.classList.add('active');
+            dashScreen.style.setProperty('display', 'flex', 'important');
+            dashScreen.style.opacity = '1';
+            dashScreen.style.visibility = 'visible';
+            console.log('Dashboard screen activated');
+        } else {
+            console.error('CRITICAL: dashboard-screen element not found!');
+        }
+        
+        const userDisp = document.getElementById('user-display');
+        if (userDisp) userDisp.textContent = username;
 
-    // Render local clubs for home view
-    renderLocalClubs();
+        // Render local clubs for home view
+        console.log('Calling renderLocalClubs...');
+        renderLocalClubs();
+        
+        // Ensure the new view is translated
+        if (typeof translateDOM === 'function') {
+            translateDOM();
+        }
+        console.log('--- SHOW DASHBOARD COMPLETE ---');
+    } catch (err) {
+        console.error('showDashboard CRITICAL error:', err);
+    }
 }
 
 // ===== LOGOUT =====
 function handleLogout() {
+    supabase.auth.signOut();
     localStorage.removeItem('user');
-    document.getElementById('dashboard-screen').classList.remove('active');
-    document.getElementById('auth-screen').classList.add('active');
-    
+    const dashScreen = document.getElementById('dashboard-screen');
+    const authScreen = document.getElementById('auth-screen');
+
+    if (dashScreen) {
+        dashScreen.classList.remove('active');
+        dashScreen.style.display = 'none';
+    }
+    if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.display = '';
+    }
+
+    const authLangSel = document.getElementById('auth-lang-selector');
+    if (authLangSel) authLangSel.style.display = '';
+
     document.getElementById('side-menu').classList.remove('open');
     document.getElementById('menu-overlay').classList.remove('open');
 
@@ -2066,12 +3011,12 @@ function switchMainView(viewId) {
     const link = document.getElementById(`link-${viewId}`);
     if (link) link.classList.add('active');
     
-    let title = 'Boîtes près de chez toi';
-    if (viewId === 'search') title = 'Recherche ta boîte';
-    if (viewId === 'favorites') title = 'Mes Favoris';
-    if (viewId === 'qr') title = 'Générateur QR';
-    if (viewId === 'code') title = 'Mon Code';
-    if (viewId === 'verify') title = 'Vérification';
+    let title = t('nav.home');
+    if (viewId === 'search') title = t('nav.search');
+    if (viewId === 'favorites') title = t('nav.favorites');
+    if (viewId === 'qr') title = t('nav.qr');
+    if (viewId === 'code') title = t('nav.code');
+    if (viewId === 'verify') title = t('verify.entry_validation');
 
     const headerTitle = document.getElementById('header-title');
     if (headerTitle) headerTitle.textContent = title;
@@ -2092,12 +3037,24 @@ function renderProfile() {
     const userStr = localStorage.getItem('user');
     if (!userStr) return;
     const user = JSON.parse(userStr);
-    
+
     const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
     document.getElementById('profile-initials').textContent = initials;
     document.getElementById('profile-name').textContent = user.name;
     document.getElementById('profile-city').textContent = user.city || 'Ville non renseignée';
-    document.getElementById('display-user-code').textContent = user.code || '------';
+
+    // Generate personal QR code
+    const qrContainer = document.getElementById('personal-qr-code');
+    if (qrContainer && user.uuid) {
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+            text: 'suggesto_client:' + user.uuid,
+            width: 200,
+            height: 200,
+            colorDark: '#0a0a1a',
+            colorLight: '#ffffff'
+        });
+    }
 
     // Mock points per club for demonstration
     const clubPointsContainer = document.getElementById('per-club-points');
@@ -2179,30 +3136,34 @@ function initFilters() {
 function renderLocalClubs() {
     const container = document.getElementById('local-clubs-container');
     const noLocal = document.getElementById('no-local-clubs');
-    const titleEl = document.getElementById('local-clubs-title');
+    const titleEl = document.getElementById('header-title');
     if (!container) return;
 
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
-    const userCity = user?.city || '';
+    try {
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const userCity = user?.city || '';
 
-    if (titleEl && userCity) {
-        titleEl.textContent = 'Boîtes à ' + userCity;
-    }
+        if (titleEl && userCity) {
+            titleEl.textContent = t('dashboard.clubs_in') + ' ' + userCity;
+        }
 
-    const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];
+        const local = userCity ? nightclubs.filter(c => c.city.toLowerCase() === userCity.toLowerCase()) : [];
 
-    if (local.length === 0) {
+        if (local.length === 0) {
+            container.innerHTML = '';
+            if (noLocal) noLocal.style.display = 'block';
+            return;
+        }
+
+        if (noLocal) noLocal.style.display = 'none';
         container.innerHTML = '';
-        if (noLocal) noLocal.style.display = 'block';
-        return;
+        local.forEach(club => {
+            container.innerHTML += buildClubCard(club);
+        });
+    } catch (e) {
+        console.error('renderLocalClubs error:', e);
     }
-
-    if (noLocal) noLocal.style.display = 'none';
-    container.innerHTML = '';
-    local.forEach(club => {
-        container.innerHTML += buildClubCard(club);
-    });
 }
 
 function renderFavoritesView() {
@@ -2227,7 +3188,7 @@ function renderFavoritesView() {
 
 function buildClubCard(club) {
     const isFav = favorites.includes(club.id);
-    const statusText = club.status === 'open' ? 'Ouvert' : 'Ferm\u00e9';
+    const statusText = club.status === 'open' ? t('dashboard.open') : t('dashboard.closed');
     return '<div class="club-card" onclick="openClubModal(\'' + club.id + '\')">'
         + '<button class="btn-fav ' + (isFav ? 'active' : '') + '" onclick="event.stopPropagation(); toggleFavorite(\'' + club.id + '\')">'
         + '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>'
@@ -2263,7 +3224,7 @@ function openClubModal(clubId) {
         
         <div class="modal-content-inner">
             <div class="detail-section">
-                <h4>À propos de l'établissement</h4>
+                <h4>${t('biz.about_venue')}</h4>
                 <p class="text-dim">${club.generalDesc}</p>
                 <a href="https://instagram.com/${club.instagram.replace('@','')}" target="_blank" class="insta-link">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -2273,11 +3234,11 @@ function openClubModal(clubId) {
 
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label">Entrée</span>
+                    <span class="detail-label">${t('biz.entry_price')}</span>
                     <span class="detail-val">${club.price}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Public</span>
+                    <span class="detail-label">${t('biz.public_live')}</span>
                     <span class="detail-val">${club.count} pers.</span>
                 </div>
             </div>
@@ -2299,7 +3260,7 @@ function openClubModal(clubId) {
 
             <div class="detail-section">
                 <div class="theme-header">
-                    <span class="theme-tag">SOIRÉE ACTUELLE</span>
+                    <span class="theme-tag">${t('biz.current_party')}</span>
                     <h4>${club.theme}</h4>
                 </div>
                 <p class="text-small">${club.nightDesc}</p>
@@ -2320,7 +3281,7 @@ function openClubModal(clubId) {
             </div>
 
             <button class="btn-primary btn-rewards-modal" onclick="openRewardsPopup('${club.id}')" style="width:100%; margin-top:20px;">
-                \u{1F381} Voir les rewards disponibles
+                \u{1F381} ${t('rewards.see_rewards')}
             </button>
         </div>
     `;
@@ -2344,7 +3305,7 @@ function openRewardsPopup(clubId) {
         + '</div></div>';
 
     if (affordable.length > 0) {
-        html += '<h4 class="rewards-popup-subtitle">Tu peux obtenir :</h4>';
+        html += '<h4 class="rewards-popup-subtitle">' + t('rewards.you_can_get') + '</h4>';
         html += '<div class="rewards-popup-grid">';
         affordable.forEach(function(r) {
             html += '<div class="rewards-popup-item affordable">'
@@ -2358,20 +3319,20 @@ function openRewardsPopup(clubId) {
 
     const notAffordable = rewards.filter(r => userPoints < r.points);
     if (notAffordable.length > 0) {
-        html += '<h4 class="rewards-popup-subtitle" style="margin-top:16px;">Toutes les rewards de la bo\u00eete :</h4>';
+        html += '<h4 class="rewards-popup-subtitle" style="margin-top:16px;">' + t('rewards.all_rewards') + '</h4>';
         html += '<div class="rewards-popup-grid">';
         notAffordable.forEach(function(r) {
             html += '<div class="rewards-popup-item locked">'
                 + '<div class="rewards-popup-img" style="background-image: url(\'' + (r.image || '') + '\')"></div>'
                 + '<div class="rewards-popup-info"><span class="rewards-popup-name">' + r.name + '</span>'
                 + '<span class="rewards-popup-cost">' + r.points + ' pts</span></div>'
-                + '<span class="rewards-popup-lock">\u{1F512} ' + (r.points - userPoints) + ' pts manquants</span></div>';
+                + '<span class="rewards-popup-lock">\u{1F512} ' + t('rewards.not_enough') + '</span></div>';
         });
         html += '</div>';
     }
 
     if (rewards.length === 0) {
-        html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">Aucune reward disponible pour cette bo\u00eete.</p>';
+        html += '<p style="text-align:center; color:var(--text-dim); padding:20px;">' + t('rewards.no_rewards') + '</p>';
     }
 
     var rewardsBody = document.querySelector('#rewards-popup-modal .modal-body');
@@ -2614,7 +3575,7 @@ function renderKioskGrids(rewards, products) {
     const userPts = parseInt(document.getElementById('bar-user-points-val')?.textContent) || 0;
 
     rGrid.innerHTML = rewards.length === 0
-        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucune récompense disponible.</p>'
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">' + t('kiosk.no_rewards_available') + '</p>'
         : '';
 
     rewards.forEach(r => {
@@ -2636,7 +3597,7 @@ function renderKioskGrids(rewards, products) {
     });
 
     pGrid.innerHTML = products.length === 0
-        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">Aucun produit disponible.</p>'
+        ? '<p class="text-dim" style="grid-column:1/-1; text-align:center; padding:20px;">' + t('kiosk.no_products_available') + '</p>'
         : '';
 
     products.forEach(p => {
@@ -2935,49 +3896,112 @@ async function validateBarmanOrder() {
 }
 
 // ----- Section Switching -----
+let _bizSwitchTimer = null;
 function switchBizSection(sectionId) {
-    console.log('Switching to biz section:', sectionId);
-    
-    // Close sidebar on mobile
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar && sidebar.classList.contains('active')) {
-        toggleSidebar();
+    // Debounce rapid switching to avoid lag on mobile
+    if (_bizSwitchTimer) clearTimeout(_bizSwitchTimer);
+
+    // Close biz menu if open
+    const bizMenu = document.getElementById('biz-side-menu');
+    if (bizMenu && bizMenu.classList.contains('open')) {
+        toggleBizMenu();
     }
 
-    // Update active states
+    // Stop scanner if leaving scan section
+    if (html5QrScanner) stopClientScanner();
+
+    // Update active states immediately (lightweight DOM ops)
     document.querySelectorAll('.biz-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.sidebar-nav .nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('#biz-side-menu .menu-link').forEach(l => l.classList.remove('active'));
 
     const section = document.getElementById(`biz-section-${sectionId}`);
     if (section) {
         section.classList.add('active');
-        
-        // Find corresponding nav item
-        const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
-        navItems.forEach(item => {
-            if (item.getAttribute('onclick')?.includes(sectionId)) {
-                item.classList.add('active');
-            }
-        });
+        const link = document.getElementById(`biz-link-${sectionId}`);
+        if (link) link.classList.add('active');
 
-        // Initialize section data if needed
-        if (sectionId === 'annonces') initAnnouncementEditor();
-        if (sectionId === 'calendrier') renderCalendar();
-        if (sectionId === 'stats') updateStats();
-        if (sectionId === 'qrcodes') generateBusinessQRCodes();
-        if (sectionId === 'produits') renderProductsList();
+        // Update header title immediately
+        const titleMap = {
+            annonces: t('nav.annonces'),
+            calendrier: t('nav.calendar'),
+            rewards: t('nav.rewards'),
+            produits: t('nav.products'),
+            commandes: 'Scan',
+            stats: t('nav.stats'),
+            qrcodes: t('nav.my_qr')
+        };
+        const headerTitle = document.getElementById('biz-header-title');
+        if (headerTitle) headerTitle.textContent = titleMap[sectionId] || sectionId;
+
+        // Defer heavy rendering to next frame so the UI switch feels instant
+        _bizSwitchTimer = setTimeout(() => {
+            _bizSwitchTimer = null;
+            if (sectionId === 'annonces') initAnnouncementEditor();
+            if (sectionId === 'calendrier') renderCalendar();
+            if (sectionId === 'stats') updateStats();
+            if (sectionId === 'qrcodes') generateBusinessQRCodes();
+            if (sectionId === 'produits') renderProductsList();
+            if (sectionId === 'commandes') startClientScanner();
+        }, 30);
     }
 }
 
+function toggleBizMenu() {
+    const menu = document.getElementById('biz-side-menu');
+    const overlay = document.getElementById('biz-menu-overlay');
+    if (menu) menu.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('open');
+}
+
+// Keep toggleSidebar for backward compat (in case other code references it)
 function toggleSidebar() {
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.querySelector('.sidebar-overlay');
-    if (sidebar) sidebar.classList.toggle('active');
-    if (overlay) overlay.classList.toggle('active');
+    toggleBizMenu();
+}
+
+// Re-render active biz section (called on language change)
+function refreshActiveBizSection() {
+    const activeSection = document.querySelector('.biz-section.active');
+    if (!activeSection) return;
+    const id = activeSection.id.replace('biz-section-', '');
+    if (id === 'annonces') { renderTemplatesGrid(); initAnnouncementEditor(); }
+    if (id === 'rewards') { renderRewardsList(); }
+    if (id === 'produits') { renderProductsList(); }
+    if (id === 'calendrier') { renderCalendar(); }
+    if (id === 'stats') { updateStats(); }
+    if (id === 'qrcodes') { generateBusinessQRCodes(); }
+    // Update header title
+    const titleMap = {
+        annonces: t('nav.annonces'),
+        calendrier: t('nav.calendar'),
+        rewards: t('nav.rewards'),
+        produits: t('nav.products'),
+        commandes: t('nav.orders'),
+        stats: t('nav.stats'),
+        qrcodes: t('nav.my_qr')
+    };
+    const headerTitle = document.getElementById('biz-header-title');
+    if (headerTitle) headerTitle.textContent = titleMap[id] || id;
+}
+
+// Re-render active fêtard view (called on language change)
+function refreshActiveFetardView() {
+    const activeView = document.querySelector('.main-view.active');
+    if (!activeView) return;
+    const id = activeView.id.replace('-view', '');
+    if (id === 'home') renderLocalClubs();
+    if (id === 'search') { renderClubs(); }
+    if (id === 'favorites') renderFavoritesView();
+    if (id === 'code') renderProfile();
+    // Update header title
+    const headerTitle = document.getElementById('header-title');
+    if (headerTitle) {
+        const titleMap = { home: t('nav.home'), search: t('nav.search'), favorites: t('nav.favorites'), code: t('nav.code'), qr: t('nav.qr') };
+        headerTitle.textContent = titleMap[id] || headerTitle.textContent;
+    }
 }
 
 // ----- Business Dashboard Management -----
-function showBusinessDashboard() {
+async function showBusinessDashboard() {
     const authScreen = document.getElementById('business-auth-screen');
     const dashboardScreen = document.getElementById('business-dashboard-screen');
 
@@ -2989,16 +4013,23 @@ function showBusinessDashboard() {
         dashboardScreen.classList.add('active');
         dashboardScreen.style.display = 'block';
     }
-    
+
     if (currentBusiness) {
-        document.getElementById('biz-club-name').textContent = currentBusiness.name || currentBusiness.nom || 'Club';
-        
+        const bizName = currentBusiness.name || currentBusiness.nom || 'Club';
+        const bizClubName = document.getElementById('biz-club-name');
+        if (bizClubName) bizClubName.textContent = bizName;
+        const bizDisplayName = document.getElementById('biz-display-name');
+        if (bizDisplayName) bizDisplayName.textContent = bizName;
+
         // Sync local arrays with currentBusiness data
         bizTemplates = currentBusiness.bizTemplates || [];
         announcementTemplates = currentBusiness.announcementTemplates || [];
-        bizRewards = currentBusiness.rewards || [];
         bizProducts = currentBusiness.products || [];
         bizSchedule = currentBusiness.schedule || {};
+
+        // Load rewards from Supabase (source of truth)
+        await loadBizRewards();
+        renderRewardsList();
     }
 
     // Default view
@@ -3212,7 +4243,7 @@ function renderProductsList() {
     }
 
     if (filtered.length === 0) {
-        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? 'Aucun produit dans cette catégorie.' : 'Aucun produit créé.'}</p>`;
+        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? t('biz.no_product_category') : t('biz.no_product')}</p>`;
         return;
     }
 

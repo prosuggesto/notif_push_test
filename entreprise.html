@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Suggesto — Espace Entreprise</title>
     <!-- PWA & iOS Support -->
     <link rel="manifest" href="manifest.json">
@@ -15,33 +18,63 @@
     <meta name="description" content="Espace de gestion pour les établissements partenaires Suggesto.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="entreprise-style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script src="supabase.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
-          allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: true,
-          },
-        });
+      // Delay OneSignal loading until after page is fully interactive
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+          s.defer = true;
+          s.onload = function() {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(async function(OneSignal) {
+              await OneSignal.init({
+                appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: { enable: false },
+                promptOptions: {
+                  slidedown: {
+                    prompts: [{
+                      type: "push",
+                      autoPrompt: true,
+                      text: {
+                        actionMessage: "Recevez les notifications de votre établissement.",
+                        acceptButton: "Activer",
+                        cancelButton: "Plus tard"
+                      },
+                      delay: { pageViews: 1, timeDelay: 0 }
+                    }]
+                  }
+                }
+              });
+              try {
+                if (OneSignal.Notifications && OneSignal.Notifications.permission === false) {
+                  if (OneSignal.Slidedown && typeof OneSignal.Slidedown.promptPush === 'function') {
+                    await OneSignal.Slidedown.promptPush({ force: true });
+                  } else if (OneSignal.Notifications.requestPermission) {
+                    await OneSignal.Notifications.requestPermission();
+                  }
+                }
+              } catch (e) {
+                console.warn("OneSignal prompt failed:", e);
+              }
+            });
+          };
+          document.head.appendChild(s);
+        }, 2000);
       });
     </script>
 </head>
 <body class="view-entreprise">
-    <!-- Language Selector -->
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
-        <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
-            <option value="fr" style="color: black;">FR</option>
-            <option value="en" style="color: black;">EN</option>
-            <option value="es" style="color: black;">ES</option>
-        </select>
-    </div>
+    <!-- Language selector moved to sidebar -->
     <!-- ==================== ENTREPRISE VIEW ==================== -->
     <div id="entreprise-view">
         <div class="auth-bg">
@@ -68,41 +101,59 @@
 
                 <!-- Business Login -->
                 <form id="business-login-form" class="auth-form active" onsubmit="handleBusinessLogin(event)">
-                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Entrez votre mot de passe pour accéder à votre espace.</p>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <input type="email" id="biz-login-email" placeholder="email@votreclub.com" required>
+                        </div>
+                    </div>
                     <div class="input-group">
                         <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            <input type="password" id="biz-login-password" placeholder="Votre mot de passe club" required>
+                            <input type="password" id="biz-login-password" placeholder="Votre mot de passe club" data-i18n="auth.biz_login_password" required>
                         </div>
                     </div>
                     <button type="submit" class="btn-primary" id="biz-login-btn" data-i18n="auth.biz_login">Se connecter</button>
+                    <div class="auth-divider"><span>ou</span></div>
+                    <button type="button" class="btn-google" onclick="supabase.auth.signInWithOAuth('google')">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                        Continuer avec Google
+                    </button>
                     <div id="biz-login-message" class="form-message"></div>
                 </form>
 
                 <!-- Business Signup -->
                 <form id="business-signup-form" class="auth-form" onsubmit="handleBusinessSignup(event)">
-                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Inscrivez votre établissement sur Suggesto.</p>
+                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;" data-i18n="auth.biz_signup_title">Inscrivez votre établissement sur Suggesto.</p>
                     <div class="input-group">
                         <label data-i18n="auth.biz_name">Nom de la boîte de nuit</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/></svg>
-                            <input type="text" id="biz-signup-name" placeholder="Ex: Le Macumba" required>
+                            <input type="text" id="biz-signup-name" placeholder="Ex: Le Macumba" data-i18n="auth.biz_name_placeholder" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <input type="email" id="biz-signup-email" placeholder="email@votreclub.com" required>
                         </div>
                     </div>
                     <div class="registration-grid">
                         <div class="input-group">
-                            <label for="biz-signup-city">Ville</label>
+                            <label for="biz-signup-city" data-i18n="auth.city">Ville</label>
                             <div class="input-wrapper">
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <input type="text" id="biz-signup-city" placeholder="Ville de l'établissement" required>
+                                <input type="text" id="biz-signup-city" placeholder="Ville de l'établissement" data-i18n="auth.biz_city_placeholder" required>
                             </div>
                         </div>
                         <div class="input-group">
-                            <label for="biz-signup-country">Pays</label>
+                            <label for="biz-signup-country" data-i18n="auth.country">Pays</label>
                             <div class="input-wrapper">
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                                <input type="text" id="biz-signup-country" placeholder="Pays" required>
+                                <input type="text" id="biz-signup-country" placeholder="Pays" data-i18n="auth.country" required>
                             </div>
                         </div>
                     </div>
@@ -110,7 +161,7 @@
                         <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            <input type="password" id="biz-signup-password" placeholder="Définissez votre mot de passe" required>
+                            <input type="password" id="biz-signup-password" placeholder="Définissez votre mot de passe" data-i18n="auth.biz_password_placeholder" required>
                             <button type="button" class="toggle-password" onclick="togglePassword('biz-signup-password', this)">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
@@ -119,76 +170,142 @@
                     <button type="submit" class="btn-primary" id="biz-signup-btn" data-i18n="auth.biz_signup">Créer mon compte</button>
                     <div id="biz-signup-message" class="form-message"></div>
                 </form>
+
+                <!-- OAuth Enrichment Form (shown after Google login when no profile exists yet) -->
+                <form id="biz-oauth-enrich-form" class="auth-form" onsubmit="handleOAuthEnrichBusiness(event)" style="display:none;">
+                    <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">
+                        Bienvenue ! Finalisez votre inscription en complétant les informations manquantes.
+                    </p>
+                    <div class="input-group">
+                        <label>Email</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            <input type="email" id="biz-oauth-enrich-email" placeholder="email@votreclub.com" readonly>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Nom de la boîte de nuit</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M10 21V7l8-4v18"/></svg>
+                            <input type="text" id="biz-oauth-enrich-name" placeholder="Ex: Le Macumba" required>
+                        </div>
+                    </div>
+                    <div class="registration-grid">
+                        <div class="input-group">
+                            <label>Ville</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <input type="text" id="biz-oauth-enrich-city" placeholder="Ville de l'établissement" required>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Pays</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                <input type="text" id="biz-oauth-enrich-country" placeholder="Pays" required>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="biz-oauth-enrich-btn">Finaliser mon inscription</button>
+                    <button type="button" class="btn-secondary" onclick="cancelOAuthEnrich(true)" style="margin-top: 10px; width: 100%; background: transparent; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; cursor: pointer;">
+                        Annuler
+                    </button>
+                    <div id="biz-oauth-enrich-message" class="form-message"></div>
+                </form>
             </div>
         </div>
 
         <!-- Business Dashboard (HIDDEN INITIALLY) -->
         <div id="business-dashboard-screen" class="screen">
-            <!-- Sidebar Navigation -->
-            <aside class="sidebar">
-                <div class="sidebar-header">
-                    <div class="biz-logo-sm">S</div>
-                    <span id="biz-club-name">Pro Space</span>
+
+            <!-- ==================== BIZ SIDE MENU ==================== -->
+            <div id="biz-side-menu" class="side-menu">
+                <div class="menu-header">
+                    <h3>Menu</h3>
+                    <button class="btn-close-menu" onclick="toggleBizMenu()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
                 </div>
-                <nav class="sidebar-nav">
-                    <button class="nav-item active" onclick="switchBizSection('annonces')">
+                <div class="menu-links">
+                    <button class="menu-link active" onclick="switchBizSection('annonces')" id="biz-link-annonces" data-i18n="nav.annonces">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                        <span data-i18n="nav.annonces">Mes Annonces</span>
+                        Mes Annonces
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('calendrier')">
+                    <button class="menu-link" onclick="switchBizSection('calendrier')" id="biz-link-calendrier" data-i18n="nav.calendar">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <span data-i18n="nav.calendar">Calendrier</span>
+                        Calendrier
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('rewards')">
+                    <button class="menu-link" onclick="switchBizSection('rewards')" id="biz-link-rewards" data-i18n="nav.rewards">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                        <span data-i18n="nav.rewards">Rewards</span>
+                        Rewards
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('produits')">
+                    <button class="menu-link" onclick="switchBizSection('produits')" id="biz-link-produits" data-i18n="nav.products">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                        <span data-i18n="nav.products">Produits</span>
+                        Produits
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('commandes')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-                        <span data-i18n="nav.orders">Commande</span>
+                    <button class="menu-link" onclick="switchBizSection('commandes')" id="biz-link-commandes">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Scan
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('stats')">
+                    <button class="menu-link" onclick="switchBizSection('stats')" id="biz-link-stats" data-i18n="nav.stats">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-                        <span data-i18n="nav.stats">Stats</span>
+                        Stats
                     </button>
-                    <button class="nav-item" onclick="switchBizSection('qrcodes')">
+                    <button class="menu-link" onclick="switchBizSection('qrcodes')" id="biz-link-qrcodes" data-i18n="nav.my_qr">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                        <span data-i18n="nav.my_qr">Mes QR Codes</span>
-                    </button>
-                </nav>
-                <div class="sidebar-footer">
-                    <button class="btn-logout-biz" onclick="handleBusinessLogout()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        <span data-i18n="common.logout">Déconnexion</span>
+                        Mes QR Codes
                     </button>
                 </div>
-            </aside>
+                <div class="menu-footer">
+                    <button class="btn-logout" onclick="handleBusinessLogout()" data-i18n="common.logout">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        Déconnexion
+                    </button>
+                </div>
+            </div>
+            <div id="biz-menu-overlay" class="menu-overlay" onclick="toggleBizMenu()"></div>
+
+            <!-- Dashboard Header (same style as fêtard) -->
+            <header class="dash-header biz-dash-header">
+                <div class="dash-header-left">
+                    <button class="btn-burger" onclick="toggleBizMenu()">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <div class="logo-title">
+                        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                            <rect width="40" height="40" rx="12" fill="url(#logo-grad-biz)"/>
+                            <path d="M12 20C12 15.58 15.58 12 20 12C24.42 12 28 15.58 28 20C28 24.42 24.42 28 20 28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle cx="20" cy="20" r="3" fill="white"/>
+                            <defs>
+                                <linearGradient id="logo-grad-biz" x1="0" y1="0" x2="40" y2="40">
+                                    <stop stop-color="#6366f1"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <h2 id="biz-header-title">Mes Annonces</h2>
+                    </div>
+                </div>
+                <div class="dash-header-right">
+                    <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; outline: none; cursor: pointer; font-size: 13px;">
+                        <option value="fr" style="color: black;">FR</option>
+                        <option value="en" style="color: black;">EN</option>
+                        <option value="es" style="color: black;">ES</option>
+                    </select>
+                    <span id="biz-display-name" class="user-badge">Club</span>
+                </div>
+            </header>
 
             <!-- Main Content Area -->
             <main class="biz-content">
-            <div class="sidebar-overlay" onclick="toggleSidebar()"></div> 
-            <!-- Floating Burger Button -->
-            <button id="sidebar-toggle" class="btn-burger floating-burger" onclick="toggleSidebar()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-
-            <!-- Section: Mes Annonces -->
             <section id="biz-section-annonces" class="biz-section active">
                     <div class="annonces-layout-split">
                         <!-- Left Side: The Preview Editor Card -->
                         <div class="editor-section">
                             <div class="preview-container editor-mode">
                                 <div class="editor-header">
-                                    <h3 class="card-title">Édition Directe</h3>
-                                    <p class="text-dim" style="font-size: 13px;">Cliquez sur la carte pour la personnaliser.</p>
+                                <h3 class="card-title" data-i18n="biz.direct_edition">Édition Directe</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.click_to_customize">Cliquez sur la carte pour la personnaliser.</p>
                                 </div>
                                 
                                 <div id="annonces-preview-card" class="modal-content" style="position: static; transform: none; width: 100%; max-width: 420px; margin: 0 auto;">
@@ -196,21 +313,21 @@
                                 </div>
 
                                 <div class="biz-actions" style="margin-top: 24px; justify-content: center;">
-                                    <button type="button" class="btn-primary" onclick="handleSaveTemplate(event)" style="width: 100%; max-width: 420px;">Enregistrer comme Template</button>
+                                    <button type="button" class="btn-primary" onclick="handleSaveTemplate(event)" style="width: 100%; max-width: 420px;" data-i18n="biz.save_as_template">Enregistrer comme Template</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="templates-section">
                             <div class="section-header" style="text-align: center;">
-                                <h3 class="card-title">Mes Templates</h3>
-                                <p class="text-dim" style="font-size: 13px;">Gérez vos templates enregistrés.</p>
+                                <h3 class="card-title" data-i18n="biz.my_templates">Mes Templates</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.manage_templates">Gérez vos templates enregistrés.</p>
                             </div>
                             
                             <div class="template-management-bar">
                                 <div class="search-wrapper">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                                    <input type="text" id="tpl-search" placeholder="Rechercher un template..." oninput="handleTemplateSearch(event)">
+                                    <input type="text" id="tpl-search" placeholder="Rechercher un template..." data-i18n="biz.search_template_placeholder" oninput="handleTemplateSearch(event)">
                                 </div>
                                 <div id="bulk-actions" class="bulk-actions" style="display: none;">
                                     <span id="selected-count">0 sélectionné(s)</span>
@@ -254,7 +371,7 @@
                                 </button>
                             </div>
                             <div class="gcal-actions-bar">
-                                <button class="gcal-today-btn" onclick="goToToday()">Aujourd'hui</button>
+                                <button class="gcal-today-btn" onclick="goToToday()" data-i18n="common.today">Aujourd'hui</button>
                                 <span id="gcal-selected-count" class="gcal-sel-badge" style="display:none;">0 sélectionné(s)</span>
                                 <button id="gcal-delete-selected" class="gcal-delete-btn" style="display:none;" onclick="deleteSelectedTemplates()">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
@@ -263,8 +380,8 @@
                             </div>
                         </div>
                         <!-- Weekday Labels -->
-                        <div class="gcal-weekdays">
-                            <div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div><div>Sam</div><div>Dim</div>
+                        <div class="gcal-weekdays" id="gcal-weekday-labels">
+                            <div data-i18n="calendar.mon">Lun</div><div data-i18n="calendar.tue">Mar</div><div data-i18n="calendar.wed">Mer</div><div data-i18n="calendar.thu">Jeu</div><div data-i18n="calendar.fri">Ven</div><div data-i18n="calendar.sat">Sam</div><div data-i18n="calendar.sun">Dim</div>
                         </div>
                         <!-- Calendar Grid -->
                         <div id="biz-calendar-grid" class="gcal-grid">
@@ -280,50 +397,57 @@
                         <div class="rewards-create-panel">
                             <div class="preview-container editor-mode">
                                 <div class="editor-header">
-                                    <h3 class="card-title">Créer une Récompense</h3>
-                                    <p class="text-dim" style="font-size: 13px;">Remplissez les informations ci-dessous.</p>
+                                    <h3 class="card-title" data-i18n="biz.create_reward">Créer une Récompense</h3>
+                                    <p class="text-dim" style="font-size: 13px;" data-i18n="biz.reward_info">Remplissez les informations ci-dessous.</p>
                                 </div>
                                 <form id="biz-reward-form" onsubmit="handleCreateReward(event)">
                                     <!-- Image Upload -->
                                     <div class="rew-image-upload" onclick="document.getElementById('rew-image-input').click()">
                                         <div id="rew-image-preview" class="rew-image-placeholder">
                                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                            <span>Ajouter une image</span>
+                                            <span data-i18n="biz.add_image">Ajouter une image</span>
                                         </div>
                                         <input type="file" id="rew-image-input" accept="image/*" style="display:none" onchange="handleRewardImageUpload(event)">
                                         <input type="hidden" id="rew-image" value="">
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Nom de la récompense</label>
+                                        <label data-i18n="biz.reward_name">Nom de la récompense</label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                                             <input type="text" id="rew-name" placeholder="Ex: Shot de bienvenue" required>
                                         </div>
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Points nécessaires pour obtention</label>
+                                        <label data-i18n="biz.reward_points">Points nécessaires pour obtention</label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                                             <input type="number" id="rew-points" placeholder="Ex: 100" required>
                                         </div>
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Prix de base du produit (avant rewards)</label>
+                                        <label data-i18n="biz.reward_base_price">Prix de base du produit (avant rewards)</label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                                             <input type="text" id="rew-base-price" placeholder="Ex: 8€">
                                         </div>
                                     </div>
                                     <div class="input-group" style="margin-top: 16px;">
-                                        <label>Code ID <span style="color: var(--text-dim); font-weight: 400;">(optionnel — pour la caisse)</span></label>
+                                        <label>Prix après application de la réduction</label>
+                                        <div class="input-wrapper">
+                                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>
+                                            <input type="text" id="rew-discounted-price" placeholder="Ex: 5€">
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="margin-top: 16px;">
+                                        <label><span data-i18n="biz.reward_code">Code ID</span> <span style="color: var(--text-dim); font-weight: 400;" data-i18n="biz.reward_code_hint">(optionnel — pour la caisse)</span></label>
                                         <div class="input-wrapper">
                                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                                             <input type="text" id="rew-code" placeholder="Ex: SHOOT1">
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn-primary" style="margin-top: 24px;">
+                                    <button type="submit" class="btn-primary" style="margin-top: 24px;" data-i18n="biz.create_reward_btn">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                                        Créer la récompense
+                                        Créer la r��compense
                                     </button>
                                 </form>
                             </div>
@@ -332,8 +456,8 @@
                         <!-- Right: Rewards Grid -->
                         <div class="rewards-list-panel">
                             <div class="section-header" style="text-align: center;">
-                                <h3 class="card-title">Mes Récompenses</h3>
-                                <p class="text-dim" style="font-size: 13px;">Gérez vos récompenses créées.</p>
+                                <h3 class="card-title" data-i18n="biz.my_rewards">Mes Récompenses</h3>
+                                <p class="text-dim" style="font-size: 13px;" data-i18n="biz.manage_rewards">Gérez vos récompenses créées.</p>
                             </div>
                             <div id="biz-rewards-grid" class="rewards-grid">
                                 <!-- Rewards dynamically added here -->
@@ -348,31 +472,42 @@
                     <div class="products-split-layout">
                         <div class="products-create-panel">
                             <div class="products-panel-header">
-                                <h3>Créer un nouveau produit</h3>
-                                <p class="text-dim">Ajoutez un produit à votre carte.</p>
+                            <div class="section-header" style="">
+                                <h3 data-i18n="biz.create_product">Créer un nouveau produit</h3>
+                                <p class="text-dim" data-i18n="biz.add_product_desc">Ajoutez un produit à votre carte.</p>
                             </div>
-                            <div class="biz-card">
+                            </div>
+                            <form id="biz-product-form" onsubmit="event.preventDefault(); handleCreateProduct();">
                                 <div class="rew-image-upload product-image-upload" onclick="document.getElementById('product-image-input').click()">
                                     <input type="file" id="product-image-input" style="display:none" accept="image/*" onchange="handleProductImageUpload(event)">
                                     <div id="product-image-placeholder" class="rew-image-placeholder">
                                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                        <span>Ajouter une image</span>
+                                        <span data-i18n="biz.add_image">Ajouter une image</span>
                                     </div>
                                 </div>
-                                <div class="input-group" style="margin-top:16px;">
-                                    <label>Nom du produit</label>
-                                    <input type="text" id="product-name" placeholder="Ex: Cocktail Maison" class="biz-textarea">
+                                <div class="input-group" style="margin-top: 16px;">
+                                    <label data-i18n="biz.product_name">Nom du produit</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                                        <input type="text" id="product-name" data-i18n="biz.product_name" placeholder="Ex: Cocktail Maison" required>
+                                    </div>
                                 </div>
-                                <div class="input-group" style="margin-top:12px;">
-                                    <label>Prix</label>
-                                    <input type="text" id="product-price" placeholder="Ex: 12€" class="biz-textarea">
+                                <div class="input-group" style="margin-top: 16px;">
+                                    <label data-i18n="biz.price">Prix</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                                        <input type="text" id="product-price" data-i18n="biz.price" placeholder="Ex: 12€" required>
+                                    </div>
                                 </div>
-                                <div class="input-group" style="margin-top:12px;">
-                                    <label>Description</label>
-                                    <textarea id="product-desc" placeholder="Description du produit..." class="biz-textarea" style="min-height: 70px;"></textarea>
+                                <div class="input-group" style="margin-top: 16px;">
+                                    <label data-i18n="biz.description">Description</label>
+                                    <div class="input-wrapper">
+                                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        <textarea id="product-desc" data-i18n="biz.description" placeholder="Description du produit..." style="min-height: 70px; padding-left: 44px;"></textarea>
+                                    </div>
                                 </div>
-                                <div class="input-group" style="margin-top:12px;">
-                                    <label>Catégorie</label>
+                                <div class="input-group" style="margin-top: 16px;">
+                                    <label data-i18n="biz.category">Catégorie</label>
                                     <div class="category-select-row">
                                         <div class="custom-select-wrapper" id="product-category-wrapper" style="flex:1;">
                                             <div class="select-trigger" onclick="toggleCustomSelect('product-category-wrapper')">
@@ -388,27 +523,27 @@
                                         <button type="button" class="btn-add-category" onclick="addNewProductCategory()">+ Nouvelle</button>
                                     </div>
                                 </div>
-                                <button class="btn-primary" style="margin-top:20px; width:100%;" onclick="handleCreateProduct()">
+                                <button type="submit" class="btn-primary" style="margin-top: 24px; width:100%;" data-i18n="biz.create_btn">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                                     Créer le produit
                                 </button>
-                            </div>
+                            </form>
                         </div>
 
                         <!-- Right: Products Grid -->
                         <div class="rewards-list-panel">
                             <div class="products-panel-header">
-                                <h3>Mes Produits</h3>
-                                <p class="text-dim">Gérez les produits de votre établissement.</p>
+                                <h3 data-i18n="biz.my_products">Mes Produits</h3>
+                                <p class="text-dim" data-i18n="biz.manage_products">Gérez les produits de votre établissement.</p>
                             </div>
                             <div class="product-filter-bar">
                                 <div class="custom-select-wrapper" id="product-filter-wrapper">
                                     <div class="select-trigger" onclick="toggleCustomSelect('product-filter-wrapper')">
-                                        <span class="select-value" id="product-filter-value">Toutes les catégories</span>
+                                        <span class="select-value" id="product-filter-value" data-i18n="biz.all_categories">Toutes les catégories</span>
                                         <span class="dropdown-arrow">▼</span>
                                     </div>
                                     <div class="select-options" id="product-filter-options">
-                                        <div class="select-option selected" data-value="all" onclick="selectProductFilter('all')">Toutes les catégories</div>
+                                        <div class="select-option selected" data-value="all" onclick="selectProductFilter('all')" data-i18n="biz.all_categories">Toutes les catégories</div>
                                         <div class="select-option" data-value="Soft" onclick="selectProductFilter('Soft')">Soft</div>
                                         <div class="select-option" data-value="Alcool" onclick="selectProductFilter('Alcool')">Alcool</div>
                                         <div class="select-option" data-value="Snacks" onclick="selectProductFilter('Snacks')">Snacks</div>
@@ -422,79 +557,115 @@
                     </div>
                 </section>
 
-                <!-- Section: Commande (ex Give Rewards) -->
+                <!-- Section: Scan -->
                 <section id="biz-section-commandes" class="biz-section">
-                    <div class="section-header" style="padding-left: 60px;">
-                        <h2>Commandes</h2>
-                        <p>Saisissez le code client pour voir sa commande et la valider.</p>
+                    <!-- Tabs: Entrée / Bar / Sortie -->
+                    <div style="display: flex; justify-content: center; margin-bottom: 24px; position: relative; z-index: 20;">
+                        <div class="scan-tabs" style="display: inline-flex; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 4px; position: relative; z-index: 20;">
+                            <button class="scan-tab active" id="scan-tab-entree" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Entrée</button>
+                            <button class="scan-tab" id="scan-tab-bar" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Bar</button>
+                            <button class="scan-tab" id="scan-tab-sortie" style="padding: 10px 20px; border-radius: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">Sortie</button>
+                        </div>
                     </div>
-                    <div class="biz-card" style="max-width: 700px; margin: 0 auto;">
-                        <div class="search-box">
-                            <label>Code Client</label>
-                            <div class="input-row" style="display: flex; gap: 12px; margin-top: 8px;">
-                                <input type="text" id="biz-client-code-search" class="biz-textarea" style="min-height: 48px; flex: 1;" placeholder="Ex: ABC123">
-                                <button class="btn-primary" onclick="searchClientForCommande()" style="width: auto; padding: 0 24px;">Rechercher</button>
+
+                    <!-- Scanner (shared between all tabs) -->
+                    <div id="scan-camera-zone" style="max-width: 380px; margin: 0 auto; position: relative; z-index: 1;">
+                        <div id="biz-qr-reader" style="width: 100%; border-radius: 16px; overflow: hidden;"></div>
+                    </div>
+
+                    <!-- ENTRY RESULT (after scanning in Entrée mode) -->
+                    <div id="scan-entry-result" style="display: none; margin: 24px auto 0; max-width: 640px; padding: 0 16px 120px; position: relative; z-index: 40;">
+                        <!-- Client header -->
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 20px;">
+                            <div id="entry-client-initials" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0;">?</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <h3 id="entry-client-name" style="font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</h3>
+                                <span style="font-size: 11px; color: var(--primary-light); font-weight: 500;">Client fidélité</span>
+                            </div>
+                            <div style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); border-radius: 14px; flex-shrink: 0;">
+                                <strong id="entry-client-points" style="font-size: 15px; color: #fff; font-weight: 800; line-height: 1;">0</strong>
+                                <span style="font-size: 11px; color: var(--primary-light); font-weight: 600; line-height: 1;">pts</span>
                             </div>
                         </div>
 
-                        <div id="biz-client-result" class="client-result-card" style="display: none; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border);">
-                            <!-- Client Info Header -->
-                            <div class="client-info-header" style="text-align: center; margin-bottom: 24px;">
-                                <div class="client-avatar" style="width: 72px; height: 72px; background: linear-gradient(135deg, var(--primary), #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px; color: white;">👤</div>
-                                <h3 id="res-client-name" style="font-size: 20px; margin-bottom: 4px;">Nom du Client</h3>
-                                <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--primary-glow); padding: 8px 20px; border-radius: 20px; margin-top: 8px;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                                    <span id="res-client-points" style="color: var(--primary-light); font-weight: 800; font-size: 20px;">0</span>
-                                    <span style="color: var(--primary-light); font-weight: 500; font-size: 14px;">Points</span>
+                        <!-- Section title -->
+                        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                            <span style="font-size: 15px; font-weight: 700; color: #fff;">&#x1F381; Récompenses accessibles</span>
+                            <span style="font-size: 11px; color: var(--text-dim);">Touchez pour sélectionner</span>
+                        </div>
+
+                        <!-- Rewards list -->
+                        <div id="biz-commande-rewards" style="display: flex; flex-direction: column; gap: 10px;"></div>
+
+                        <!-- Sticky footer -->
+                        <div style="position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(12,12,30,0.96); backdrop-filter: blur(20px); border-top: 1px solid rgba(99,102,241,0.25); display: flex; align-items: center; gap: 10px; z-index: 50;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.05em;">À déduire</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #fff; line-height: 1;"><span id="biz-commande-total-pts">0</span> <span style="font-size: 12px; color: var(--text-dim); font-weight: 500;">pts</span></div>
+                            </div>
+                            <button type="button" id="btn-commande-cancel" onclick="cancelCommande()" style="flex: 0 0 auto; padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit;">J'utilise pas</button>
+                            <button type="button" id="btn-commande-validate" onclick="validateCommande()" style="flex: 0 0 auto; padding: 10px 16px; border-radius: 12px; background: var(--primary); border: none; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit;">Je les utilise</button>
+                        </div>
+                        <!-- hidden recap kept for legacy updateCommandeRecap() -->
+                        <div id="biz-commande-recap" style="display: none;"></div>
+                    </div>
+
+                    <!-- BAR RESULT (after scanning in Bar mode) -->
+                    <div id="scan-bar-result" style="display: none; max-width: 500px; margin: 24px auto 0;">
+                        <div class="biz-card" style="text-align: center; padding: 28px 24px;">
+                            <div class="client-avatar" style="width: 64px; height: 64px; background: linear-gradient(135deg, #34d399, #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; color: white;" id="bar-client-initials">?</div>
+                            <h3 id="bar-client-name" style="font-size: 18px; margin-bottom: 12px;">—</h3>
+                            <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 28px; font-weight: 800; color: var(--primary-light);" id="bar-client-points">0</div>
+                                    <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase;">Points</div>
+                                </div>
+                                <div style="width: 1px; background: var(--border);"></div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 28px; font-weight: 800; color: #34d399;" id="bar-client-commandes">0</div>
+                                    <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase;">Commandes</div>
                                 </div>
                             </div>
-
-                            <!-- Rewards taken by client -->
-                            <div style="margin-bottom: 24px;">
-                                <h4 style="font-size: 14px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">🎁 Rewards sélectionnés</h4>
-                                <div id="biz-commande-rewards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                    <!-- Rewards will be rendered here -->
-                                </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-primary" onclick="validateBarScan()" style="flex: 1; padding: 14px; font-size: 14px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                    Valider
+                                </button>
+                                <button class="btn-secondary" onclick="cancelBarScan()" style="flex: 1; padding: 14px; font-size: 14px;">Annuler</button>
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Order Summary -->
-                            <div id="biz-commande-summary" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-top: 16px;">
-                                <h4 style="font-size: 14px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">📋 Récap Commande</h4>
-                                <div id="biz-commande-recap">
-                                    <p style="font-size: 13px; color: var(--text-dim);">Aucune sélection pour le moment.</p>
-                                </div>
-                                <div style="border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-size: 14px; color: var(--text-dim);">Points à déduire</span>
-                                    <strong id="biz-commande-total-pts" style="font-size: 18px; color: #ef4444;">0 pts</strong>
-                                </div>
+                    <!-- SORTIE RESULT (after scanning in Sortie mode) -->
+                    <div id="scan-sortie-result" style="display: none; max-width: 500px; margin: 24px auto 0;">
+                        <div class="biz-card" style="text-align: center; padding: 28px 24px;">
+                            <div class="client-avatar" style="width: 64px; height: 64px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 24px; color: white;" id="sortie-client-initials">?</div>
+                            <h3 id="sortie-client-name" style="font-size: 18px; margin-bottom: 12px;">—</h3>
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">Confirmer la sortie de ce client ?</p>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-primary" onclick="validateSortie()" style="flex: 1; padding: 14px; font-size: 14px; background: #ef4444;">
+                                    Valider sortie
+                                </button>
+                                <button class="btn-secondary" onclick="cancelSortie()" style="flex: 1; padding: 14px; font-size: 14px;">
+                                    Annuler
+                                </button>
                             </div>
-
-                            <!-- Validate Button -->
-                            <button class="btn-primary" onclick="validateCommande()" style="margin-top: 24px; width: 100%; padding: 16px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                Valider la commande
-                            </button>
                         </div>
                     </div>
                 </section>
 
                 <!-- Section: Stats -->
                 <section id="biz-section-stats" class="biz-section">
-                    <div class="section-header" style="padding-left: 60px;">
-                        <h2>Statistiques</h2>
-                        <p>Analysez les performances de votre club.</p>
-                    </div>
-
                     <!-- Date Filter -->
                     <div class="stats-filter-container">
                         <div class="liquid-glass-select-wrap">
                             <select id="stats-date-filter" class="liquid-glass-select" onchange="updateStats()">
-                                <option value="always">Depuis toujours</option>
-                                <option value="year">Cette année</option>
-                                <option value="quarter">Ce trimestre</option>
-                                <option value="month" selected>Ce mois</option>
-                                <option value="week">Cette semaine</option>
-                                <option value="today">Aujourd'hui</option>
+                                <option value="always" data-i18n="biz.period_always">Depuis toujours</option>
+                                <option value="year" data-i18n="biz.period_year">Cette année</option>
+                                <option value="quarter" data-i18n="biz.period_quarter">Ce trimestre</option>
+                                <option value="month" data-i18n="biz.period_month" selected>Ce mois</option>
+                                <option value="week" data-i18n="biz.period_week">Cette semaine</option>
+                                <option value="today" data-i18n="biz.period_today">Aujourd'hui</option>
                             </select>
                         </div>
                     </div>
@@ -503,52 +674,52 @@
                     <div class="stats-bubbles-grid">
                         <div class="stat-bubble">
                             <span class="stat-bubble-val" id="stat-total-clients">0</span>
-                            <span class="stat-bubble-label">Total Clients</span>
+                            <span class="stat-bubble-label" data-i18n="biz.total_clients">Total Clients</span>
                         </div>
                         <div class="stat-bubble">
                             <span class="stat-bubble-val" id="stat-total-earnings">0€</span>
-                            <span class="stat-bubble-label">Total Gagné</span>
+                            <span class="stat-bubble-label" data-i18n="biz.total_earnings">Total Gagné</span>
                         </div>
                         <div class="stat-bubble">
                             <span class="stat-bubble-val" id="stat-rewards-cost">0</span>
-                            <span class="stat-bubble-label">Coût Total Rewards</span>
+                            <span class="stat-bubble-label" data-i18n="biz.rewards_cost">Coût Total Rewards</span>
                         </div>
                         <div class="stat-bubble">
                             <div class="pie-chart-container"></div>
-                            <span class="stat-bubble-label">Répartition H/F/NB</span>
+                            <span class="stat-bubble-label" data-i18n="biz.gender_split">Répartition H/F/NB</span>
                         </div>
                     </div>
 
                     <!-- Detailed Analysis -->
                     <div class="stats-card">
-                        <h3 class="card-title" style="margin-bottom: 20px;">Analyses Détaillées</h3>
+                        <h3 class="card-title" style="margin-bottom: 20px;" data-i18n="biz.detailed_analysis">Analyses Détaillées</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
                             <!-- Gender Bars -->
                             <div class="stat-sub-section">
-                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;">Répartition par Sexe</h4>
+                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;" data-i18n="biz.gender_repartition">Répartition par Sexe</h4>
                                 <div class="chart-container" style="height: 180px; display: flex; align-items: flex-end; gap: 20px; justify-content: space-around; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
                                     <div class="bar-group" style="text-align: center; flex: 1;">
                                         <div id="bar-m" style="height: 0%; width: 100%; max-width: 40px; background: #3b82f6; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Hommes</span>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_male">Hommes</span>
                                         <span id="val-m" style="font-size: 12px; font-weight: 700;">0%</span>
                                     </div>
                                     <div class="bar-group" style="text-align: center; flex: 1;">
                                         <div id="bar-f" style="height: 0%; width: 100%; max-width: 40px; background: #ec4899; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Femmes</span>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_female">Femmes</span>
                                         <span id="val-f" style="font-size: 12px; font-weight: 700;">0%</span>
                                     </div>
                                     <div class="bar-group" style="text-align: center; flex: 1;">
                                         <div id="bar-nb" style="height: 0%; width: 100%; max-width: 40px; background: #a855f7; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;">Non-binaire</span>
+                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_other">Autre</span>
                                         <span id="val-nb" style="font-size: 12px; font-weight: 700;">0%</span>
                                     </div>
                                 </div>
                             </div>
                             <!-- Rewards Usage -->
                             <div class="stat-sub-section">
-                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;">Utilisation des Rewards</h4>
+                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;" data-i18n="biz.rewards_usage">Utilisation des Rewards</h4>
                                 <div id="stats-rewards-list" style="display: flex; flex-direction: column; gap: 10px;">
-                                    <p style="font-size: 12px; color: var(--text-dim);">Aucune donnée pour cette période.</p>
+                                    <p style="font-size: 12px; color: var(--text-dim);" data-i18n="biz.no_data">Aucune donnée pour cette période.</p>
                                 </div>
                             </div>
                         </div>
@@ -557,33 +728,18 @@
 
                 <!-- Section: Mes QR Codes -->
                 <section id="biz-section-qrcodes" class="biz-section">
-                    <div class="biz-header">
-                        <h1>Mes QR Codes</h1>
-                        <p>Générez et téléchargez les QR codes de votre établissement.</p>
-                    </div>
                     <div class="qr-cards-grid">
+                        <!-- QR Code Entrée (unique) -->
                         <div class="biz-card qr-card">
                             <div class="qr-card-header">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                                <h3>QR Code Entrée</h3>
-                                <p class="text-dim" style="font-size: 13px;">Scannez pour valider l'entrée des clients.</p>
+                                <h3 data-i18n="biz.qr_entry">QR Code Entrée</h3>
+                                <p class="text-dim" style="font-size: 13px;">Les clients sans compte scannent ce QR pour s'inscrire et valider leur entrée.</p>
                             </div>
                             <div id="qr-code-entry" class="qr-display-box"></div>
                             <button class="btn-primary" onclick="downloadBusinessQR('qr-code-entry', 'QR-Entree')" style="margin-top: 16px; width: 100%;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                Télécharger
-                            </button>
-                        </div>
-                        <div class="biz-card qr-card">
-                            <div class="qr-card-header">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                                <h3>QR Code Bar</h3>
-                                <p class="text-dim" style="font-size: 13px;">Scannez pour commander au bar.</p>
-                            </div>
-                            <div id="qr-code-bar" class="qr-display-box"></div>
-                            <button class="btn-primary" onclick="downloadBusinessQR('qr-code-bar', 'QR-Bar')" style="margin-top: 16px; width: 100%;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                Télécharger
+                                <span data-i18n="common.download">Télécharger</span>
                             </button>
                         </div>
                     </div>
@@ -619,7 +775,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=sortie-v2"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">
@@ -680,7 +836,7 @@
             <p id="cal-picker-subtitle">Sélectionnez le template pour ce jour.</p>
             <div class="cal-picker-search-wrap">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="cal-picker-search" class="biz-modal-input" placeholder="Rechercher un template..." oninput="filterCalendarTemplates()" style="margin: 0 !important; padding-left: 44px !important;">
+                <input type="text" id="cal-picker-search" class="biz-modal-input" placeholder="Rechercher un template..." data-i18n="biz.search_template_placeholder" oninput="filterCalendarTemplates()" style="margin: 0 !important; padding-left: 44px !important;">
             </div>
             <div id="cal-picker-list" class="cal-picker-list">
                 <!-- Template options rendered here -->
@@ -709,9 +865,8 @@
 
     <div id="save-toast" class="save-toast">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        <span data-i18n="common.save">Template enregistré !</span>
+        Template enregistré !
     </div>
     <script src="i18n.js"></script>
-    <script src="app.js"></script>
 </body>
 </html>

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Suggesto — Dashboard</title>
     <!-- PWA & iOS Support -->
     <link rel="manifest" href="manifest.json">
@@ -15,41 +18,61 @@
     <meta name="description" content="Plateforme de gestion de leads Suggesto.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script src="supabase.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
     <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
-          allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: true,
-          },
-        });
-        
-        // Force the prompt for v16 using a more robust method
-        setTimeout(() => {
-          try {
-            if (!OneSignal.Notifications.permission) {
-              if (typeof OneSignal.slidedown !== 'undefined') {
-                OneSignal.slidedown.prompt({force: true});
-              } else {
-                OneSignal.Notifications.requestPermission();
+      // Delay OneSignal loading until after page is fully interactive
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+          s.defer = true;
+          s.onload = function() {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(async function(OneSignal) {
+              await OneSignal.init({
+                appId: "da3a3ae6-581e-412e-89ce-b5997fd5275b",
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: { enable: true },
+                promptOptions: {
+                  slidedown: {
+                    prompts: [{
+                      type: "push",
+                      autoPrompt: true,
+                      text: {
+                        actionMessage: "Recevez les invitations et offres de vos clubs favoris.",
+                        acceptButton: "Activer",
+                        cancelButton: "Plus tard"
+                      },
+                      delay: { pageViews: 1, timeDelay: 0 }
+                    }]
+                  }
+                }
+              });
+              try {
+                if (OneSignal.Notifications && OneSignal.Notifications.permission === false) {
+                  if (OneSignal.Slidedown && typeof OneSignal.Slidedown.promptPush === 'function') {
+                    await OneSignal.Slidedown.promptPush({ force: true });
+                  } else if (OneSignal.Notifications.requestPermission) {
+                    await OneSignal.Notifications.requestPermission();
+                  }
+                }
+              } catch (e) {
+                console.warn("OneSignal prompt failed:", e);
               }
-            }
-          } catch (e) {
-            console.warn("OneSignal prompt failed:", e);
-          }
-        }, 3000);
+            });
+          };
+          document.head.appendChild(s);
+        }, 2000);
       });
     </script>
 </head>
 <body class="view-fetars">
-    <!-- Language Selector -->
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+    <div id="auth-lang-selector" style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
         <select class="language-selector" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 8px 12px; outline: none; cursor: pointer; backdrop-filter: blur(10px);">
             <option value="fr" style="color: black;">FR</option>
             <option value="en" style="color: black;">EN</option>
@@ -87,18 +110,25 @@
 
             <!-- Tab Switcher -->
             <div class="tab-switcher">
-                <button id="tab-login" class="tab-btn active" onclick="switchTab('login')" data-i18n="common.login">Connexion</button>
-                <button id="tab-signup" class="tab-btn" onclick="switchTab('signup')" data-i18n="common.signup">Inscription</button>
+                    <button id="tab-login" class="tab-btn active" onclick="switchTab('login')" data-i18n="common.login">Connexion</button>
+                    <button id="tab-signup" class="tab-btn" onclick="switchTab('signup')" data-i18n="common.signup">Inscription</button>
                 <div class="tab-indicator" id="tab-indicator"></div>
             </div>
 
             <!-- Login Form -->
             <form id="login-form" class="auth-form active" onsubmit="handleLogin(event)">
                 <div class="input-group">
-                    <label for="login-password" data-i18n="common.password">Mot de passe</label>
+                    <label data-i18n="common.email">Email</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <input type="email" id="login-email" placeholder="votre@email.com" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label data-i18n="common.password">Mot de passe</label>
                     <div class="input-wrapper">
                         <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        <input type="password" id="login-password" placeholder="Entrez votre mot de passe" required>
+                        <input type="password" id="login-password" placeholder="Entrez votre mot de passe" data-i18n="auth.password_placeholder" required>
                         <button type="button" class="toggle-password" onclick="togglePassword('login-password', this)">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
@@ -108,24 +138,36 @@
                     <span class="btn-text" data-i18n="common.connect">Se connecter</span>
                     <span class="btn-loader" style="display:none;"><span class="spinner"></span></span>
                 </button>
+                <div class="auth-divider"><span>ou</span></div>
+                <button type="button" class="btn-google" onclick="supabase.auth.signInWithOAuth('google')">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    Continuer avec Google
+                </button>
                 <div id="login-message" class="form-message"></div>
             </form>
 
             <!-- Signup Form -->
             <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
+                <div class="input-group">
+                    <label for="signup-email">Email</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <input type="email" id="signup-email" placeholder="votre@email.com" required>
+                    </div>
+                </div>
                 <div class="registration-grid">
                     <div class="input-group">
                         <label for="signup-name" data-i18n="auth.fullname">Nom complet</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            <input type="text" id="signup-name" placeholder="Ex: Jean Dupont" required>
+                            <input type="text" id="signup-name" placeholder="Ex: Jean Dupont" data-i18n="auth.fullname_placeholder" required>
                         </div>
                     </div>
                     <div class="input-group">
                         <label for="signup-age" data-i18n="auth.age">Âge</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            <input type="number" id="signup-age" placeholder="Votre âge" min="18" required>
+                            <input type="number" id="signup-age" placeholder="Votre âge" data-i18n="auth.age_placeholder" min="18" required>
                         </div>
                     </div>
                 </div>
@@ -136,13 +178,13 @@
                         <div class="custom-select-wrapper" id="gender-dropdown">
                             <div class="input-wrapper select-trigger" onclick="toggleDropdown('gender-dropdown')">
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                                <span id="selected-gender" data-i18n="common.loading">Choisir...</span>
+                                <span id="selected-gender" data-i18n="auth.choose">Choisir...</span>
                                 <svg class="dropdown-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
                             </div>
                             <div class="select-options">
-                                <div class="select-option" onclick="selectGenderOption('Homme')">Homme</div>
-                                <div class="select-option" onclick="selectGenderOption('Femme')">Femme</div>
-                                <div class="select-option" onclick="selectGenderOption('Autre')">Autre</div>
+                                <div class="select-option" onclick="selectGenderOption('Homme')" data-i18n="auth.gender_male">Homme</div>
+                                <div class="select-option" onclick="selectGenderOption('Femme')" data-i18n="auth.gender_female">Femme</div>
+                                <div class="select-option" onclick="selectGenderOption('Autre')" data-i18n="auth.gender_other">Autre</div>
                             </div>
                         </div>
                         <input type="hidden" id="signup-sexe" required>
@@ -151,8 +193,16 @@
                         <label for="signup-city" data-i18n="auth.city">Ville</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            <input type="text" id="signup-city" placeholder="Votre ville" required>
+                            <input type="text" id="signup-city" placeholder="Votre ville" data-i18n="auth.city_placeholder" required>
                         </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="signup-country" data-i18n="auth.country">Pays</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                        <input type="text" id="signup-country" placeholder="Votre pays" data-i18n="auth.your_country" required>
                     </div>
                 </div>
 
@@ -160,7 +210,7 @@
                     <label for="signup-password" data-i18n="common.password">Mot de passe</label>
                     <div class="input-wrapper">
                         <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        <input type="password" id="signup-password" placeholder="Choisissez un mot de passe" required>
+                        <input type="password" id="signup-password" placeholder="Choisissez un mot de passe" data-i18n="auth.password_signup_placeholder" required>
                         <button type="button" class="toggle-password" onclick="togglePassword('signup-password', this)">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
@@ -171,6 +221,76 @@
                     <span class="btn-loader" style="display:none;"><span class="spinner"></span></span>
                 </button>
                 <div id="signup-message" class="form-message"></div>
+            </form>
+
+            <!-- OAuth Enrichment Form (shown after Google login when no profile exists yet) -->
+            <form id="oauth-enrich-form" class="auth-form" onsubmit="handleOAuthEnrichClient(event)" style="display:none;">
+                <p style="text-align: center; font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">
+                    Bienvenue ! Finalisez votre inscription en complétant les informations manquantes.
+                </p>
+                <div class="input-group">
+                    <label>Email</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        <input type="email" id="oauth-enrich-email" placeholder="votre@email.com" readonly>
+                    </div>
+                </div>
+                <div class="registration-grid">
+                    <div class="input-group">
+                        <label>Nom complet</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input type="text" id="oauth-enrich-name" placeholder="Ex: Jean Dupont" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Âge</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <input type="number" id="oauth-enrich-age" placeholder="Votre âge" min="18" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="registration-grid">
+                    <div class="input-group">
+                        <label>Sexe</label>
+                        <div class="custom-select-wrapper" id="oauth-enrich-gender-dropdown">
+                            <div class="input-wrapper select-trigger" onclick="toggleDropdown('oauth-enrich-gender-dropdown')">
+                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                                <span id="oauth-enrich-selected-gender">Choisir...</span>
+                                <svg class="dropdown-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                            </div>
+                            <div class="select-options">
+                                <div class="select-option" onclick="selectOAuthEnrichGender('Homme')">Homme</div>
+                                <div class="select-option" onclick="selectOAuthEnrichGender('Femme')">Femme</div>
+                                <div class="select-option" onclick="selectOAuthEnrichGender('Autre')">Autre</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="oauth-enrich-sexe" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Ville</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <input type="text" id="oauth-enrich-city" placeholder="Votre ville" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Pays</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                        <input type="text" id="oauth-enrich-country" placeholder="Votre pays" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" id="oauth-enrich-btn">
+                    <span class="btn-text">Finaliser mon inscription</span>
+                    <span class="btn-loader" style="display:none;"><span class="spinner"></span></span>
+                </button>
+                <button type="button" class="btn-secondary" onclick="cancelOAuthEnrich(false)" style="margin-top: 10px; width: 100%; background: transparent; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); padding: 12px; border-radius: 12px; cursor: pointer;">
+                    Annuler
+                </button>
+                <div id="oauth-enrich-message" class="form-message"></div>
             </form>
         </div>
     </div>
@@ -184,23 +304,27 @@
             </button>
         </div>
         <div class="menu-links">
-            <button class="menu-link active" onclick="switchMainView('home')" id="link-home">
+            <button class="menu-link active" onclick="switchMainView('home')" id="link-home" data-i18n="nav.home">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-                <span data-i18n="nav.home">Accueil Boîtes</span>
+                Boîtes près de chez toi
             </button>
-            <button class="menu-link" onclick="switchMainView('qr')" id="link-qr">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
-                <span data-i18n="nav.qr">QR Boîtes</span>
+            <button class="menu-link" onclick="switchMainView('search')" id="link-search" data-i18n="nav.search">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Recherche ta boîte
             </button>
-            <button class="menu-link" onclick="switchMainView('code')" id="link-code">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
-                <span data-i18n="nav.code">Mon Code</span>
+            <button class="menu-link" onclick="switchMainView('favorites')" id="link-favorites" data-i18n="nav.favorites">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                Mes Favoris
+            </button>
+            <button class="menu-link" onclick="switchMainView('code')" id="link-code" data-i18n="nav.code">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Mon QR
             </button>
         </div>
         <div class="menu-footer">
-            <button class="btn-logout" onclick="handleLogout()">
+            <button class="btn-logout" onclick="handleLogout()" data-i18n="common.logout">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span data-i18n="common.logout">Déconnexion</span>
+                Déconnexion
             </button>
         </div>
     </div>
@@ -225,10 +349,15 @@
                             </linearGradient>
                         </defs>
                     </svg>
-                    <h2 id="header-title">Boîtes Partenaires</h2>
+                    <h2 id="header-title" data-i18n="dashboard.partner_clubs">Boîtes Partenaires</h2>
                 </div>
             </div>
             <div class="dash-header-right">
+                <select class="language-selector lang-sel-dash" onchange="changeLanguage(this.value)" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; outline: none; cursor: pointer; font-size: 13px;">
+                    <option value="fr" style="color: black;">FR</option>
+                    <option value="en" style="color: black;">EN</option>
+                    <option value="es" style="color: black;">ES</option>
+                </select>
                 <span id="user-display" class="user-badge"></span>
             </div>
         </header>
@@ -240,8 +369,8 @@
             </div>
             <div id="no-local-clubs" style="display:none; text-align:center; padding:60px 20px;">
                 <p style="font-size: 48px; margin-bottom: 16px;">&#x1F30D;</p>
-                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;">Aucune boîte trouvée dans ta ville.</p>
-                <button class="btn-discover" onclick="switchMainView('search')">Rechercher une boîte</button>
+                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;" data-i18n="dashboard.no_clubs">Aucune boîte trouvée dans ta ville.</p>
+                <button class="btn-discover" onclick="switchMainView('search')" data-i18n="dashboard.search_club">Rechercher une boîte</button>
             </div>
         </main>
 
@@ -250,28 +379,9 @@
             <div class="search-filter-container">
                 <div class="search-bar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="club-search" data-i18n="dashboard.search" placeholder="Rechercher une boîte..." oninput="filterClubs()">
-                </div>
-                <div class="filters-row">
-                    <select id="filter-city" onchange="filterClubs()">
-                        <option value="">Toutes les villes</option>
-                    </select>
-                    <select id="filter-region" onchange="filterClubs()">
-                        <option value="">Toutes les régions</option>
-                    </select>
-                    <select id="filter-country" onchange="filterClubs()">
-                        <option value="">Tous les pays</option>
-                    </select>
+                    <input type="text" id="club-search" placeholder="Nom, ville, pays..." data-i18n="dashboard.search_placeholder" oninput="filterClubs()">
                 </div>
             </div>
-
-            <section id="favorites-section" style="display: none; margin-bottom: 40px;">
-                <h3 class="section-title" data-i18n="dashboard.favorites">Mes Boîtes Préférées</h3>
-                <div class="favorites-slider" id="favorites-container">
-                    <!-- Favorite cards injected here -->
-                </div>
-            </section>
-
             <h3 class="section-title" data-i18n="dashboard.all_clubs">Toutes les Boîtes</h3>
             <div class="clubs-grid" id="clubs-container">
                 <!-- Cards injected here via app.js -->
@@ -285,8 +395,8 @@
             </div>
             <div id="no-favorites" style="display:none; text-align:center; padding:60px 20px;">
                 <p style="font-size: 48px; margin-bottom: 16px;">&#x2764;&#xFE0F;</p>
-                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;">Tu n'as pas encore de boîte favorite.</p>
-                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')">Découvrir des boîtes</button>
+                <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;" data-i18n="dashboard.no_favorites">Tu n'as pas encore de boîte favorite.</p>
+                <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')" data-i18n="dashboard.discover_clubs">Découvrir des boîtes</button>
             </div>
         </main>
 
@@ -328,7 +438,7 @@
             </div>
         </main>
 
-        <!-- Mon Code View -->
+        <!-- Mon QR View (Personal QR Code) -->
         <main id="code-view" class="main-view">
             <div class="profile-container">
                 <div class="profile-card">
@@ -337,46 +447,46 @@
                         <h3 id="profile-name">Chargement...</h3>
                         <p id="profile-city" class="text-muted"></p>
                     </div>
-                    
-                    <div class="code-section">
-                        <span class="code-label" data-i18n="dashboard.my_code">MON CODE UNIQUE</span>
-                        <div class="big-code" id="display-user-code">------</div>
-                        <p class="code-help">Présentez ce code à l'entrée de l'établissement ou lors de vos commandes au bar.</p>
+
+                    <div class="code-section" style="text-align: center;">
+                        <span class="code-label" data-i18n="profile.my_qr">MON QR CODE</span>
+                        <div id="personal-qr-code" style="display: inline-block; padding: 16px; background: white; border-radius: 16px; margin: 16px auto;"></div>
+                        <p class="code-help">Présente ce QR code au staff pour qu'il scanne tes points et tes rewards.</p>
                     </div>
 
                     <div class="profile-stats">
                         <div class="p-stat">
                             <span class="p-stat-val" id="profile-count-visits">0</span>
-                            <span class="p-stat-label" data-i18n="dashboard.visits">Sorties</span>
+                            <span class="p-stat-label" data-i18n="profile.visits">Sorties</span>
                         </div>
                         <div class="p-stat">
                             <span class="p-stat-val" id="profile-count-points">0</span>
-                            <span class="p-stat-label" data-i18n="dashboard.total_points">Points Total</span>
+                            <span class="p-stat-label" data-i18n="profile.total_points">Points Total</span>
                         </div>
                     </div>
 
                     <div class="points-explanation">
                         <div class="exp-box">
-                            <h5>💎 Gagner des points</h5>
+                            <h5 data-i18n="profile.earn_points">Gagner des points</h5>
                             <ul>
-                                <li>Scanne à l'entrée et entre ton code unique.</li>
-                                <li>Évalue l'ambiance de la boîte via l'app.</li>
+                                <li data-i18n="profile.earn_1">Scanne le QR d'entrée de la boîte en arrivant.</li>
+                                <li data-i18n="profile.earn_2">Évalue l'ambiance de la boîte via l'app.</li>
                             </ul>
                         </div>
                         <div class="exp-box">
-                            <h5>🎁 Dépenser mes points</h5>
+                            <h5 data-i18n="profile.spend_points">Dépenser mes points</h5>
                             <ul>
-                                <li>Scanne le QR au bar pour voir tes récompenses.</li>
-                                <li>Donne ton code au barman et commande ton cadeau !</li>
+                                <li data-i18n="profile.spend_1">Montre ton QR au staff pour qu'il scanne tes points.</li>
+                                <li data-i18n="profile.spend_2">Choisis tes rewards et profite !</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="club-points-list">
-                        <h4>Détail par établissement</h4>
+                        <h4 data-i18n="profile.per_club">Détail par établissement</h4>
                         <div id="per-club-points" class="club-points-container">
                             <!-- Injected via JS -->
-                            <p class="text-dim">Aucun point cumulé pour le moment.</p>
+                            <p class="text-dim" data-i18n="profile.no_points">Aucun point cumulé pour le moment.</p>
                         </div>
                     </div>
                 </div>
@@ -391,8 +501,8 @@
                 <div id="verify-entry-container" class="verify-card" style="display: none;">
                     <div class="verify-club-header">
                         <div class="verify-icon">✨</div>
-                        <h3 id="verify-entry-club-name">Bienvenue</h3>
-                        <p>Validation Entrée</p>
+                        <h3 id="verify-entry-club-name" data-i18n="verify.welcome">Bienvenue</h3>
+                        <p data-i18n="verify.entry_validation">Validation Entrée</p>
                     </div>
 
                     <!-- Auto Success (Account Found) -->
@@ -402,23 +512,23 @@
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </div>
-                        <h4 style="font-size: 20px; color: white; margin-bottom: 12px;">Entrée validée !</h4>
-                        <p style="color: var(--text-dim);">Tu as gagné +1 point. Passe une excellente soirée 🎉</p>
-                        <button class="btn-primary" onclick="switchMainView('home')" style="margin-top: 24px;">Retour à l'accueil</button>
+                        <h4 style="font-size: 20px; color: white; margin-bottom: 12px;" data-i18n="verify.entry_validated">Entrée validée !</h4>
+                        <p style="color: var(--text-dim);" data-i18n="verify.entry_success">Tu as gagné +1 point. Passe une excellente soirée 🎉</p>
+                        <button class="btn-primary" onclick="switchMainView('home')" style="margin-top: 24px;" data-i18n="verify.back_home">Retour à l'accueil</button>
                     </div>
 
                     <!-- Code Required (No auto-detect) -->
                     <div id="entry-manual-code" style="display: none;">
-                        <p class="verify-desc">Entrez votre code personnel pour valider votre entrée.</p>
+                        <p class="verify-desc" data-i18n="verify.enter_code">Entrez votre code personnel pour valider votre entrée.</p>
                         <div class="input-group">
                             <input type="text" id="entry-code-input" class="big-verify-input" placeholder="CODE" maxlength="6">
                         </div>
-                        <button class="btn-primary" onclick="submitEntryCode()">Valider mon passage</button>
-                        
+                        <button class="btn-primary" onclick="submitEntryCode()" data-i18n="verify.validate_entry">Valider mon passage</button>
+
                         <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
-                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px;">Pas encore de compte ?</p>
-                            <button class="btn-secondary" onclick="handleEntryNoAccount()" style="width: 100%;">Continuer sans code (+1)</button>
-                            <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;">Tu gagneras quand même 1 point, et pourras créer ton compte après.</p>
+                            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px;" data-i18n="verify.no_account">Pas encore de compte ?</p>
+                            <button class="btn-secondary" onclick="handleEntryNoAccount()" style="width: 100%;" data-i18n="verify.continue_no_code">Continuer sans code (+1)</button>
+                            <p style="font-size: 11px; color: var(--text-dim); margin-top: 8px;" data-i18n="verify.no_account_help">Tu gagneras quand même 1 point, et pourras créer ton compte après.</p>
                         </div>
                     </div>
                 </div>
@@ -445,8 +555,8 @@
                         <!-- Rewards Section -->
                         <div class="kiosk-section">
                             <div class="kiosk-section-title">
-                                <span>&#x1F381; Récompenses disponibles</span>
-                                <span class="kiosk-section-subtitle">Utilisez vos points</span>
+                                <span data-i18n="kiosk.rewards_available">&#x1F381; Récompenses disponibles</span>
+                                <span class="kiosk-section-subtitle" data-i18n="kiosk.use_points">Utilisez vos points</span>
                             </div>
                             <div id="bar-rewards-grid" class="kiosk-grid">
                                 <!-- Injected by JS -->
@@ -456,8 +566,8 @@
                         <!-- Products Section -->
                         <div class="kiosk-section">
                             <div class="kiosk-section-title">
-                                <span>&#x1F378; Carte du bar</span>
-                                <span class="kiosk-section-subtitle">Ajoutez à votre commande</span>
+                                <span data-i18n="kiosk.bar_menu">&#x1F378; Carte du bar</span>
+                                <span class="kiosk-section-subtitle" data-i18n="kiosk.add_to_order">Ajoutez à votre commande</span>
                             </div>
                             <div id="bar-products-grid" class="kiosk-grid">
                                 <!-- Injected by JS -->
@@ -467,39 +577,39 @@
                         <!-- Floating Cart Footer -->
                         <div id="kiosk-cart-footer" class="kiosk-cart-footer" style="display: none;">
                             <div class="kiosk-cart-summary">
-                                <div class="kiosk-cart-count"><span id="kiosk-cart-count">0</span> article(s)</div>
+                                <div class="kiosk-cart-count"><span id="kiosk-cart-count">0</span> <span data-i18n="kiosk.articles">article(s)</span></div>
                                 <div class="kiosk-cart-total"><span id="kiosk-cart-total">0.00</span> &euro;</div>
                             </div>
-                            <button class="btn-primary kiosk-btn-order" onclick="showOrderSummary()">Voir ma commande</button>
+                            <button class="btn-primary kiosk-btn-order" onclick="showOrderSummary()" data-i18n="kiosk.see_order">Voir ma commande</button>
                         </div>
                     </div>
 
                     <!-- STEP 2: Order Summary + QR Code -->
                     <div id="kiosk-summary-page" style="display: none;">
                         <div class="kiosk-summary-header">
-                            <button class="kiosk-back-btn" onclick="backToKiosk()">
+                            <button class="kiosk-back-btn" onclick="backToKiosk()" data-i18n="common.back">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                                 Retour
                             </button>
-                            <h3>Ma Commande</h3>
+                            <h3 data-i18n="kiosk.my_order">Ma Commande</h3>
                         </div>
 
                         <!-- Rewards in order -->
                         <div id="summary-rewards-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.rewards_used">&#x1F381; Récompenses utilisées</h4>
                             <div id="summary-rewards-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Points déduits</span>
+                                <span data-i18n="kiosk.points_deducted">Points déduits</span>
                                 <strong id="summary-rewards-pts">0 pts</strong>
                             </div>
                         </div>
 
                         <!-- Products in order -->
                         <div id="summary-products-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.products_ordered">&#x1F378; Produits commandés</h4>
                             <div id="summary-products-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Sous-total produits</span>
+                                <span data-i18n="kiosk.products_subtotal">Sous-total produits</span>
                                 <strong id="summary-products-total">0.00 &euro;</strong>
                             </div>
                         </div>
@@ -507,21 +617,21 @@
                         <!-- Totals -->
                         <div class="kiosk-totals-card">
                             <div class="kiosk-total-row">
-                                <span>Total sans récompenses</span>
+                                <span data-i18n="kiosk.total_no_rewards">Total sans récompenses</span>
                                 <span id="summary-total-no-rewards">0.00 &euro;</span>
                             </div>
                             <div class="kiosk-total-row kiosk-total-final">
-                                <span>Total à payer</span>
+                                <span data-i18n="kiosk.total_to_pay">Total à payer</span>
                                 <strong id="summary-total-final">0.00 &euro;</strong>
                             </div>
                             <div class="kiosk-total-row kiosk-pts-row">
-                                <span>Points utilisés</span>
+                                <span data-i18n="kiosk.points_used">Points utilisés</span>
                                 <span id="summary-pts-used">0 pts</span>
                             </div>
                         </div>
 
                         <!-- Generate QR Button -->
-                        <button class="btn-primary kiosk-btn-generate" onclick="generateOrderQR()">
+                        <button class="btn-primary kiosk-btn-generate" onclick="generateOrderQR()" data-i18n="kiosk.confirm_generate">
                             Confirmer &amp; Générer le QR
                         </button>
                     </div>
@@ -530,8 +640,8 @@
                     <div id="kiosk-qr-page" style="display: none;">
                         <div class="kiosk-qr-header">
                             <div class="kiosk-qr-check">&#x2705;</div>
-                            <h3>Commande prête !</h3>
-                            <p>Présente ce QR code au barman</p>
+                            <h3 data-i18n="kiosk.order_ready">Commande prête !</h3>
+                            <p data-i18n="kiosk.show_qr">Présente ce QR code au barman</p>
                         </div>
                         <div id="kiosk-qr-code" class="kiosk-qr-box"></div>
                         <div class="kiosk-qr-recap">
@@ -544,8 +654,8 @@
                                 <strong id="qr-recap-pts">0 pts</strong>
                             </div>
                         </div>
-                        <p class="kiosk-qr-hint">Le barman scannera ce code pour valider ta commande.</p>
-                        <button class="btn-secondary" onclick="switchMainView('home')" style="width: 100%; margin-top: 24px;">Terminer</button>
+                        <p class="kiosk-qr-hint" data-i18n="kiosk.barman_hint">Le barman scannera ce code pour valider ta commande.</p>
+                        <button class="btn-secondary" onclick="switchMainView('home')" style="width: 100%; margin-top: 24px;" data-i18n="common.finish">Terminer</button>
                     </div>
 
                 </div>
@@ -557,38 +667,38 @@
                     <div id="barman-review-page">
                         <div class="barman-header">
                             <div class="barman-badge">&#x1F9FE;</div>
-                            <h3>Validation Commande</h3>
+                            <h3 data-i18n="barman.order_validation">Validation Commande</h3>
                             <p id="barman-club-name" class="kiosk-club-name"></p>
                         </div>
 
                         <!-- Client Info -->
                         <div class="barman-client-card">
                             <div class="barman-client-row">
-                                <span>Client</span>
+                                <span data-i18n="barman.client">Client</span>
                                 <strong id="barman-client-name">-</strong>
                             </div>
                             <div class="barman-client-row">
-                                <span>Code</span>
+                                <span data-i18n="barman.code">Code</span>
                                 <strong id="barman-client-code" style="color: var(--primary-light);">-</strong>
                             </div>
                         </div>
 
                         <!-- Rewards -->
                         <div id="barman-rewards-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F381; Récompenses utilisées</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.rewards_used">&#x1F381; Récompenses utilisées</h4>
                             <div id="barman-rewards-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Points déduits</span>
+                                <span data-i18n="kiosk.points_deducted">Points déduits</span>
                                 <strong id="barman-rewards-pts">0 pts</strong>
                             </div>
                         </div>
 
                         <!-- Products -->
                         <div id="barman-products-section" class="kiosk-summary-section" style="display: none;">
-                            <h4 class="kiosk-summary-label">&#x1F378; Produits commandés</h4>
+                            <h4 class="kiosk-summary-label" data-i18n="kiosk.products_ordered">&#x1F378; Produits commandés</h4>
                             <div id="barman-products-list" class="kiosk-summary-list"></div>
                             <div class="kiosk-summary-subtotal">
-                                <span>Sous-total produits</span>
+                                <span data-i18n="kiosk.products_subtotal">Sous-total produits</span>
                                 <strong id="barman-products-total">0.00 &euro;</strong>
                             </div>
                         </div>
@@ -596,21 +706,21 @@
                         <!-- Totals -->
                         <div class="kiosk-totals-card">
                             <div class="kiosk-total-row">
-                                <span>Total sans récompenses</span>
+                                <span data-i18n="kiosk.total_no_rewards">Total sans récompenses</span>
                                 <span id="barman-total-no-rewards">0.00 &euro;</span>
                             </div>
                             <div class="kiosk-total-row kiosk-total-final">
-                                <span>Total à encaisser</span>
+                                <span data-i18n="barman.total_collect">Total à encaisser</span>
                                 <strong id="barman-total-final">0.00 &euro;</strong>
                             </div>
                             <div class="kiosk-total-row kiosk-pts-row">
-                                <span>Points utilisés par le client</span>
+                                <span data-i18n="barman.client_points_used">Points utilisés par le client</span>
                                 <span id="barman-pts-used">0 pts</span>
                             </div>
                         </div>
 
                         <!-- Validate Button -->
-                        <button class="btn-primary barman-validate-btn" onclick="validateBarmanOrder()">
+                        <button class="btn-primary barman-validate-btn" onclick="validateBarmanOrder()" data-i18n="barman.order_paid">
                             &#x2705; Commande payée
                         </button>
                     </div>
@@ -618,9 +728,9 @@
                     <!-- Barman: Success -->
                     <div id="barman-success-page" style="display: none; text-align: center; padding: 40px 20px;">
                         <div style="font-size: 64px; margin-bottom: 16px;">&#x1F389;</div>
-                        <h3 style="font-size: 22px; color: #fff; margin-bottom: 8px;">Commande validée !</h3>
-                        <p style="color: var(--text-dim); margin-bottom: 32px;">Les données ont été envoyées au système.</p>
-                        <button class="btn-secondary" onclick="window.location.reload()" style="width: 100%;">Nouvelle commande</button>
+                        <h3 style="font-size: 22px; color: #fff; margin-bottom: 8px;" data-i18n="barman.order_validated">Commande validée !</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 32px;" data-i18n="barman.data_sent">Les données ont été envoyées au système.</p>
+                        <button class="btn-secondary" onclick="window.location.reload()" style="width: 100%;" data-i18n="barman.new_order">Nouvelle commande</button>
                     </div>
                 </div>
 
@@ -632,17 +742,17 @@
     <div id="club-modal" class="modal-overlay" onclick="closeModal(event, 'club-modal')">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-club-name">Boîte de nuit</h3>
+                <h3 id="modal-club-name" data-i18n="modal.club_title">Boîte de nuit</h3>
                 <button class="btn-close" onclick="closeModal(null, 'club-modal')">&times;</button>
             </div>
             <div class="modal-body text-center">
                 <p id="modal-club-desc" class="club-desc"></p>
-                
+
                 <div style="background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Votre Code ID Personnel</p>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;" data-i18n="modal.your_code">Votre Code ID Personnel</p>
                     <strong id="modal-user-code" style="font-size: 18px; color: var(--primary-light); word-break: break-all;"></strong>
                 </div>
-                <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;">Présentez ce code ou scannez le QR de la boîte avec votre appareil photo natif.</p>
+                <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px;" data-i18n="modal.code_instruction">Présentez ce code ou scannez le QR de la boîte avec votre appareil photo natif.</p>
             </div>
         </div>
     </div>
@@ -651,7 +761,7 @@
     <div id="scan-result-modal" class="modal-overlay" onclick="closeModal(event, 'scan-result-modal')">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Bilan du client</h3>
+                <h3 data-i18n="modal.client_report">Bilan du client</h3>
                 <button class="btn-close" onclick="closeModal(null, 'scan-result-modal')">&times;</button>
             </div>
             <div class="modal-body text-center">
@@ -661,11 +771,11 @@
                 <h4 id="result-user-name" class="result-title">Client</h4>
                 <div class="result-stats">
                     <div class="stat-box">
-                        <span class="stat-label">Boissons</span>
+                        <span class="stat-label" data-i18n="modal.drinks">Boissons</span>
                         <strong id="result-drinks" class="stat-value">0</strong>
                     </div>
                     <div class="stat-box">
-                        <span class="stat-label">Points fidélités</span>
+                        <span class="stat-label" data-i18n="modal.loyalty_points">Points fidélités</span>
                         <strong id="result-points" class="stat-value">0</strong>
                     </div>
                 </div>
@@ -679,7 +789,7 @@
     <div id="rewards-popup-modal" class="modal-overlay" onclick="closeModal(event, 'rewards-popup-modal')">
         <div class="modal-content" style="max-width: 480px;">
             <div class="modal-header">
-                <h3>Rewards disponibles</h3>
+                <h3 data-i18n="rewards.available">Rewards disponibles</h3>
                 <button class="btn-close" onclick="closeModal(null, 'rewards-popup-modal')">&times;</button>
             </div>
             <div class="modal-body">
@@ -688,7 +798,7 @@
         </div>
     </div>
 
+    <script src="app.js?v=sortie-v2"></script>
     <script src="i18n.js"></script>
-    <script src="app.js"></script>
 </body>
 </html>

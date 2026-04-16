@@ -8,130 +8,27 @@
     --border: rgba(255, 255, 255, 0.1);
 }
 
-.floating-burger {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 10000;
-    background: rgba(10, 10, 30, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 10px;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-}
+/* Biz dashboard uses the same dash-header / side-menu from style.css */
 
-.floating-burger:hover {
-    background: rgba(99, 102, 241, 0.2);
-    border-color: rgba(99, 102, 241, 0.4);
-    transform: scale(1.05);
-}
-
-.floating-burger:active {
-    transform: scale(0.95);
-}
-
-.mobile-logo {
-    font-weight: 800;
-    font-size: 18px;
-    background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+/* Biz header title styling */
+.biz-dash-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #c7d2fe);
     -webkit-background-clip: text;
-    background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-left: 16px;
+    background-clip: text;
 }
 
-.sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 15000;
-    transform: translateX(-100%);
-    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    width: 290px;
-    background: rgba(10, 10, 30, 0.95);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-right: 1px solid var(--border);
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.4);
+/* Biz content padding */
+.biz-content {
+    padding: 32px;
 }
 
-.sidebar.active {
-    transform: translateX(0);
-}
-
-.sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 14000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-}
-
-.sidebar-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.btn-burger {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    padding: 8px;
-    margin-left: -8px; /* Offset padding for alignment */
-    z-index: 16000;
-}
-
-.btn-burger:hover {
-    color: var(--primary-light);
-    transform: scale(1.1);
-}
-
-.btn-burger:active {
-    transform: scale(0.95);
-}
-
-@media (max-width: 1024px) {
-    .biz-content {
-        padding-top: 10px !important;
-    }
-}
-
-/* Fix for Titles being covered by Burger */
 .biz-header {
     display: flex;
     flex-direction: column;
     margin-bottom: 32px;
-    padding-left: 60px; /* Shift right to avoid burger */
-}
-
-@media (min-width: 1025px) {
-    .biz-header {
-        padding-left: 0; /* Header is inside content which is already shifted when sidebar is open, but usually content stays center/left */
-    }
-}
-
-/* Global Shift for Mobile/Tablet to avoid floating burger */
-@media (max-width: 1024px) {
-    .biz-header h1 {
-        margin-left: 10px;
-    }
 }
 
 /* ===== ANNONCES SPLIT LAYOUT ===== */
@@ -1563,6 +1460,7 @@
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
@@ -1613,6 +1511,7 @@
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -1751,4 +1650,19 @@
     border-radius: 20px;
     padding: 32px;
     margin-top: 24px;
+}
+
+/* ===== MOBILE PERFORMANCE ===== */
+@media (max-width: 768px) {
+    .biz-modal-overlay,
+    .biz-input,
+    .biz-input-wrapper,
+    .liquid-glass-select,
+    .liquid-glass-card,
+    .liquid-glass-header {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .biz-modal-overlay { background: rgba(0, 0, 0, 0.85); }
 }
