@@ -2030,7 +2030,13 @@ async function validateSortie() {
             [genderField]: newGender
         });
 
-        // 2. Log to dynamicstats with statut='sortie'
+        // 2. +1 point on user profile (reward for scanning at exit)
+        const currentPoints = parseInt(lastFoundClient.points) || 0;
+        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
+            points: String(currentPoints + 1) // column is TEXT
+        });
+
+        // 3. Log to dynamicstats with statut='sortie' (pure INSERT, no upsert)
         const insertedRow = await supabase.insert('dynamicstats', {
             nom_boite: currentBusiness.name,
             boite_id: currentBusiness.uuid,
@@ -2042,7 +2048,7 @@ async function validateSortie() {
 
         // DEBUG: show what really got written so we can diagnose the mismatch
         const writtenStatut = (insertedRow && insertedRow.statut) || 'null';
-        showGlassToast(`Sortie OK: affluence ${beforeAff}→${newAff}, statut=${writtenStatut}`, 'success');
+        showGlassToast(`Sortie OK: +1 pt, affluence ${beforeAff}→${newAff}, statut=${writtenStatut}`, 'success');
         const sortieRes = document.getElementById('scan-sortie-result');
         if (sortieRes) sortieRes.style.display = 'none';
         lastFoundClient = null;
