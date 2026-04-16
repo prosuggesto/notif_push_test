@@ -646,6 +646,7 @@ let selectedCommandeRewards = [];
 let selectedCommandeProducts = [];
 let bizRewards = [];
 let pendingRewardImageFile = null;
+let pendingAnnonceImageFile = null;
 
 // searchClientForCommande replaced by QR scanner (startClientScanner)
 
@@ -875,38 +876,90 @@ async function proceedWithSave(btn, templateName) {
     };
 
     if (editingTemplateId) {
-        // Update existing template in place
+        // Update existing template in place (local only — DB insert is for new
+        // templates; edits stay in the existing row via Supabase policies if needed)
         const idx = announcementTemplates.findIndex(t => t.id === editingTemplateId);
         if (idx > -1) {
             announcementTemplates[idx] = { ...announcementTemplates[idx], ...templateData };
         }
         editingTemplateId = null;
-    } else {
-        // Create new template
-        templateData.id = 'ann_' + Date.now();
 
-        const previewCard = document.getElementById('annonces-preview-card');
-        if (previewCard) {
-            animateCardToGrid(previewCard);
+        if (currentBusiness) {
+            currentBusiness.announcementTemplates = announcementTemplates;
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
         }
 
-        announcementTemplates.unshift(templateData);
+        renderTemplatesGrid();
+        btn.classList.remove('loading');
+        showSaveToast();
+        return;
     }
 
-    if (currentBusiness) {
+    // --- Create new template ---
+    const previewCard = document.getElementById('annonces-preview-card');
+    if (previewCard) {
+        animateCardToGrid(previewCard);
+    }
+
+    if (!currentBusiness || !currentBusiness.uuid) {
+        showGlassToast('Session entreprise invalide', 'error');
+        btn.classList.remove('loading');
+        return;
+    }
+
+    try {
+        // 1. Upload image to Supabase Storage (bucket: annonces) if a file is pending
+        let imageLink = '';
+        if (pendingAnnonceImageFile) {
+            const ext = (pendingAnnonceImageFile.name.split('.').pop() || 'jpg').toLowerCase();
+            const safeTitle = (templateName || 'template').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const path = `${currentBusiness.uuid}/${safeTitle}-${Date.now()}.${ext}`;
+            await supabase.storage.upload('annonces', path, pendingAnnonceImageFile);
+            imageLink = supabase.storage.getPublicUrl('annonces', path);
+        } else if (templateData.image && !templateData.image.startsWith('data:')) {
+            // If no new file uploaded but an existing (non-base64) URL is in the form,
+            // keep it as-is (e.g. when reusing an already-uploaded image).
+            imageLink = templateData.image;
+        }
+
+        // 2. Insert row into annonces_templates
+        const row = {
+            nom_boite: currentBusiness.name,
+            boite_id: currentBusiness.uuid,
+            link: imageLink,
+            titre_template: templateName || templateData.partyName || '',
+            description: templateData.description || '',
+            instagram: templateData.insta || '',
+            prix_entree: templateData.price || '',
+            fete_actuelle_nom: templateData.partyName || '',
+            fete_actuelle_description: templateData.partyTheme || ''
+        };
+        const inserted = await supabase.insert('annonces_templates', row);
+
+        // 3. Update local state using the real DB id + the uploaded image URL
+        if (inserted && inserted.id != null) {
+            templateData.id = String(inserted.id);
+            templateData.dbId = inserted.id;
+        } else {
+            templateData.id = 'ann_' + Date.now();
+        }
+        templateData.image = imageLink || templateData.image;
+        announcementTemplates.unshift(templateData);
+
         currentBusiness.announcementTemplates = announcementTemplates;
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
 
-        try {
-            await handleSaveAnnonces();
-        } catch (err) {
-            console.error('Error saving announcement:', err);
-        }
-    }
+        // Reset pending file (image has been persisted to storage)
+        pendingAnnonceImageFile = null;
 
-    renderTemplatesGrid();
-    btn.classList.remove('loading');
-    showSaveToast();
+        renderTemplatesGrid();
+        showSaveToast();
+    } catch (err) {
+        console.error('proceedWithSave error:', err);
+        showGlassToast(err.message || 'Erreur lors de la sauvegarde', 'error');
+    } finally {
+        btn.classList.remove('loading');
+    }
 }
 
 function animateCardToGrid(card) {
@@ -1096,15 +1149,34 @@ async function handleBulkDelete() {
         'Supprimer la sélection ?',
         `Êtes-vous sûr de vouloir supprimer ces ${selectedTemplateIds.size} templates ?`,
         async () => {
+            // Delete each selected template from the DB + storage (best-effort)
+            const toDelete = announcementTemplates.filter(t => selectedTemplateIds.has(t.id));
+            for (const tpl of toDelete) {
+                try {
+                    if (tpl.dbId != null) {
+                        await supabase.delete('annonces_templates', `id=eq.${tpl.dbId}`);
+                    }
+                    if (tpl.image) {
+                        const marker = '/storage/v1/object/public/annonces/';
+                        const idx = tpl.image.indexOf(marker);
+                        if (idx !== -1) {
+                            const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
+                            await supabase.storage.remove('annonces', path).catch(() => {});
+                        }
+                    }
+                } catch (err) {
+                    console.error('handleBulkDelete error for template', tpl.id, err);
+                }
+            }
+
             announcementTemplates = announcementTemplates.filter(t => !selectedTemplateIds.has(t.id));
             selectedTemplateIds.clear();
-            
+
             if (currentBusiness) {
                 currentBusiness.announcementTemplates = announcementTemplates;
                 localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
-                await handleSaveAnnonces();
             }
-            
+
             updateBulkActionsUI();
             renderTemplatesGrid();
         }
@@ -1174,15 +1246,39 @@ function loadAdminTemplate(id) {
 
 function deleteAdminTemplate(id) {
     showConfirmModal(
-        'Supprimer ce template ?', 
+        'Supprimer ce template ?',
         'Cette action est irréversible et supprimera le template de votre bibliothèque.',
-        () => {
+        async () => {
+            const tpl = announcementTemplates.find(t => t.id === id);
+
+            // Delete DB row + storage image (best-effort) for templates persisted on Supabase
+            if (tpl) {
+                try {
+                    if (tpl.dbId != null) {
+                        await supabase.delete('annonces_templates', `id=eq.${tpl.dbId}`);
+                    }
+                    if (tpl.image) {
+                        const marker = '/storage/v1/object/public/annonces/';
+                        const idx = tpl.image.indexOf(marker);
+                        if (idx !== -1) {
+                            const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
+                            await supabase.storage.remove('annonces', path).catch(() => {});
+                        }
+                    }
+                } catch (err) {
+                    console.error('deleteAdminTemplate error:', err);
+                    showGlassToast(err.message || 'Erreur suppression', 'error');
+                    return;
+                }
+            }
+
             announcementTemplates = announcementTemplates.filter(t => t.id !== id);
             if (currentBusiness) {
                 currentBusiness.announcementTemplates = announcementTemplates;
                 localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
             }
             renderTemplatesGrid();
+            showGlassToast('Template supprimé', 'success');
         }
     );
 }
@@ -1200,10 +1296,13 @@ function handleClubImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Keep the File so we can upload to Supabase Storage on template save
+    pendingAnnonceImageFile = file;
+
     const reader = new FileReader();
     reader.onload = function(e) {
         const base64Data = e.target.result;
-        // Update hidden input
+        // Update hidden input (used only for live preview while editing)
         document.getElementById('biz-club-image').value = base64Data;
         // Refresh preview
         updateAnnoncesPreview();
@@ -1259,6 +1358,42 @@ async function loadBizRewards() {
     } catch (err) {
         console.error('loadBizRewards error:', err);
         bizRewards = [];
+    }
+}
+
+// Load announcement templates from Supabase (source of truth) and map DB
+// columns back to the client-side shape expected by the UI.
+async function loadAnnouncementTemplates() {
+    if (!currentBusiness || !currentBusiness.uuid) {
+        announcementTemplates = [];
+        return;
+    }
+    try {
+        const rows = await supabase.select(
+            'annonces_templates',
+            `boite_id=eq.${currentBusiness.uuid}&order=created_at.desc`
+        );
+        announcementTemplates = (Array.isArray(rows) ? rows : []).map(r => ({
+            // Keep id as string so onclick="func('${t.id}')" comparisons stay consistent
+            // with locally-created 'ann_xxx' ids. dbId keeps the numeric row id for deletes.
+            id: String(r.id),
+            dbId: r.id,
+            image: r.link || '',
+            name: r.nom_boite || '',
+            insta: r.instagram || '',
+            description: r.description || '',
+            price: r.prix_entree || '',
+            partyName: r.fete_actuelle_nom || r.titre_template || '',
+            partyTheme: r.fete_actuelle_description || '',
+            timestamp: r.created_at || ''
+        }));
+        if (currentBusiness) {
+            currentBusiness.announcementTemplates = announcementTemplates;
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        }
+    } catch (err) {
+        console.error('loadAnnouncementTemplates error:', err);
+        announcementTemplates = [];
     }
 }
 
@@ -4027,9 +4162,11 @@ async function showBusinessDashboard() {
         bizProducts = currentBusiness.products || [];
         bizSchedule = currentBusiness.schedule || {};
 
-        // Load rewards from Supabase (source of truth)
+        // Load rewards + announcement templates from Supabase (source of truth)
         await loadBizRewards();
         renderRewardsList();
+        await loadAnnouncementTemplates();
+        renderTemplatesGrid();
     }
 
     // Default view
