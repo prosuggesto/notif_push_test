@@ -2020,14 +2020,10 @@ async function validateSortie() {
         // 1. Update calendrier: -1 affluence, -1 gender
         const cal = await getOrCreateTodayCalendrier();
         const genderField = getGenderField(lastFoundClient.sexe);
-        const beforeAff = parseInt(cal.affluence) || 0;
-        const newAff = Math.max(0, beforeAff - 1);
-        const beforeGender = parseInt(cal[genderField]) || 0;
-        const newGender = Math.max(0, beforeGender - 1);
 
         await supabase.update('calendrier', `id=eq.${cal.id}`, {
-            affluence: newAff,
-            [genderField]: newGender
+            affluence: Math.max(0, (parseInt(cal.affluence) || 0) - 1),
+            [genderField]: Math.max(0, (parseInt(cal[genderField]) || 0) - 1)
         });
 
         // 2. +1 point on user profile (reward for scanning at exit)
@@ -2036,8 +2032,8 @@ async function validateSortie() {
             points: String(currentPoints + 1) // column is TEXT
         });
 
-        // 3. Log to dynamicstats with statut='sortie' (pure INSERT, no upsert)
-        const insertedRow = await supabase.insert('dynamicstats', {
+        // 3. Log to dynamicstats with statut='sortie'
+        await supabase.insert('dynamicstats', {
             nom_boite: currentBusiness.name,
             boite_id: currentBusiness.uuid,
             age: lastFoundClient.age,
@@ -2046,9 +2042,7 @@ async function validateSortie() {
             statut: 'sortie'
         });
 
-        // DEBUG: show what really got written so we can diagnose the mismatch
-        const writtenStatut = (insertedRow && insertedRow.statut) || 'null';
-        showGlassToast(`[v2] Sortie: +1pt, aff ${beforeAff}→${newAff}, statut=${writtenStatut}`, 'success');
+        showGlassToast('Sortie validée ! +1 point', 'success');
         const sortieRes = document.getElementById('scan-sortie-result');
         if (sortieRes) sortieRes.style.display = 'none';
         lastFoundClient = null;
@@ -2057,7 +2051,7 @@ async function validateSortie() {
         startClientScanner();
     } catch (error) {
         console.error('Sortie validation error:', error);
-        showGlassToast('Erreur sortie: ' + (error.message || error), 'error');
+        showGlassToast('Erreur lors de la validation', 'error');
         isProcessingSortie = false;
         lastFoundClient = null;
         scannedClientId = null;
