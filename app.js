@@ -2048,7 +2048,7 @@ async function validateSortie() {
 
         // DEBUG: show what really got written so we can diagnose the mismatch
         const writtenStatut = (insertedRow && insertedRow.statut) || 'null';
-        showGlassToast(`Sortie OK: +1 pt, affluence ${beforeAff}→${newAff}, statut=${writtenStatut}`, 'success');
+        showGlassToast(`[v2] Sortie: +1pt, aff ${beforeAff}→${newAff}, statut=${writtenStatut}`, 'success');
         const sortieRes = document.getElementById('scan-sortie-result');
         if (sortieRes) sortieRes.style.display = 'none';
         lastFoundClient = null;
