@@ -192,11 +192,13 @@
     justify-content: center;
     gap: 8px;
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.2s;
 }
 
 .template-card:hover .template-actions {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .btn-mini {
@@ -470,6 +472,16 @@
     padding-left: 16px;
     border-left: 1px solid var(--border);
     animation: slideInRight 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: 10;
+    position: relative;
+}
+
+.bulk-actions .btn-destructive {
+    background: #ef4444;
+    color: white;
+    border: none;
+    cursor: pointer;
+    pointer-events: auto;
 }
 
 @keyframes slideInRight {

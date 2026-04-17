@@ -331,7 +331,7 @@
                                 </div>
                                 <div id="bulk-actions" class="bulk-actions" style="display: none;">
                                     <span id="selected-count">0 sélectionné(s)</span>
-                                    <button type="button" class="btn-mini btn-destructive" onclick="event.stopPropagation(); handleBulkDelete(); return false;">Supprimer</button>
+                                    <button type="button" id="bulk-delete-btn" class="btn-mini btn-destructive">Supprimer</button>
                                 </div>
                             </div>
                             
@@ -775,7 +775,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=annonces-v4"></script>
+    <script src="app.js?v=annonces-v5"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">

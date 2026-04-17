@@ -811,10 +811,20 @@ function initAnnouncementEditor() {
     } else {
         announcementTemplates = [];
     }
-    
+
     // Load Draft if exists
     loadAnnouncementDraft();
-    
+
+    // Bind bulk delete button via JS (onclick attribute can be unreliable)
+    const bulkBtn = document.getElementById('bulk-delete-btn');
+    if (bulkBtn) {
+        bulkBtn.onclick = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            handleBulkDelete();
+        };
+    }
+
     renderTemplatesGrid();
     updateAnnoncesPreview();
 }
