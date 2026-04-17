@@ -870,7 +870,7 @@ async function proceedWithSave(btn, templateName) {
         insta: document.getElementById('biz-club-insta').value,
         description: document.getElementById('biz-club-desc').value,
         price: document.getElementById('biz-club-price').value,
-        partyName: templateName || document.getElementById('biz-party-name').value,
+        partyName: document.getElementById('biz-party-name').value,
         partyTheme: document.getElementById('biz-party-theme').value,
         timestamp: new Date().toISOString()
     };
@@ -1383,7 +1383,7 @@ async function loadAnnouncementTemplates() {
             insta: r.instagram || '',
             description: r.description || '',
             price: r.prix_entree || '',
-            partyName: r.fete_actuelle_nom || r.titre_template || '',
+            partyName: r.fete_actuelle_nom || '',
             partyTheme: r.fete_actuelle_description || '',
             timestamp: r.created_at || ''
         }));
