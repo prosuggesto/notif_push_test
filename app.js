@@ -1146,6 +1146,11 @@ function updateBulkActionsUI() {
 }
 
 async function handleBulkDelete() {
+    console.log('[handleBulkDelete] called, selected:', selectedTemplateIds.size);
+    if (selectedTemplateIds.size === 0) {
+        showGlassToast('Aucun template sélectionné', 'error');
+        return;
+    }
     showConfirmModal(
         'Supprimer la sélection ?',
         `Êtes-vous sûr de vouloir supprimer ces ${selectedTemplateIds.size} templates ?`,
@@ -1162,11 +1167,12 @@ async function handleBulkDelete() {
                         const idx = tpl.image.indexOf(marker);
                         if (idx !== -1) {
                             const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
-                            await supabase.storage.remove('annonces', path).catch(() => {});
+                            await supabase.storage.remove('annonces', path);
                         }
                     }
                 } catch (err) {
                     console.error('handleBulkDelete error for template', tpl.id, err);
+                    showGlassToast(err.message || 'Erreur suppression', 'error');
                 }
             }
 
@@ -1264,7 +1270,7 @@ function deleteAdminTemplate(id) {
                         const idx = tpl.image.indexOf(marker);
                         if (idx !== -1) {
                             const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
-                            await supabase.storage.remove('annonces', path).catch(() => {});
+                            await supabase.storage.remove('annonces', path);
                         }
                     }
                 } catch (err) {
