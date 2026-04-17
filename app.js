@@ -870,6 +870,7 @@ async function proceedWithSave(btn, templateName) {
         insta: document.getElementById('biz-club-insta').value,
         description: document.getElementById('biz-club-desc').value,
         price: document.getElementById('biz-club-price').value,
+        title: templateName || '',
         partyName: document.getElementById('biz-party-name').value,
         partyTheme: document.getElementById('biz-party-theme').value,
         timestamp: new Date().toISOString()
@@ -1187,7 +1188,8 @@ function renderTemplatesGrid() {
     const grid = document.getElementById('biz-templates-grid');
     if (!grid) return;
 
-    const filtered = announcementTemplates.filter(t => 
+    const filtered = announcementTemplates.filter(t =>
+        (t.title || '').toLowerCase().includes(templateSearchQuery) ||
         (t.partyName || '').toLowerCase().includes(templateSearchQuery) ||
         (t.partyTheme || '').toLowerCase().includes(templateSearchQuery)
     );
@@ -1205,7 +1207,7 @@ function renderTemplatesGrid() {
              onclick="toggleTemplateSelection('${t.id}', event)">
             <div class="template-card-hero" style="background-image: url('${t.image || 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?q=80&w=2070&auto=format&fit=crop'}')"></div>
             <div class="template-card-content">
-                <div class="template-card-title">${t.partyName || 'Sans nom'}</div>
+                <div class="template-card-title">${t.title || t.partyName || 'Sans nom'}</div>
                 <div class="template-card-desc">${t.partyTheme || window.t('biz.no_theme')}</div>
             </div>
             <div class="template-actions">
@@ -1383,6 +1385,7 @@ async function loadAnnouncementTemplates() {
             insta: r.instagram || '',
             description: r.description || '',
             price: r.prix_entree || '',
+            title: r.titre_template || '',
             partyName: r.fete_actuelle_nom || '',
             partyTheme: r.fete_actuelle_description || '',
             timestamp: r.created_at || ''
