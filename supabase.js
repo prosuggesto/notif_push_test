@@ -290,6 +290,7 @@ const supabase = {
         },
         async remove(bucket, paths) {
             const token = await supabase.auth.getValidToken();
+            const list = Array.isArray(paths) ? paths : [paths];
             const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
                 method: 'DELETE',
                 headers: {
@@ -297,9 +298,18 @@ const supabase = {
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
                 },
-                body: JSON.stringify({ prefixes: Array.isArray(paths) ? paths : [paths] })
+                body: JSON.stringify({ prefixes: list })
             });
-            return res.ok;
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error((data && (data.message || data.error)) || 'Erreur suppression storage');
+            }
+            // Supabase returns an array of deleted objects; RLS filters silently,
+            // so an empty array means the delete was blocked by policy.
+            if (Array.isArray(data) && data.length === 0 && list.length > 0) {
+                throw new Error('Fichier non supprimé (vérifier les RLS policies DELETE du bucket)');
+            }
+            return data;
         }
     }
 };
