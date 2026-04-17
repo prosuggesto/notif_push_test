@@ -291,25 +291,22 @@ const supabase = {
         async remove(bucket, paths) {
             const token = await supabase.auth.getValidToken();
             const list = Array.isArray(paths) ? paths : [paths];
-            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
-                },
-                body: JSON.stringify({ prefixes: list })
-            });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
-                throw new Error((data && (data.message || data.error)) || 'Erreur suppression storage');
+            const results = [];
+            for (const p of list) {
+                const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${this._encodePath(p)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
+                    }
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || data.error || 'Erreur suppression storage');
+                }
+                results.push(p);
             }
-            // Supabase returns an array of deleted objects; RLS filters silently,
-            // so an empty array means the delete was blocked by policy.
-            if (Array.isArray(data) && data.length === 0 && list.length > 0) {
-                throw new Error('Fichier non supprimé (vérifier les RLS policies DELETE du bucket)');
-            }
-            return data;
+            return results;
         }
     }
 };
