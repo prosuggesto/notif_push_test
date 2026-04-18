@@ -1165,24 +1165,27 @@ async function handleBulkDelete() {
         'Supprimer la sélection ?',
         `Êtes-vous sûr de vouloir supprimer ces ${selectedTemplateIds.size} templates ?`,
         async () => {
-            // Delete each selected template from the DB + storage (best-effort)
             const toDelete = announcementTemplates.filter(t => selectedTemplateIds.has(t.id));
             for (const tpl of toDelete) {
                 try {
                     if (tpl.dbId != null) {
                         await supabase.delete('annonces_templates', `id=eq.${tpl.dbId}`);
                     }
-                    if (tpl.image) {
-                        const marker = '/storage/v1/object/public/annonces/';
-                        const idx = tpl.image.indexOf(marker);
-                        if (idx !== -1) {
-                            const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
-                            await supabase.storage.remove('annonces', path);
-                        }
-                    }
                 } catch (err) {
-                    console.error('handleBulkDelete error for template', tpl.id, err);
+                    console.error('handleBulkDelete DB error for', tpl.id, err);
                     showGlassToast(err.message || 'Erreur suppression', 'error');
+                    continue;
+                }
+                // Storage cleanup (best-effort)
+                if (tpl.image) {
+                    const marker = '/storage/v1/object/public/annonces/';
+                    const idx = tpl.image.indexOf(marker);
+                    if (idx !== -1) {
+                        const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
+                        supabase.storage.remove('annonces', path).catch(err => {
+                            console.warn('Image storage cleanup failed:', err.message);
+                        });
+                    }
                 }
             }
 
@@ -1269,24 +1272,26 @@ function deleteAdminTemplate(id) {
         async () => {
             const tpl = announcementTemplates.find(t => t.id === id);
 
-            // Delete DB row + storage image (best-effort) for templates persisted on Supabase
             if (tpl) {
                 try {
                     if (tpl.dbId != null) {
                         await supabase.delete('annonces_templates', `id=eq.${tpl.dbId}`);
                     }
-                    if (tpl.image) {
-                        const marker = '/storage/v1/object/public/annonces/';
-                        const idx = tpl.image.indexOf(marker);
-                        if (idx !== -1) {
-                            const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
-                            await supabase.storage.remove('annonces', path);
-                        }
-                    }
                 } catch (err) {
-                    console.error('deleteAdminTemplate error:', err);
+                    console.error('deleteAdminTemplate DB error:', err);
                     showGlassToast(err.message || 'Erreur suppression', 'error');
                     return;
+                }
+                // Storage cleanup (best-effort, ne bloque pas la suppression)
+                if (tpl.image) {
+                    const marker = '/storage/v1/object/public/annonces/';
+                    const idx = tpl.image.indexOf(marker);
+                    if (idx !== -1) {
+                        const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
+                        supabase.storage.remove('annonces', path).catch(err => {
+                            console.warn('Image storage cleanup failed:', err.message);
+                        });
+                    }
                 }
             }
 
