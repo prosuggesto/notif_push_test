@@ -1178,14 +1178,7 @@ async function handleBulkDelete() {
                 }
                 // Storage cleanup (best-effort)
                 if (tpl.image) {
-                    const marker = '/storage/v1/object/public/annonces/';
-                    const idx = tpl.image.indexOf(marker);
-                    if (idx !== -1) {
-                        const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
-                        supabase.storage.remove('annonces', path).catch(err => {
-                            console.warn('Image storage cleanup failed:', err.message);
-                        });
-                    }
+                    deleteStorageImage('annonces', tpl.image);
                 }
             }
 
@@ -1265,6 +1258,33 @@ function loadAdminTemplate(id) {
     document.querySelector('.editor-section')?.scrollIntoView({ behavior: 'smooth' });
 }
 
+function deleteStorageImage(bucket, imageUrl) {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = imageUrl.indexOf(marker);
+    if (idx === -1) return;
+    const rawPath = decodeURIComponent(imageUrl.substring(idx + marker.length));
+    const slashIdx = rawPath.indexOf('/');
+    if (slashIdx === -1) return;
+    const folder = rawPath.substring(0, slashIdx);
+    const expectedFile = rawPath.substring(slashIdx + 1);
+    console.log('[deleteStorageImage] folder:', folder, 'expectedFile:', expectedFile);
+
+    supabase.storage.list(bucket, folder).then(objects => {
+        console.log('[deleteStorageImage] objects in folder:', objects);
+        const match = objects.find(o => o.name === expectedFile);
+        if (match) {
+            const exactPath = folder + '/' + match.name;
+            console.log('[deleteStorageImage] deleting exact path:', exactPath);
+            return supabase.storage.remove(bucket, exactPath);
+        } else {
+            console.warn('[deleteStorageImage] file not found in listing, trying raw path:', rawPath);
+            return supabase.storage.remove(bucket, rawPath);
+        }
+    }).catch(err => {
+        console.warn('[deleteStorageImage] cleanup failed:', err.message);
+    });
+}
+
 function deleteAdminTemplate(id) {
     showConfirmModal(
         'Supprimer ce template ?',
@@ -1284,14 +1304,7 @@ function deleteAdminTemplate(id) {
                 }
                 // Storage cleanup (best-effort, ne bloque pas la suppression)
                 if (tpl.image) {
-                    const marker = '/storage/v1/object/public/annonces/';
-                    const idx = tpl.image.indexOf(marker);
-                    if (idx !== -1) {
-                        const path = decodeURIComponent(tpl.image.substring(idx + marker.length));
-                        supabase.storage.remove('annonces', path).catch(err => {
-                            console.warn('Image storage cleanup failed:', err.message);
-                        });
-                    }
+                    deleteStorageImage('annonces', tpl.image);
                 }
             }
 

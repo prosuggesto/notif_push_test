@@ -288,25 +288,45 @@ const supabase = {
         getPublicUrl(bucket, path) {
             return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${this._encodePath(path)}`;
         },
-        async remove(bucket, paths) {
+        async list(bucket, folder) {
             const token = await supabase.auth.getValidToken();
-            const list = Array.isArray(paths) ? paths : [paths];
-            console.log('[storage.remove] bucket:', bucket, 'paths:', list);
-            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
-                method: 'DELETE',
+            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'apikey': SUPABASE_ANON_KEY,
                     'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
                 },
-                body: JSON.stringify({ prefixes: list })
+                body: JSON.stringify({ prefix: folder.endsWith('/') ? folder : folder + '/', limit: 1000 })
             });
-            const data = await res.json().catch(() => null);
-            console.log('[storage.remove] status:', res.status, 'data:', data);
-            if (!res.ok) {
-                throw new Error((data && (data.message || data.error)) || 'Erreur suppression storage');
-            }
+            const data = await res.json().catch(() => []);
+            if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Erreur listing storage');
             return data;
+        },
+        async remove(bucket, paths) {
+            const token = await supabase.auth.getValidToken();
+            if (!token) throw new Error('Non authentifié — impossible de supprimer du storage');
+            const list = Array.isArray(paths) ? paths : [paths];
+            console.log('[storage.remove] bucket:', bucket, 'paths:', list);
+            const results = [];
+            for (const path of list) {
+                const url = `${SUPABASE_URL}/storage/v1/object/${bucket}/${this._encodePath(path)}`;
+                console.log('[storage.remove] DELETE', url);
+                const res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await res.json().catch(() => null);
+                console.log('[storage.remove] status:', res.status, 'data:', data);
+                if (!res.ok && res.status !== 404) {
+                    throw new Error((data && (data.message || data.error)) || 'Erreur suppression storage');
+                }
+                results.push(data);
+            }
+            return results;
         }
     }
 };
