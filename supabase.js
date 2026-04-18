@@ -291,22 +291,22 @@ const supabase = {
         async remove(bucket, paths) {
             const token = await supabase.auth.getValidToken();
             const list = Array.isArray(paths) ? paths : [paths];
-            const results = [];
-            for (const p of list) {
-                const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${this._encodePath(p)}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
-                    }
-                });
-                if (!res.ok) {
-                    const data = await res.json().catch(() => ({}));
-                    throw new Error(data.message || data.error || 'Erreur suppression storage');
-                }
-                results.push(p);
+            console.log('[storage.remove] bucket:', bucket, 'paths:', list);
+            const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ prefixes: list })
+            });
+            const data = await res.json().catch(() => null);
+            console.log('[storage.remove] status:', res.status, 'data:', data);
+            if (!res.ok) {
+                throw new Error((data && (data.message || data.error)) || 'Erreur suppression storage');
             }
-            return results;
+            return data;
         }
     }
 };
