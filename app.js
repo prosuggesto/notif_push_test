@@ -4149,7 +4149,6 @@ function switchBizSection(sectionId) {
             annonces: t('nav.annonces'),
             calendrier: t('nav.calendar'),
             rewards: t('nav.rewards'),
-            produits: t('nav.products'),
             commandes: 'Scan',
             stats: t('nav.stats'),
             qrcodes: t('nav.my_qr')
@@ -4164,7 +4163,6 @@ function switchBizSection(sectionId) {
             if (sectionId === 'calendrier') renderCalendar();
             if (sectionId === 'stats') updateStats();
             if (sectionId === 'qrcodes') generateBusinessQRCodes();
-            if (sectionId === 'produits') renderProductsList();
             if (sectionId === 'commandes') startClientScanner();
         }, 30);
     }
@@ -4189,7 +4187,6 @@ function refreshActiveBizSection() {
     const id = activeSection.id.replace('biz-section-', '');
     if (id === 'annonces') { renderTemplatesGrid(); initAnnouncementEditor(); }
     if (id === 'rewards') { renderRewardsList(); }
-    if (id === 'produits') { renderProductsList(); }
     if (id === 'calendrier') { renderCalendar(); }
     if (id === 'stats') { updateStats(); }
     if (id === 'qrcodes') { generateBusinessQRCodes(); }
@@ -4198,7 +4195,6 @@ function refreshActiveBizSection() {
         annonces: t('nav.annonces'),
         calendrier: t('nav.calendar'),
         rewards: t('nav.rewards'),
-        produits: t('nav.products'),
         commandes: t('nav.orders'),
         stats: t('nav.stats'),
         qrcodes: t('nav.my_qr')
@@ -4248,7 +4244,6 @@ async function showBusinessDashboard() {
         // Sync local arrays with currentBusiness data
         bizTemplates = currentBusiness.bizTemplates || [];
         announcementTemplates = currentBusiness.announcementTemplates || [];
-        bizProducts = currentBusiness.products || [];
         bizSchedule = currentBusiness.schedule || {};
 
         // Load rewards + announcement templates from Supabase (source of truth)
@@ -4262,241 +4257,3 @@ async function showBusinessDashboard() {
     switchBizSection('annonces');
 }
 
-// ----- Products Management -----
-let bizProducts = [];
-let editingProductId = null;
-let productFilterCategory = 'all';
-let selectedProductCategory = 'Soft';
-
-// Custom select toggle
-function toggleCustomSelect(wrapperId) {
-    const wrapper = document.getElementById(wrapperId);
-    if (!wrapper) return;
-    // Close all other open selects
-    document.querySelectorAll('.custom-select-wrapper.active').forEach(w => {
-        if (w.id !== wrapperId) w.classList.remove('active');
-    });
-    wrapper.classList.toggle('active');
-}
-
-// Close custom selects on outside click
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.custom-select-wrapper')) {
-        document.querySelectorAll('.custom-select-wrapper.active').forEach(w => w.classList.remove('active'));
-    }
-});
-
-function selectProductCategory(val) {
-    selectedProductCategory = val;
-    const valueEl = document.getElementById('product-category-value');
-    if (valueEl) valueEl.textContent = val;
-    const wrapper = document.getElementById('product-category-wrapper');
-    if (wrapper) {
-        wrapper.classList.remove('active');
-        wrapper.querySelectorAll('.select-option').forEach(o => {
-            o.classList.toggle('selected', o.dataset.value === val);
-        });
-    }
-}
-
-function selectProductFilter(val) {
-    const valueEl = document.getElementById('product-filter-value');
-    if (valueEl) valueEl.textContent = val === 'all' ? 'Toutes les catégories' : val;
-    const wrapper = document.getElementById('product-filter-wrapper');
-    if (wrapper) {
-        wrapper.classList.remove('active');
-        wrapper.querySelectorAll('.select-option').forEach(o => {
-            o.classList.toggle('selected', o.dataset.value === val);
-        });
-    }
-    filterProducts(val);
-}
-
-function handleCreateProduct() {
-    const name = document.getElementById('product-name').value;
-    const price = document.getElementById('product-price').value;
-    const desc = document.getElementById('product-desc').value;
-    const category = selectedProductCategory;
-    const image = document.getElementById('product-image-input-hidden')?.value || '';
-
-    if (!name || !price) {
-        showConfirmModal('Champs requis', 'Veuillez remplir au moins le nom et le prix.', () => {});
-        return;
-    }
-
-    if (editingProductId) {
-        const idx = bizProducts.findIndex(p => p.id === editingProductId);
-        if (idx > -1) {
-            bizProducts[idx] = { ...bizProducts[idx], name, price, desc, category, image: image || bizProducts[idx].image };
-        }
-        editingProductId = null;
-    } else {
-        const product = { id: 'prod_' + Date.now(), name, price, desc, category, image };
-        bizProducts.push(product);
-    }
-
-    if (currentBusiness) {
-        currentBusiness.products = bizProducts;
-        saveBusinessData();
-    }
-
-    renderProductsList();
-    resetProductForm();
-    showSaveToast();
-}
-
-function resetProductForm() {
-    document.getElementById('product-name').value = '';
-    document.getElementById('product-price').value = '';
-    document.getElementById('product-desc').value = '';
-    selectProductCategory('Soft');
-    editingProductId = null;
-    const hiddenInput = document.getElementById('product-image-input-hidden');
-    if (hiddenInput) hiddenInput.value = '';
-    const placeholder = document.getElementById('product-image-placeholder');
-    if (placeholder) {
-        placeholder.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>Ajouter une image</span>`;
-        placeholder.classList.remove('has-image');
-    }
-}
-
-function loadProductForEdit(id) {
-    const p = bizProducts.find(x => x.id === id);
-    if (!p) return;
-    editingProductId = id;
-    document.getElementById('product-name').value = p.name || '';
-    document.getElementById('product-price').value = p.price || '';
-    document.getElementById('product-desc').value = p.desc || '';
-    selectProductCategory(p.category || 'Soft');
-    if (p.image) {
-        let hiddenInput = document.getElementById('product-image-input-hidden');
-        if (!hiddenInput) {
-            hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.id = 'product-image-input-hidden';
-            document.body.appendChild(hiddenInput);
-        }
-        hiddenInput.value = p.image;
-        const placeholder = document.getElementById('product-image-placeholder');
-        if (placeholder) {
-            placeholder.classList.add('has-image');
-            placeholder.innerHTML = `<img src="${p.image}" style="width:100%; height:120px; object-fit:cover;">`;
-        }
-    }
-    document.querySelector('.products-create-panel')?.scrollIntoView({ behavior: 'smooth' });
-}
-
-function handleProductImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        let hiddenInput = document.getElementById('product-image-input-hidden');
-        if (!hiddenInput) {
-            hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.id = 'product-image-input-hidden';
-            document.body.appendChild(hiddenInput);
-        }
-        hiddenInput.value = e.target.result;
-        const placeholder = document.getElementById('product-image-placeholder');
-        if (placeholder) {
-            placeholder.classList.add('has-image');
-            placeholder.innerHTML = `<img src="${e.target.result}" style="width:100%; height:120px; object-fit:cover;">`;
-        }
-    };
-    reader.readAsDataURL(file);
-}
-
-function addNewProductCategory() {
-    showPromptModal('Nouvelle catégorie', 'Entrez le nom de la nouvelle catégorie :', (catName) => {
-        const optionsContainer = document.getElementById('product-category-options');
-        if (!optionsContainer) return;
-        const exists = Array.from(optionsContainer.querySelectorAll('.select-option')).some(o => o.dataset.value.toLowerCase() === catName.toLowerCase());
-        if (!exists) {
-            const opt = document.createElement('div');
-            opt.className = 'select-option';
-            opt.dataset.value = catName;
-            opt.textContent = catName;
-            opt.onclick = () => selectProductCategory(catName);
-            optionsContainer.appendChild(opt);
-        }
-        selectProductCategory(catName);
-        renderProductCategoryFilters();
-    });
-}
-
-function filterProducts(category) {
-    productFilterCategory = category;
-    renderProductsList();
-}
-
-function renderProductCategoryFilters() {
-    const filterOptions = document.getElementById('product-filter-options');
-    const createOptions = document.getElementById('product-category-options');
-    if (!filterOptions) return;
-
-    // Collect all categories from products + create dropdown
-    const categories = [...new Set(bizProducts.map(p => p.category).filter(Boolean))];
-    if (createOptions) {
-        createOptions.querySelectorAll('.select-option').forEach(o => {
-            if (o.dataset.value && !categories.includes(o.dataset.value)) categories.push(o.dataset.value);
-        });
-    }
-
-    // Rebuild filter dropdown
-    const currentVal = productFilterCategory;
-    filterOptions.innerHTML = '<div class="select-option' + (currentVal === 'all' ? ' selected' : '') + '" data-value="all" onclick="selectProductFilter(\'all\')">Toutes les catégories</div>';
-    categories.forEach(c => {
-        const opt = document.createElement('div');
-        opt.className = 'select-option' + (currentVal === c ? ' selected' : '');
-        opt.dataset.value = c;
-        opt.textContent = c;
-        opt.onclick = () => selectProductFilter(c);
-        filterOptions.appendChild(opt);
-    });
-}
-
-function renderProductsList() {
-    const grid = document.getElementById('biz-products-grid');
-    if (!grid) return;
-
-    renderProductCategoryFilters();
-
-    let filtered = bizProducts;
-    if (productFilterCategory !== 'all') {
-        filtered = bizProducts.filter(p => p.category === productFilterCategory);
-    }
-
-    if (filtered.length === 0) {
-        grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">${productFilterCategory !== 'all' ? t('biz.no_product_category') : t('biz.no_product')}</p>`;
-        return;
-    }
-
-    grid.innerHTML = filtered.map(p => `
-        <div class="product-card">
-            <div class="product-card-image" style="background-image: url('${p.image || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300'}')"></div>
-            <div class="product-card-body">
-                <div class="product-card-name-row">
-                    <span class="product-card-name">${p.name}</span>
-                    ${p.category ? `<span class="product-card-category">${p.category}</span>` : ''}
-                </div>
-                <div class="product-card-price">${p.price}</div>
-                <div class="product-card-desc">${p.desc || ''}</div>
-                <div class="product-card-actions">
-                    <button class="btn-mini btn-edit" onclick="loadProductForEdit('${p.id}')">Modifier</button>
-                    <button class="btn-mini btn-delete" onclick="deleteProduct('${p.id}')">Supprimer</button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function deleteProduct(id) {
-    showConfirmModal('Supprimer ce produit ?', 'Cette action est irréversible.', () => {
-        bizProducts = bizProducts.filter(p => p.id !== id);
-        if (currentBusiness) currentBusiness.products = bizProducts;
-        saveBusinessData();
-        renderProductsList();
-    });
-}
