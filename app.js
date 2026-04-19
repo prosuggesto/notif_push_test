@@ -1625,14 +1625,8 @@ function deleteReward(titre) {
                 // Delete from Supabase rewards table (filter by boite_id + titre_reward)
                 await supabase.delete('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(titre)}`);
 
-                // Try to remove image from storage (best-effort)
                 if (reward.link) {
-                    const marker = '/storage/v1/object/public/rewards/';
-                    const idx = reward.link.indexOf(marker);
-                    if (idx !== -1) {
-                        const path = decodeURIComponent(reward.link.substring(idx + marker.length));
-                        await supabase.storage.remove('rewards', path).catch(() => {});
-                    }
+                    deleteStorageImage('rewards', reward.link);
                 }
 
                 bizRewards = bizRewards.filter(r => r.titre_reward !== titre);
