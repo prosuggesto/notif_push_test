@@ -1426,8 +1426,6 @@ async function handleCreateReward(e) {
 
     const nomRecompense = document.getElementById('rew-name').value.trim();
     const pointsNecessaires = parseInt(document.getElementById('rew-points').value);
-    const prixBase = document.getElementById('rew-base-price')?.value.trim() || '';
-    const prixApresReduction = document.getElementById('rew-discounted-price')?.value.trim() || '';
     const codeId = document.getElementById('rew-code')?.value.trim() || '';
 
     if (!nomRecompense || isNaN(pointsNecessaires)) {
@@ -1461,8 +1459,6 @@ async function handleCreateReward(e) {
             titre_reward: nomRecompense,
             nom_recompense: nomRecompense,
             points_necessaires: String(pointsNecessaires),
-            prix_base: prixBase,
-            prix_apres_reduction: prixApresReduction,
             code_id: codeId,
             link: imageLink
         };
@@ -1470,7 +1466,7 @@ async function handleCreateReward(e) {
 
         // 3. Update local state + fly animation
         bizRewards.unshift(inserted || row);
-        animateRewardToGrid(nomRecompense, pointsNecessaires, prixBase, imageLink || imageDataUrl);
+        animateRewardToGrid(nomRecompense, pointsNecessaires, '', imageLink || imageDataUrl);
         renderRewardsList();
 
         // 4. Reset form
@@ -1655,7 +1651,6 @@ function renderRewardsList() {
         const img = r.link || '';
         const nom = r.nom_recompense || '';
         const pts = parseInt(r.points_necessaires) || 0;
-        const prix = r.prix_base || '';
         const titre = (r.titre_reward || '').replace(/'/g, "\\'");
         const isSelected = selectedRewardTitres.has(r.titre_reward);
         return `
@@ -1667,7 +1662,6 @@ function renderRewardsList() {
                 <div class="reward-card-name">${nom}</div>
                 <div class="reward-card-meta">
                     <span class="badge badge-points">⭐ ${pts} pts</span>
-                    ${prix ? `<span class="badge badge-price">💰 ${prix}</span>` : ''}
                 </div>
                 <div class="reward-card-actions">
                     <button class="btn-rew-delete" onclick="event.stopPropagation(); deleteReward('${titre}')">
@@ -1788,8 +1782,6 @@ function renderCommandeRewards(points) {
         const img = r.link || '';
         const nom = (r.nom_recompense || '').replace(/"/g, '&quot;');
         const pts = parseInt(r.points_necessaires) || 0;
-        const prix = r.prix_apres_reduction || r.prix_base || '';
-
         const imgStyle = img
             ? `background: url(&quot;${img}&quot;) center/cover no-repeat;`
             : 'background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));';
@@ -1807,7 +1799,7 @@ function renderCommandeRewards(points) {
                 <div style="width: 52px; height: 52px; border-radius: 10px; ${imgStyle} flex-shrink: 0;"></div>
                 <div style="flex: 1; min-width: 0;">
                     <div style="font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nom}</div>
-                    <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts${prix ? ' &middot; <span style="color:var(--text-dim); font-weight:500;">' + prix + '</span>' : ''}</div>
+                    <div style="font-size: 13px; color: var(--primary-light); font-weight: 600; margin-top: 2px;">${pts} pts</div>
                 </div>
                 <div style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: ${badgeBg}; color: #fff; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1;">${badgeChar}</div>
             </div>
