@@ -1262,25 +1262,8 @@ function deleteStorageImage(bucket, imageUrl) {
     const marker = `/storage/v1/object/public/${bucket}/`;
     const idx = imageUrl.indexOf(marker);
     if (idx === -1) return;
-    const rawPath = decodeURIComponent(imageUrl.substring(idx + marker.length));
-    const slashIdx = rawPath.indexOf('/');
-    if (slashIdx === -1) return;
-    const folder = rawPath.substring(0, slashIdx);
-    const expectedFile = rawPath.substring(slashIdx + 1);
-    console.log('[deleteStorageImage] folder:', folder, 'expectedFile:', expectedFile);
-
-    supabase.storage.list(bucket, folder).then(objects => {
-        console.log('[deleteStorageImage] objects in folder:', objects);
-        const match = objects.find(o => o.name === expectedFile);
-        if (match) {
-            const exactPath = folder + '/' + match.name;
-            console.log('[deleteStorageImage] deleting exact path:', exactPath);
-            return supabase.storage.remove(bucket, exactPath);
-        } else {
-            console.warn('[deleteStorageImage] file not found in listing, trying raw path:', rawPath);
-            return supabase.storage.remove(bucket, rawPath);
-        }
-    }).catch(err => {
+    const path = decodeURIComponent(imageUrl.substring(idx + marker.length));
+    supabase.storage.remove(bucket, path).catch(err => {
         console.warn('[deleteStorageImage] cleanup failed:', err.message);
     });
 }
