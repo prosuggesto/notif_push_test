@@ -459,6 +459,12 @@
                                 <h3 class="card-title" data-i18n="biz.my_rewards">Mes Récompenses</h3>
                                 <p class="text-dim" style="font-size: 13px;" data-i18n="biz.manage_rewards">Gérez vos récompenses créées.</p>
                             </div>
+                            <div class="template-management-bar" style="justify-content: flex-end;">
+                                <div id="rewards-bulk-actions" class="bulk-actions" style="display: none;">
+                                    <span id="rewards-selected-count">0 sélectionné(s)</span>
+                                    <button type="button" id="rewards-bulk-delete-btn" class="btn-mini btn-destructive">Supprimer</button>
+                                </div>
+                            </div>
                             <div id="biz-rewards-grid" class="rewards-grid">
                                 <!-- Rewards dynamically added here -->
                             </div>
@@ -775,7 +781,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=annonces-v10"></script>
+    <script src="app.js?v=rewards-bulk-v1"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">

@@ -828,12 +828,38 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     overflow: hidden;
+    position: relative;
+    cursor: pointer;
     transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .reward-card:hover {
     border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-4px);
+}
+
+.reward-card.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
+    transform: scale(0.98);
+}
+
+.reward-card.selected::before {
+    content: '✓';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    background: rgba(99, 102, 241, 0.9);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 10;
 }
 
 .reward-card-image {

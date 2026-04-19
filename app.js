@@ -1573,14 +1573,81 @@ function animateRewardToGrid(nom, points, prix, imageSrc) {
     });
 }
 
+let selectedRewardTitres = new Set();
+
+function toggleRewardSelection(titre, e) {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+    if (selectedRewardTitres.has(titre)) {
+        selectedRewardTitres.delete(titre);
+    } else {
+        selectedRewardTitres.add(titre);
+    }
+    updateRewardsBulkActionsUI();
+    renderRewardsList();
+}
+
+function updateRewardsBulkActionsUI() {
+    const bar = document.getElementById('rewards-bulk-actions');
+    const countEl = document.getElementById('rewards-selected-count');
+    if (!bar || !countEl) return;
+    if (selectedRewardTitres.size > 0) {
+        bar.style.display = 'flex';
+        countEl.textContent = `${selectedRewardTitres.size} sélectionné${selectedRewardTitres.size > 1 ? 's' : ''}`;
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+async function handleBulkDeleteRewards() {
+    if (selectedRewardTitres.size === 0) {
+        showGlassToast('Aucune récompense sélectionnée', 'error');
+        return;
+    }
+    showConfirmModal(
+        'Supprimer la sélection ?',
+        `Êtes-vous sûr de vouloir supprimer ces ${selectedRewardTitres.size} récompenses ?`,
+        async () => {
+            const toDelete = bizRewards.filter(r => selectedRewardTitres.has(r.titre_reward));
+            for (const reward of toDelete) {
+                try {
+                    await supabase.delete('rewards', `boite_id=eq.${currentBusiness.uuid}&titre_reward=eq.${encodeURIComponent(reward.titre_reward)}`);
+                } catch (err) {
+                    console.error('handleBulkDeleteRewards DB error for', reward.titre_reward, err);
+                    showGlassToast(err.message || 'Erreur suppression', 'error');
+                    continue;
+                }
+                if (reward.link) {
+                    deleteStorageImage('rewards', reward.link);
+                }
+            }
+            bizRewards = bizRewards.filter(r => !selectedRewardTitres.has(r.titre_reward));
+            selectedRewardTitres.clear();
+            updateRewardsBulkActionsUI();
+            renderRewardsList();
+            showGlassToast('Récompenses supprimées', 'success');
+        }
+    );
+}
+
 function renderRewardsList() {
     const grid = document.getElementById('biz-rewards-grid');
     if (!grid) return;
+
+    const bulkBtn = document.getElementById('rewards-bulk-delete-btn');
+    if (bulkBtn && !bulkBtn.dataset.bound) {
+        bulkBtn.onclick = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            handleBulkDeleteRewards();
+        };
+        bulkBtn.dataset.bound = '1';
+    }
 
     if (!bizRewards || bizRewards.length === 0) {
         grid.innerHTML = `<p class="text-dim" style="grid-column: 1/-1; text-align: center; padding: 40px;">
             ${t('biz.no_reward_created')}
         </p>`;
+        updateRewardsBulkActionsUI();
         return;
     }
 
@@ -1590,8 +1657,9 @@ function renderRewardsList() {
         const pts = parseInt(r.points_necessaires) || 0;
         const prix = r.prix_base || '';
         const titre = (r.titre_reward || '').replace(/'/g, "\\'");
+        const isSelected = selectedRewardTitres.has(r.titre_reward);
         return `
-        <div class="reward-card">
+        <div class="reward-card ${isSelected ? 'selected' : ''}" onclick="toggleRewardSelection('${titre}', event)">
             <div class="reward-card-image" style="${img ? `background-image: url('${img}')` : ''}">
                 ${!img ? '<svg class="no-img-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' : ''}
             </div>
@@ -1602,7 +1670,7 @@ function renderRewardsList() {
                     ${prix ? `<span class="badge badge-price">💰 ${prix}</span>` : ''}
                 </div>
                 <div class="reward-card-actions">
-                    <button class="btn-rew-delete" onclick="deleteReward('${titre}')">
+                    <button class="btn-rew-delete" onclick="event.stopPropagation(); deleteReward('${titre}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                         Supprimer
                     </button>
@@ -1611,6 +1679,8 @@ function renderRewardsList() {
         </div>
     `;
     }).join('');
+
+    updateRewardsBulkActionsUI();
 }
 
 function deleteReward(titre) {
