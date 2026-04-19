@@ -1982,6 +1982,19 @@ async function validateCommande() {
         // 5. Recalculate top_pays, top_ville, top_age (entrée only, today)
         await recalculateCalendrierStats(cal.id);
 
+        // 6. Log rewards used (one row per reward)
+        if (selectedCommandeRewards.length > 0) {
+            const logs = selectedCommandeRewards.map(r => ({
+                boite_name: currentBusiness.name,
+                boite_id: currentBusiness.uuid,
+                reward_name: r.nom_recompense || r.titre_reward,
+                reward_id: r.id
+            }));
+            await supabase.insert('reward_logs', logs).catch(err => {
+                console.warn('reward_logs insert failed:', err.message);
+            });
+        }
+
         const msg = totalPointsToDeduct > 0
             ? `Entrée validée — ${totalPointsToDeduct} pts déduits, +1 pt entrée`
             : 'Entrée validée (+1 pt)';
