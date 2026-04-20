@@ -276,7 +276,8 @@ async function handleOAuthCallback(isBusinessView) {
                 name: profile.nom_boite || fullName,
                 uuid: userId,
                 city: profile.ville,
-                country: profile.pays
+                country: profile.pays,
+                capacity_max: parseInt(profile.capacity_max, 10) || 0
             };
             localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
             showBusinessDashboard();
@@ -437,10 +438,11 @@ async function handleOAuthEnrichBusiness(e) {
     const name = document.getElementById('biz-oauth-enrich-name').value.trim();
     const bizCity = document.getElementById('biz-oauth-enrich-city').value.trim();
     const bizCountry = document.getElementById('biz-oauth-enrich-country').value.trim();
+    const bizCapacity = parseInt(document.getElementById('biz-oauth-enrich-capacity')?.value, 10);
     const btn = document.getElementById('biz-oauth-enrich-btn');
     const msg = document.getElementById('biz-oauth-enrich-message');
 
-    if (!name || !bizCity || !bizCountry) {
+    if (!name || !bizCity || !bizCountry || !bizCapacity || bizCapacity < 1) {
         if (msg) { msg.textContent = 'Veuillez remplir tous les champs.'; msg.className = 'form-message error'; }
         return;
     }
@@ -454,14 +456,16 @@ async function handleOAuthEnrichBusiness(e) {
             id: userId,
             nom_boite: name,
             ville: bizCity,
-            pays: bizCountry
+            pays: bizCountry,
+            capacity_max: bizCapacity
         });
 
         currentBusiness = {
             name: name,
             uuid: userId,
             city: bizCity,
-            country: bizCountry
+            country: bizCountry,
+            capacity_max: bizCapacity
         };
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
         pendingOAuthUser = null;
@@ -545,11 +549,12 @@ async function handleBusinessSignup(e) {
     const email = document.getElementById('biz-signup-email').value.trim();
     const bizCity = document.getElementById('biz-signup-city')?.value.trim() || '';
     const bizCountry = document.getElementById('biz-signup-country')?.value.trim() || '';
+    const bizCapacity = parseInt(document.getElementById('biz-signup-capacity')?.value, 10);
     const password = document.getElementById('biz-signup-password').value.trim();
     const btn = document.getElementById('biz-signup-btn');
     const msg = document.getElementById('biz-signup-message');
 
-    if (!name || !email || !password || !bizCity || !bizCountry) {
+    if (!name || !email || !password || !bizCity || !bizCountry || !bizCapacity || bizCapacity < 1) {
         showMessage('biz-signup-message', 'Veuillez remplir tous les champs.', 'error');
         return;
     }
@@ -572,14 +577,16 @@ async function handleBusinessSignup(e) {
             id: userId,
             nom_boite: name,
             ville: bizCity,
-            pays: bizCountry
+            pays: bizCountry,
+            capacity_max: bizCapacity
         });
 
         currentBusiness = {
             name: name,
             uuid: userId,
             city: bizCity,
-            country: bizCountry
+            country: bizCountry,
+            capacity_max: bizCapacity
         };
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
         msg.textContent = 'Inscription réussie ! Redirection...';
@@ -623,7 +630,8 @@ async function handleBusinessLogin(e) {
             name: profile.nom_boite || 'Club Partenaire',
             uuid: userId,
             city: profile.ville,
-            country: profile.pays
+            country: profile.pays,
+            capacity_max: parseInt(profile.capacity_max, 10) || 0
         };
         localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
         showBusinessDashboard();
@@ -1887,7 +1895,12 @@ function getGenderField(sexe) {
     return 'non_binaire';
 }
 
+function invalidateStatsCache() {
+    statsCache.loadedFor = null;
+}
+
 async function recalculateCalendrierStats(calendrierId) {
+    invalidateStatsCache();
     const today = getTodayDateStr();
     const boiteId = currentBusiness.uuid;
     const tomorrow = new Date();
@@ -1976,11 +1989,15 @@ async function validateCommande() {
 
         // 6. Log rewards used (one row per reward)
         if (selectedCommandeRewards.length > 0) {
+            const clientAge = parseInt(lastFoundClient?.age, 10) || null;
+            const clientGenre = lastFoundClient?.sexe || null;
             const logs = selectedCommandeRewards.map(r => ({
                 boite_name: currentBusiness.name,
                 boite_id: currentBusiness.uuid,
                 reward_name: r.nom_recompense || r.titre_reward,
-                reward_id: r.id
+                reward_id: r.id,
+                age: clientAge,
+                genre: clientGenre
             }));
             await supabase.insert('reward_logs', logs).catch(err => {
                 console.warn('reward_logs insert failed:', err.message);
@@ -2374,90 +2391,266 @@ function downloadBusinessQR(containerId, filename) {
     link.click();
 }
 
-function updateStats() {
-    const filter = document.getElementById('stats-date-filter').value;
-    
-    // Mock data logic based on filter
-    const statsData = {
-        always: { clients: 12540, earnings: 42500, cost: 8500, m: 45, f: 42, nb: 8, unk: 5 },
-        year: { clients: 3420, earnings: 12100, cost: 2100, m: 48, f: 40, nb: 7, unk: 5 },
-        quarter: { clients: 850, earnings: 2800, cost: 450, m: 44, f: 44, nb: 8, unk: 4 },
-        month: { clients: 245, earnings: 820, cost: 120, m: 46, f: 43, nb: 6, unk: 5 },
-        week: { clients: 68, earnings: 210, cost: 35, m: 45, f: 45, nb: 5, unk: 5 },
-        today: { clients: 12, earnings: 45, cost: 8, m: 50, f: 40, nb: 5, unk: 5 }
-    };
+// ===== STATS MODULE =====
+let statsCache = { calendrier: null, rewardLogs: null, loadedFor: null };
+let statsDetailsData = { city: [], country: [] };
 
-    const s = statsData[filter] || statsData.month;
+function onStatsPeriodChange() {
+    const period = document.getElementById('stats-period').value;
+    const fromWrap = document.getElementById('stats-date-from-wrap');
+    const toWrap = document.getElementById('stats-date-to-wrap');
+    if (period === 'range') {
+        if (fromWrap) fromWrap.style.display = '';
+        if (toWrap) toWrap.style.display = '';
+    } else {
+        if (fromWrap) fromWrap.style.display = 'none';
+        if (toWrap) toWrap.style.display = 'none';
+    }
+    updateStats();
+}
 
-    // Update Bubble values
-    animateValue('stat-total-clients', s.clients);
-    animateValue('stat-total-earnings', s.earnings, '€');
-    animateValue('stat-rewards-cost', s.cost);
-
-    // Update Gender Bars
-    updateBar('m', s.m);
-    updateBar('f', s.f);
-    updateBar('nb', s.nb);
-
-    // Render Pie Chart (Simple SVG approach)
-    renderStatsPieChart(s);
-
-    // Update Rewards List (Randomized for demo)
-    const rewList = document.getElementById('stats-rewards-list');
-    if (rewList) {
-        rewList.innerHTML = '';
-        const mockRewards = [
-            { name: 'Shot de bienvenue', use: Math.floor(s.clients * 0.4) },
-            { name: 'Coupe de Bulles', use: Math.floor(s.clients * 0.25) },
-            { name: 'Entrée Gratuite', use: Math.floor(s.clients * 0.1) }
-        ];
-        mockRewards.forEach(r => {
-            const row = document.createElement('div');
-            row.style = "display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03);";
-            row.innerHTML = `<span style="font-size: 13px;">${r.name}</span><span style="font-weight: 700; color: var(--primary-light);">${r.use}</span>`;
-            rewList.appendChild(row);
-        });
+async function loadStatsData() {
+    if (!currentBusiness?.uuid) return;
+    if (statsCache.loadedFor === currentBusiness.uuid) return;
+    const boiteId = currentBusiness.uuid;
+    try {
+        const [calendrier, rewardLogs] = await Promise.all([
+            supabase.select('calendrier', `boite_id=eq.${boiteId}&order=date_soiree.asc`),
+            supabase.select('reward_logs', `boite_id=eq.${boiteId}`).catch(() => [])
+        ]);
+        statsCache.calendrier = Array.isArray(calendrier) ? calendrier : [];
+        statsCache.rewardLogs = Array.isArray(rewardLogs) ? rewardLogs : [];
+        statsCache.loadedFor = boiteId;
+        populateTemplateFilter();
+    } catch (err) {
+        console.warn('loadStatsData failed:', err.message);
+        statsCache.calendrier = [];
+        statsCache.rewardLogs = [];
     }
 }
 
-function animateValue(id, value, suffix = '') {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = value.toLocaleString() + suffix;
+function populateTemplateFilter() {
+    const sel = document.getElementById('stats-template');
+    if (!sel) return;
+    const titles = [...new Set((statsCache.calendrier || []).map(c => c.nom_template).filter(Boolean))].sort();
+    const current = sel.value;
+    sel.innerHTML = '<option value="all">Toutes</option>' +
+        titles.map(t => `<option value="${t.replace(/"/g, '&quot;')}">${t}</option>`).join('');
+    if (titles.includes(current)) sel.value = current;
 }
 
-function renderStatsPieChart(s) {
-    const container = document.querySelector('.pie-chart-container');
+function getStatsFilters() {
+    const period = document.getElementById('stats-period')?.value || 'always';
+    const from = document.getElementById('stats-date-from')?.value || '';
+    const to = document.getElementById('stats-date-to')?.value || '';
+    const template = document.getElementById('stats-template')?.value || 'all';
+    return { period, from, to, template };
+}
+
+function filterCalendrier() {
+    const { period, from, to, template } = getStatsFilters();
+    let rows = statsCache.calendrier || [];
+    if (template !== 'all') rows = rows.filter(r => r.nom_template === template);
+    if (period === 'range') {
+        if (from) rows = rows.filter(r => r.date_soiree >= from);
+        if (to) rows = rows.filter(r => r.date_soiree <= to);
+    }
+    return rows;
+}
+
+function filterRewardLogs(calendrierRows) {
+    const { period, from, to, template } = getStatsFilters();
+    let logs = statsCache.rewardLogs || [];
+    // If template filter active, keep only logs whose created_at date matches one of the filtered soirée dates
+    if (template !== 'all') {
+        const dates = new Set(calendrierRows.map(c => c.date_soiree));
+        logs = logs.filter(l => dates.has((l.created_at || '').slice(0, 10)));
+    }
+    if (period === 'range') {
+        if (from) logs = logs.filter(l => (l.created_at || '') >= from);
+        if (to) logs = logs.filter(l => (l.created_at || '').slice(0, 10) <= to);
+    }
+    return logs;
+}
+
+async function updateStats() {
+    if (!currentBusiness?.uuid) return;
+    const loading = document.getElementById('stats-loading');
+    if (loading && statsCache.loadedFor !== currentBusiness.uuid) loading.style.display = '';
+    await loadStatsData();
+    if (loading) loading.style.display = 'none';
+
+    const rows = filterCalendrier();
+    const logs = filterRewardLogs(rows);
+    const capacity = parseInt(currentBusiness.capacity_max, 10) || 0;
+
+    renderOccupancy(rows, capacity);
+    renderAge(rows);
+    renderOrders(rows);
+    renderGenderBreakdown(rows);
+    renderTopLocations(rows);
+    renderRewardsUsage(logs);
+}
+
+function renderOccupancy(rows, capacity) {
+    const val = document.getElementById('stat-occupancy');
+    const sub = document.getElementById('stat-occupancy-sub');
+    if (!val || !sub) return;
+    if (!capacity || rows.length === 0) {
+        val.textContent = capacity ? '0%' : 'N/A';
+        sub.textContent = capacity ? `Sur ${rows.length} soirée(s)` : 'Capacité non définie';
+        return;
+    }
+    const rates = rows.map(r => {
+        const aff = parseInt(r.affluence, 10) || 0;
+        return Math.min(100, (aff / capacity) * 100);
+    });
+    const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+    val.textContent = `${Math.round(avg)}%`;
+    sub.textContent = `Sur ${rows.length} soirée(s)`;
+}
+
+function renderAge(rows) {
+    const val = document.getElementById('stat-age');
+    const sub = document.getElementById('stat-age-sub');
+    if (!val || !sub) return;
+    const ages = rows.map(r => parseInt(r.top_age, 10)).filter(a => !isNaN(a) && a > 0);
+    if (ages.length === 0) {
+        val.textContent = '—';
+        sub.textContent = 'Aucune entrée';
+        return;
+    }
+    const avg = ages.reduce((a, b) => a + b, 0) / ages.length;
+    val.textContent = Math.round(avg);
+    sub.textContent = `ans (sur ${ages.length} soirée(s))`;
+}
+
+function renderOrders(rows) {
+    const val = document.getElementById('stat-orders');
+    const sub = document.getElementById('stat-orders-sub');
+    if (!val || !sub) return;
+    if (rows.length === 0) {
+        val.textContent = '—';
+        sub.textContent = 'Aucune soirée';
+        return;
+    }
+    const totals = rows.map(r => parseInt(r.total_commande, 10) || 0);
+    const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+    val.textContent = avg.toFixed(1);
+    sub.textContent = `moyenne sur ${rows.length} soirée(s)`;
+}
+
+function renderGenderBreakdown(rows) {
+    const nightlyPercents = { m: [], f: [], nb: [] };
+    rows.forEach(r => {
+        const h = parseInt(r.homme, 10) || 0;
+        const f = parseInt(r.femme, 10) || 0;
+        const n = parseInt(r.non_binaire, 10) || 0;
+        const tot = h + f + n;
+        if (tot === 0) return;
+        nightlyPercents.m.push((h / tot) * 100);
+        nightlyPercents.f.push((f / tot) * 100);
+        nightlyPercents.nb.push((n / tot) * 100);
+    });
+    const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const pM = Math.round(avg(nightlyPercents.m));
+    const pF = Math.round(avg(nightlyPercents.f));
+    const pNB = Math.round(avg(nightlyPercents.nb));
+    setGenderBar('m', pM);
+    setGenderBar('f', pF);
+    setGenderBar('nb', pNB);
+}
+
+function setGenderBar(key, percent) {
+    const bar = document.getElementById(`gender-bar-${key}`);
+    const val = document.getElementById(`gender-val-${key}`);
+    if (bar) bar.style.width = percent + '%';
+    if (val) val.textContent = percent + '%';
+}
+
+function renderTopLocations(rows) {
+    const cityCounts = {};
+    const countryCounts = {};
+    rows.forEach(r => {
+        if (r.top_ville) cityCounts[r.top_ville] = (cityCounts[r.top_ville] || 0) + 1;
+        if (r.top_pays) countryCounts[r.top_pays] = (countryCounts[r.top_pays] || 0) + 1;
+    });
+    const sortDesc = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    const cities = sortDesc(cityCounts);
+    const countries = sortDesc(countryCounts);
+    statsDetailsData.city = cities;
+    statsDetailsData.country = countries;
+
+    const cityEl = document.getElementById('stat-top-city');
+    const countryEl = document.getElementById('stat-top-country');
+    if (cityEl) cityEl.textContent = cities.length ? cities[0][0] : '—';
+    if (countryEl) countryEl.textContent = countries.length ? countries[0][0] : '—';
+}
+
+function renderRewardsUsage(logs) {
+    const container = document.getElementById('stats-rewards-list');
     if (!container) return;
-    
-    // Simple SVG Pie Chart with 3 segments (H/F/NB)
-    const total = s.m + s.f + s.nb;
-    const pM = (s.m / total) * 100;
-    const pF = (s.f / total) * 100;
-    
-    container.innerHTML = `
-        <svg viewBox="0 0 32 32" style="transform: rotate(-90deg); border-radius: 50%;">
-            <circle r="16" cx="16" cy="16" fill="#a855f7" /> <!-- NB (Purple) -->
-            <circle r="16" cx="16" cy="16" fill="transparent"
-                    stroke="#ec4899" 
-                    stroke-width="32" 
-                    stroke-dasharray="${pF} 100" /> <!-- F (Pink) -->
-            <circle r="16" cx="16" cy="16" fill="transparent"
-                    stroke="#3b82f6" 
-                    stroke-width="32" 
-                    stroke-dasharray="${pM} 100"
-                    style="stroke-dashoffset: -${pF}" /> <!-- M (Blue) -->
-        </svg>
-    `;
+    if (logs.length === 0) {
+        container.innerHTML = '<p class="text-dim" style="font-size: 13px;">Aucune donnée pour cette période.</p>';
+        return;
+    }
+    const byReward = {};
+    logs.forEach(l => {
+        const key = l.reward_name || 'Reward';
+        if (!byReward[key]) byReward[key] = { count: 0, ages: [], genres: { homme: 0, femme: 0, 'non-binaire': 0 } };
+        byReward[key].count += 1;
+        const age = parseInt(l.age, 10);
+        if (!isNaN(age) && age > 0) byReward[key].ages.push(age);
+        const g = (l.genre || '').toLowerCase();
+        if (g === 'homme' || g === 'femme' || g === 'non-binaire') byReward[key].genres[g] += 1;
+    });
+    const sorted = Object.entries(byReward).sort((a, b) => b[1].count - a[1].count);
+    container.innerHTML = sorted.map(([name, data]) => {
+        const avgAge = data.ages.length ? Math.round(data.ages.reduce((a, b) => a + b, 0) / data.ages.length) : null;
+        const totalGenre = data.genres.homme + data.genres.femme + data.genres['non-binaire'];
+        let genreLabel = '—';
+        if (totalGenre > 0) {
+            const pct = g => Math.round((data.genres[g] / totalGenre) * 100);
+            genreLabel = `H ${pct('homme')}% · F ${pct('femme')}% · NB ${pct('non-binaire')}%`;
+        }
+        return `
+            <div class="stats-reward-row">
+                <div class="stats-reward-name">${name}</div>
+                <div class="stats-reward-meta">
+                    <span class="stats-reward-count">${data.count}× utilisé</span>
+                    <span class="stats-reward-detail">Âge moy. : ${avgAge != null ? avgAge + ' ans' : '—'}</span>
+                    <span class="stats-reward-detail">${genreLabel}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
-function updateBar(id, percent) {
-    const bar = document.getElementById(`bar-${id}`);
-    const val = document.getElementById(`val-${id}`);
-    if (bar && val) {
-        bar.style.height = percent + '%';
-        val.textContent = percent + '%';
+function openStatsDetails(kind) {
+    const modal = document.getElementById('stats-details-modal');
+    const title = document.getElementById('stats-details-title');
+    const body = document.getElementById('stats-details-body');
+    if (!modal || !title || !body) return;
+    const data = statsDetailsData[kind] || [];
+    title.textContent = kind === 'city' ? 'Classement des villes' : 'Classement des pays';
+    if (data.length === 0) {
+        body.innerHTML = '<p class="text-dim" style="font-size: 13px;">Aucune donnée.</p>';
+    } else {
+        body.innerHTML = data.map(([name, count], i) => `
+            <div class="stats-detail-row">
+                <span class="stats-detail-rank">Top ${i + 1}</span>
+                <span class="stats-detail-name">${name}</span>
+                <span class="stats-detail-count">${count} soirée(s)</span>
+            </div>
+        `).join('');
     }
+    modal.style.display = 'flex';
+}
+
+function closeStatsDetails(e) {
+    if (e && e.target && e.target.id && e.target.id !== 'stats-details-modal') return;
+    const modal = document.getElementById('stats-details-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 let calendarDate = new Date();
