@@ -158,6 +158,13 @@
                         </div>
                     </div>
                     <div class="input-group">
+                        <label data-i18n="auth.biz_capacity">Capacité maximale de l'établissement</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                            <input type="number" id="biz-signup-capacity" placeholder="Ex: 500" min="1" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
                         <label data-i18n="common.password">Mot de passe</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -204,6 +211,13 @@
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
                                 <input type="text" id="biz-oauth-enrich-country" placeholder="Pays" required>
                             </div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Capacité maximale de l'établissement</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                            <input type="number" id="biz-oauth-enrich-capacity" placeholder="Ex: 500" min="1" required>
                         </div>
                     </div>
                     <button type="submit" class="btn-primary" id="biz-oauth-enrich-btn">Finaliser mon inscription</button>
@@ -554,72 +568,128 @@
 
                 <!-- Section: Stats -->
                 <section id="biz-section-stats" class="biz-section">
-                    <!-- Date Filter -->
-                    <div class="stats-filter-container">
-                        <div class="liquid-glass-select-wrap">
-                            <select id="stats-date-filter" class="liquid-glass-select" onchange="updateStats()">
-                                <option value="always" data-i18n="biz.period_always">Depuis toujours</option>
-                                <option value="year" data-i18n="biz.period_year">Cette année</option>
-                                <option value="quarter" data-i18n="biz.period_quarter">Ce trimestre</option>
-                                <option value="month" data-i18n="biz.period_month" selected>Ce mois</option>
-                                <option value="week" data-i18n="biz.period_week">Cette semaine</option>
-                                <option value="today" data-i18n="biz.period_today">Aujourd'hui</option>
+                    <!-- Filters -->
+                    <div class="stats-filters">
+                        <div class="stats-filter-group">
+                            <label class="stats-filter-label">Période</label>
+                            <select id="stats-period" class="stats-filter-input" onchange="onStatsPeriodChange()">
+                                <option value="always" selected>Depuis toujours</option>
+                                <option value="range">Période personnalisée</option>
+                            </select>
+                        </div>
+                        <div class="stats-filter-group" id="stats-date-from-wrap" style="display:none;">
+                            <label class="stats-filter-label">Du</label>
+                            <input type="date" id="stats-date-from" class="stats-filter-input" onchange="updateStats()">
+                        </div>
+                        <div class="stats-filter-group" id="stats-date-to-wrap" style="display:none;">
+                            <label class="stats-filter-label">Au</label>
+                            <input type="date" id="stats-date-to" class="stats-filter-input" onchange="updateStats()">
+                        </div>
+                        <div class="stats-filter-group">
+                            <label class="stats-filter-label">Soirée</label>
+                            <select id="stats-template" class="stats-filter-input" onchange="updateStats()">
+                                <option value="all">Toutes</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- 4 Stat Bubbles -->
-                    <div class="stats-bubbles-grid">
-                        <div class="stat-bubble">
-                            <span class="stat-bubble-val" id="stat-total-clients">0</span>
-                            <span class="stat-bubble-label" data-i18n="biz.total_clients">Total Clients</span>
+                    <!-- Loading indicator -->
+                    <div id="stats-loading" class="stats-loading" style="display:none;">Chargement des stats...</div>
+
+                    <!-- Stat cards grid -->
+                    <div class="stats-cards-grid">
+                        <!-- Occupancy -->
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                                <h4>Taux d'occupation moyen</h4>
+                            </div>
+                            <div class="stat-card-value" id="stat-occupancy">—</div>
+                            <div class="stat-card-sub" id="stat-occupancy-sub">Sur 0 soirée(s)</div>
                         </div>
-                        <div class="stat-bubble">
-                            <span class="stat-bubble-val" id="stat-total-earnings">0€</span>
-                            <span class="stat-bubble-label" data-i18n="biz.total_earnings">Total Gagné</span>
+
+                        <!-- Average age -->
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <h4>Âge moyen</h4>
+                            </div>
+                            <div class="stat-card-value" id="stat-age">—</div>
+                            <div class="stat-card-sub" id="stat-age-sub">ans</div>
                         </div>
-                        <div class="stat-bubble">
-                            <span class="stat-bubble-val" id="stat-rewards-cost">0</span>
-                            <span class="stat-bubble-label" data-i18n="biz.rewards_cost">Coût Total Rewards</span>
+
+                        <!-- Average orders per night -->
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+                                <h4>Commandes / soirée</h4>
+                            </div>
+                            <div class="stat-card-value" id="stat-orders">—</div>
+                            <div class="stat-card-sub" id="stat-orders-sub">moyenne par soirée</div>
                         </div>
-                        <div class="stat-bubble">
-                            <div class="pie-chart-container"></div>
-                            <span class="stat-bubble-label" data-i18n="biz.gender_split">Répartition H/F/NB</span>
+
+                        <!-- Gender breakdown -->
+                        <div class="stat-card stat-card-wide">
+                            <div class="stat-card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-3-3"/><path d="M19 14V2"/></svg>
+                                <h4>Répartition des genres (moyenne par soirée)</h4>
+                            </div>
+                            <div class="gender-bars">
+                                <div class="gender-bar-row">
+                                    <span class="gender-label">Hommes</span>
+                                    <div class="gender-bar-track"><div class="gender-bar-fill" id="gender-bar-m" style="width:0%; background:#3b82f6;"></div></div>
+                                    <span class="gender-value" id="gender-val-m">0%</span>
+                                </div>
+                                <div class="gender-bar-row">
+                                    <span class="gender-label">Femmes</span>
+                                    <div class="gender-bar-track"><div class="gender-bar-fill" id="gender-bar-f" style="width:0%; background:#ec4899;"></div></div>
+                                    <span class="gender-value" id="gender-val-f">0%</span>
+                                </div>
+                                <div class="gender-bar-row">
+                                    <span class="gender-label">Non-binaires</span>
+                                    <div class="gender-bar-track"><div class="gender-bar-fill" id="gender-bar-nb" style="width:0%; background:#a855f7;"></div></div>
+                                    <span class="gender-value" id="gender-val-nb">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top city -->
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <h4>Top ville</h4>
+                            </div>
+                            <div class="stat-card-value" id="stat-top-city">—</div>
+                            <button type="button" class="stat-details-btn" onclick="openStatsDetails('city')">Voir détails</button>
+                        </div>
+
+                        <!-- Top country -->
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                <h4>Top pays</h4>
+                            </div>
+                            <div class="stat-card-value" id="stat-top-country">—</div>
+                            <button type="button" class="stat-details-btn" onclick="openStatsDetails('country')">Voir détails</button>
                         </div>
                     </div>
 
-                    <!-- Detailed Analysis -->
+                    <!-- Rewards usage table -->
                     <div class="stats-card">
-                        <h3 class="card-title" style="margin-bottom: 20px;" data-i18n="biz.detailed_analysis">Analyses Détaillées</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
-                            <!-- Gender Bars -->
-                            <div class="stat-sub-section">
-                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;" data-i18n="biz.gender_repartition">Répartition par Sexe</h4>
-                                <div class="chart-container" style="height: 180px; display: flex; align-items: flex-end; gap: 20px; justify-content: space-around; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                                    <div class="bar-group" style="text-align: center; flex: 1;">
-                                        <div id="bar-m" style="height: 0%; width: 100%; max-width: 40px; background: #3b82f6; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_male">Hommes</span>
-                                        <span id="val-m" style="font-size: 12px; font-weight: 700;">0%</span>
-                                    </div>
-                                    <div class="bar-group" style="text-align: center; flex: 1;">
-                                        <div id="bar-f" style="height: 0%; width: 100%; max-width: 40px; background: #ec4899; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_female">Femmes</span>
-                                        <span id="val-f" style="font-size: 12px; font-weight: 700;">0%</span>
-                                    </div>
-                                    <div class="bar-group" style="text-align: center; flex: 1;">
-                                        <div id="bar-nb" style="height: 0%; width: 100%; max-width: 40px; background: #a855f7; border-radius: 4px 4px 0 0; margin: 0 auto; transition: height 0.5s ease;"></div>
-                                        <span style="font-size: 10px; margin-top: 8px; display: block;" data-i18n="auth.gender_other">Autre</span>
-                                        <span id="val-nb" style="font-size: 12px; font-weight: 700;">0%</span>
-                                    </div>
-                                </div>
+                        <h3 class="card-title" style="margin-bottom: 16px;">Utilisation des rewards</h3>
+                        <div id="stats-rewards-list" class="stats-rewards-list">
+                            <p class="text-dim" style="font-size: 13px;">Aucune donnée pour cette période.</p>
+                        </div>
+                    </div>
+
+                    <!-- Details modal -->
+                    <div id="stats-details-modal" class="stats-details-modal" style="display:none;" onclick="closeStatsDetails(event)">
+                        <div class="stats-details-inner" onclick="event.stopPropagation()">
+                            <div class="stats-details-header">
+                                <h3 id="stats-details-title">Détails</h3>
+                                <button type="button" class="stats-details-close" onclick="closeStatsDetails()">✕</button>
                             </div>
-                            <!-- Rewards Usage -->
-                            <div class="stat-sub-section">
-                                <h4 style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px; text-transform: uppercase;" data-i18n="biz.rewards_usage">Utilisation des Rewards</h4>
-                                <div id="stats-rewards-list" style="display: flex; flex-direction: column; gap: 10px;">
-                                    <p style="font-size: 12px; color: var(--text-dim);" data-i18n="biz.no_data">Aucune donnée pour cette période.</p>
-                                </div>
-                            </div>
+                            <div id="stats-details-body" class="stats-details-body"></div>
                         </div>
                     </div>
                 </section>
@@ -673,7 +743,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=remove-produits"></script>
+    <script src="app.js?v=stats-v1"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">
