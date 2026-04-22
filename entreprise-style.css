@@ -1340,6 +1340,15 @@ select.stats-filter-select option {
     font-size: 13px;
     color: var(--primary-light);
     font-weight: 600;
+    align-self: flex-end;
+}
+
+.stats-soiree-badge-text {
+    cursor: pointer;
+}
+
+.stats-soiree-badge-text:hover {
+    text-decoration: underline;
 }
 
 .stats-soiree-badge button {
@@ -1585,10 +1594,14 @@ select.stats-filter-select option {
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     z-index: 100000;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     padding: 20px;
+}
+
+.stats-modal-overlay.is-open {
+    display: flex;
 }
 
 .stats-modal-box {
