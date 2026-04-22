@@ -589,8 +589,8 @@
                             </div>
                         </div>
                         <div id="stats-soiree-badge" class="stats-soiree-badge" style="display:none;">
-                            <span id="stats-soiree-text"></span>
-                            <button type="button" onclick="clearSoireeFilter()">✕</button>
+                            <span id="stats-soiree-text" class="stats-soiree-badge-text" onclick="openSoireeModal()" title="Changer de soirée"></span>
+                            <button type="button" onclick="clearSoireeFilter()" title="Effacer le filtre">✕</button>
                         </div>
                     </div>
 
@@ -667,7 +667,7 @@
                     </div>
 
                     <!-- Soirée picker modal -->
-                    <div id="stats-soiree-modal" class="stats-modal-overlay" style="display:none;" onclick="closeSoireeModal(event)">
+                    <div id="stats-soiree-modal" class="stats-modal-overlay" onclick="closeSoireeModal(event)">
                         <div class="stats-modal-box" onclick="event.stopPropagation()">
                             <div class="stats-modal-header">
                                 <h3>Sélectionner une soirée</h3>
@@ -679,7 +679,7 @@
                     </div>
 
                     <!-- Details modal -->
-                    <div id="stats-details-modal" class="stats-modal-overlay" style="display:none;" onclick="closeStatsDetails(event)">
+                    <div id="stats-details-modal" class="stats-modal-overlay" onclick="closeStatsDetails(event)">
                         <div class="stats-modal-box" onclick="event.stopPropagation()">
                             <div class="stats-modal-header">
                                 <h3 id="stats-details-title">Détails</h3>
@@ -739,7 +739,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=stats-v2"></script>
+    <script src="app.js?v=stats-v3"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">

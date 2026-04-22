@@ -1991,6 +1991,7 @@ async function validateCommande() {
         if (selectedCommandeRewards.length > 0) {
             const clientAge = parseInt(lastFoundClient?.age, 10) || null;
             const clientGenre = lastFoundClient?.sexe || null;
+            console.log('[reward_logs] client data:', { age: clientAge, genre: clientGenre, raw: lastFoundClient });
             const logsBase = selectedCommandeRewards.map(r => ({
                 boite_name: currentBusiness.name,
                 boite_id: currentBusiness.uuid,
@@ -2000,9 +2001,11 @@ async function validateCommande() {
             try {
                 const logsExt = logsBase.map(l => ({ ...l, age: clientAge, genre: clientGenre }));
                 await supabase.insert('reward_logs', logsExt);
-            } catch {
-                await supabase.insert('reward_logs', logsBase).catch(err => {
-                    console.warn('reward_logs insert failed:', err.message);
+                console.log('[reward_logs] inserted with age/genre');
+            } catch (err) {
+                console.warn('[reward_logs] insert with age/genre failed, retrying without:', err.message);
+                await supabase.insert('reward_logs', logsBase).catch(e => {
+                    console.warn('[reward_logs] base insert also failed:', e.message);
                 });
             }
         }
@@ -2413,19 +2416,20 @@ function onStatsPeriodChange() {
     updateStats();
 }
 
-function openSoireeModal() {
+async function openSoireeModal() {
     const modal = document.getElementById('stats-soiree-modal');
     if (!modal) return;
+    await loadStatsData();
     const search = document.getElementById('stats-soiree-search');
     if (search) search.value = '';
     buildSoireeList('');
-    modal.style.display = 'flex';
+    modal.classList.add('is-open');
 }
 
 function closeSoireeModal(e) {
     if (e && e.target && e.target.id && e.target.id !== 'stats-soiree-modal') return;
     const modal = document.getElementById('stats-soiree-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('is-open');
     if (!selectedSoireeDate) {
         const sel = document.getElementById('stats-period');
         if (sel) sel.value = 'always';
@@ -2476,7 +2480,7 @@ function selectSoiree(date, name) {
     if (badge) badge.style.display = 'inline-flex';
     if (dateRange) dateRange.style.display = 'none';
     const modal = document.getElementById('stats-soiree-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('is-open');
     updateStats();
 }
 
@@ -2708,13 +2712,13 @@ function openStatsDetails(kind) {
             </div>
         `).join('');
     }
-    modal.style.display = 'flex';
+    modal.classList.add('is-open');
 }
 
 function closeStatsDetails(e) {
     if (e && e.target && e.target.id && e.target.id !== 'stats-details-modal') return;
     const modal = document.getElementById('stats-details-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.classList.remove('is-open');
 }
 
 let calendarDate = new Date();
