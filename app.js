@@ -1991,17 +1991,20 @@ async function validateCommande() {
         if (selectedCommandeRewards.length > 0) {
             const clientAge = parseInt(lastFoundClient?.age, 10) || null;
             const clientGenre = lastFoundClient?.sexe || null;
-            const logs = selectedCommandeRewards.map(r => ({
+            const logsBase = selectedCommandeRewards.map(r => ({
                 boite_name: currentBusiness.name,
                 boite_id: currentBusiness.uuid,
                 reward_name: r.nom_recompense || r.titre_reward,
-                reward_id: r.id,
-                age: clientAge,
-                genre: clientGenre
+                reward_id: r.id
             }));
-            await supabase.insert('reward_logs', logs).catch(err => {
-                console.warn('reward_logs insert failed:', err.message);
-            });
+            try {
+                const logsExt = logsBase.map(l => ({ ...l, age: clientAge, genre: clientGenre }));
+                await supabase.insert('reward_logs', logsExt);
+            } catch {
+                await supabase.insert('reward_logs', logsBase).catch(err => {
+                    console.warn('reward_logs insert failed:', err.message);
+                });
+            }
         }
 
         const msg = totalPointsToDeduct > 0
@@ -2394,19 +2397,96 @@ function downloadBusinessQR(containerId, filename) {
 // ===== STATS MODULE =====
 let statsCache = { calendrier: null, rewardLogs: null, loadedFor: null };
 let statsDetailsData = { city: [], country: [] };
+let selectedSoireeDate = null;
 
 function onStatsPeriodChange() {
     const period = document.getElementById('stats-period').value;
-    const fromWrap = document.getElementById('stats-date-from-wrap');
-    const toWrap = document.getElementById('stats-date-to-wrap');
-    if (period === 'range') {
-        if (fromWrap) fromWrap.style.display = '';
-        if (toWrap) toWrap.style.display = '';
-    } else {
-        if (fromWrap) fromWrap.style.display = 'none';
-        if (toWrap) toWrap.style.display = 'none';
+    const dateRange = document.getElementById('stats-date-range');
+    const badge = document.getElementById('stats-soiree-badge');
+    if (dateRange) dateRange.style.display = period === 'range' ? 'flex' : 'none';
+    if (badge) badge.style.display = 'none';
+    selectedSoireeDate = null;
+    if (period === 'soiree') {
+        openSoireeModal();
+        return;
     }
     updateStats();
+}
+
+function openSoireeModal() {
+    const modal = document.getElementById('stats-soiree-modal');
+    if (!modal) return;
+    const search = document.getElementById('stats-soiree-search');
+    if (search) search.value = '';
+    buildSoireeList('');
+    modal.style.display = 'flex';
+}
+
+function closeSoireeModal(e) {
+    if (e && e.target && e.target.id && e.target.id !== 'stats-soiree-modal') return;
+    const modal = document.getElementById('stats-soiree-modal');
+    if (modal) modal.style.display = 'none';
+    if (!selectedSoireeDate) {
+        const sel = document.getElementById('stats-period');
+        if (sel) sel.value = 'always';
+        onStatsPeriodChange();
+    }
+}
+
+function filterSoireeList() {
+    const q = (document.getElementById('stats-soiree-search')?.value || '').toLowerCase();
+    buildSoireeList(q);
+}
+
+function buildSoireeList(query) {
+    const container = document.getElementById('stats-soiree-list');
+    if (!container) return;
+    const rows = (statsCache.calendrier || []).slice().sort((a, b) => (b.date_soiree || '').localeCompare(a.date_soiree || ''));
+    const filtered = query
+        ? rows.filter(r => {
+            const name = (r.nom_template || '').toLowerCase();
+            const date = (r.date_soiree || '');
+            return name.includes(query) || date.includes(query);
+        })
+        : rows;
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-dim" style="font-size:13px;padding:8px 0;">Aucune soirée trouvée.</p>';
+        return;
+    }
+    container.innerHTML = filtered.map(r => {
+        const d = r.date_soiree || '';
+        const formatted = d ? new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        const name = r.nom_template || 'Sans nom';
+        return `<div class="stats-soiree-item" onclick="selectSoiree('${d}','${name.replace(/'/g, "\\'")}')">
+            <span class="stats-soiree-item-name">${name}</span>
+            <span class="stats-soiree-item-date">${formatted}</span>
+        </div>`;
+    }).join('');
+}
+
+function selectSoiree(date, name) {
+    selectedSoireeDate = date;
+    const badge = document.getElementById('stats-soiree-badge');
+    const text = document.getElementById('stats-soiree-text');
+    const dateRange = document.getElementById('stats-date-range');
+    if (text) {
+        const formatted = date ? new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        text.textContent = `${name} — ${formatted}`;
+    }
+    if (badge) badge.style.display = 'inline-flex';
+    if (dateRange) dateRange.style.display = 'none';
+    const modal = document.getElementById('stats-soiree-modal');
+    if (modal) modal.style.display = 'none';
+    updateStats();
+}
+
+function clearSoireeFilter() {
+    selectedSoireeDate = null;
+    const badge = document.getElementById('stats-soiree-badge');
+    if (badge) badge.style.display = 'none';
+    const sel = document.getElementById('stats-period');
+    if (sel) sel.value = 'always';
+    onStatsPeriodChange();
 }
 
 async function loadStatsData() {
@@ -2421,7 +2501,6 @@ async function loadStatsData() {
         statsCache.calendrier = Array.isArray(calendrier) ? calendrier : [];
         statsCache.rewardLogs = Array.isArray(rewardLogs) ? rewardLogs : [];
         statsCache.loadedFor = boiteId;
-        populateTemplateFilter();
     } catch (err) {
         console.warn('loadStatsData failed:', err.message);
         statsCache.calendrier = [];
@@ -2429,29 +2508,19 @@ async function loadStatsData() {
     }
 }
 
-function populateTemplateFilter() {
-    const sel = document.getElementById('stats-template');
-    if (!sel) return;
-    const titles = [...new Set((statsCache.calendrier || []).map(c => c.nom_template).filter(Boolean))].sort();
-    const current = sel.value;
-    sel.innerHTML = '<option value="all">Toutes</option>' +
-        titles.map(t => `<option value="${t.replace(/"/g, '&quot;')}">${t}</option>`).join('');
-    if (titles.includes(current)) sel.value = current;
-}
-
 function getStatsFilters() {
     const period = document.getElementById('stats-period')?.value || 'always';
     const from = document.getElementById('stats-date-from')?.value || '';
     const to = document.getElementById('stats-date-to')?.value || '';
-    const template = document.getElementById('stats-template')?.value || 'all';
-    return { period, from, to, template };
+    return { period, from, to, soireeDate: selectedSoireeDate };
 }
 
 function filterCalendrier() {
-    const { period, from, to, template } = getStatsFilters();
+    const { period, from, to, soireeDate } = getStatsFilters();
     let rows = statsCache.calendrier || [];
-    if (template !== 'all') rows = rows.filter(r => r.nom_template === template);
-    if (period === 'range') {
+    if (period === 'soiree' && soireeDate) {
+        rows = rows.filter(r => r.date_soiree === soireeDate);
+    } else if (period === 'range') {
         if (from) rows = rows.filter(r => r.date_soiree >= from);
         if (to) rows = rows.filter(r => r.date_soiree <= to);
     }
@@ -2459,14 +2528,11 @@ function filterCalendrier() {
 }
 
 function filterRewardLogs(calendrierRows) {
-    const { period, from, to, template } = getStatsFilters();
+    const { period, from, to, soireeDate } = getStatsFilters();
     let logs = statsCache.rewardLogs || [];
-    // If template filter active, keep only logs whose created_at date matches one of the filtered soirée dates
-    if (template !== 'all') {
-        const dates = new Set(calendrierRows.map(c => c.date_soiree));
-        logs = logs.filter(l => dates.has((l.created_at || '').slice(0, 10)));
-    }
-    if (period === 'range') {
+    if (period === 'soiree' && soireeDate) {
+        logs = logs.filter(l => (l.created_at || '').slice(0, 10) === soireeDate);
+    } else if (period === 'range') {
         if (from) logs = logs.filter(l => (l.created_at || '') >= from);
         if (to) logs = logs.filter(l => (l.created_at || '').slice(0, 10) <= to);
     }
@@ -2498,7 +2564,7 @@ function renderOccupancy(rows, capacity) {
     if (!val || !sub) return;
     if (!capacity || rows.length === 0) {
         val.textContent = capacity ? '0%' : 'N/A';
-        sub.textContent = capacity ? `Sur ${rows.length} soirée(s)` : 'Capacité non définie';
+        sub.textContent = capacity ? `${rows.length} soirée(s)` : 'Capacité non définie';
         return;
     }
     const rates = rows.map(r => {
@@ -2507,7 +2573,7 @@ function renderOccupancy(rows, capacity) {
     });
     const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
     val.textContent = `${Math.round(avg)}%`;
-    sub.textContent = `Sur ${rows.length} soirée(s)`;
+    sub.textContent = `${rows.length} soirée(s)`;
 }
 
 function renderAge(rows) {
@@ -2517,12 +2583,12 @@ function renderAge(rows) {
     const ages = rows.map(r => parseInt(r.top_age, 10)).filter(a => !isNaN(a) && a > 0);
     if (ages.length === 0) {
         val.textContent = '—';
-        sub.textContent = 'Aucune entrée';
+        sub.textContent = 'aucune entrée';
         return;
     }
     const avg = ages.reduce((a, b) => a + b, 0) / ages.length;
     val.textContent = Math.round(avg);
-    sub.textContent = `ans (sur ${ages.length} soirée(s))`;
+    sub.textContent = `sur ${ages.length} soirée(s)`;
 }
 
 function renderOrders(rows) {
@@ -2531,13 +2597,13 @@ function renderOrders(rows) {
     if (!val || !sub) return;
     if (rows.length === 0) {
         val.textContent = '—';
-        sub.textContent = 'Aucune soirée';
+        sub.textContent = 'aucune soirée';
         return;
     }
     const totals = rows.map(r => parseInt(r.total_commande, 10) || 0);
     const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
     val.textContent = avg.toFixed(1);
-    sub.textContent = `moyenne sur ${rows.length} soirée(s)`;
+    sub.textContent = `sur ${rows.length} soirée(s)`;
 }
 
 function renderGenderBreakdown(rows) {
@@ -2591,7 +2657,7 @@ function renderRewardsUsage(logs) {
     const container = document.getElementById('stats-rewards-list');
     if (!container) return;
     if (logs.length === 0) {
-        container.innerHTML = '<p class="text-dim" style="font-size: 13px;">Aucune donnée pour cette période.</p>';
+        container.innerHTML = '<p class="text-dim" style="font-size:13px;">Aucune donnée pour cette période.</p>';
         return;
     }
     const byReward = {};
@@ -2613,16 +2679,14 @@ function renderRewardsUsage(logs) {
             const pct = g => Math.round((data.genres[g] / totalGenre) * 100);
             genreLabel = `H ${pct('homme')}% · F ${pct('femme')}% · NB ${pct('non-binaire')}%`;
         }
-        return `
-            <div class="stats-reward-row">
-                <div class="stats-reward-name">${name}</div>
-                <div class="stats-reward-meta">
-                    <span class="stats-reward-count">${data.count}× utilisé</span>
-                    <span class="stats-reward-detail">Âge moy. : ${avgAge != null ? avgAge + ' ans' : '—'}</span>
-                    <span class="stats-reward-detail">${genreLabel}</span>
-                </div>
+        return `<div class="stats-reward-row">
+            <div class="stats-reward-name">${name}</div>
+            <div class="stats-reward-meta">
+                <span class="stats-reward-count">${data.count}x utilisé</span>
+                <span class="stats-reward-detail">Âge moy. : ${avgAge != null ? avgAge + ' ans' : '—'}</span>
+                <span class="stats-reward-detail">${genreLabel}</span>
             </div>
-        `;
+        </div>`;
     }).join('');
 }
 
@@ -2634,11 +2698,11 @@ function openStatsDetails(kind) {
     const data = statsDetailsData[kind] || [];
     title.textContent = kind === 'city' ? 'Classement des villes' : 'Classement des pays';
     if (data.length === 0) {
-        body.innerHTML = '<p class="text-dim" style="font-size: 13px;">Aucune donnée.</p>';
+        body.innerHTML = '<p class="text-dim" style="font-size:13px;">Aucune donnée.</p>';
     } else {
         body.innerHTML = data.map(([name, count], i) => `
             <div class="stats-detail-row">
-                <span class="stats-detail-rank">Top ${i + 1}</span>
+                <span class="stats-detail-rank">#${i + 1}</span>
                 <span class="stats-detail-name">${name}</span>
                 <span class="stats-detail-count">${count} soirée(s)</span>
             </div>

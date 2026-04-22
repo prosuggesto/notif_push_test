@@ -568,72 +568,60 @@
 
                 <!-- Section: Stats -->
                 <section id="biz-section-stats" class="biz-section">
-                    <!-- Filters -->
-                    <div class="stats-filters">
+                    <!-- Filter bar -->
+                    <div class="stats-filter-bar">
                         <div class="stats-filter-group">
                             <label class="stats-filter-label">Période</label>
-                            <select id="stats-period" class="stats-filter-input" onchange="onStatsPeriodChange()">
+                            <select id="stats-period" class="stats-filter-select" onchange="onStatsPeriodChange()">
                                 <option value="always" selected>Depuis toujours</option>
-                                <option value="range">Période personnalisée</option>
+                                <option value="range">Personnalisé</option>
+                                <option value="soiree">Par soirée</option>
                             </select>
                         </div>
-                        <div class="stats-filter-group" id="stats-date-from-wrap" style="display:none;">
-                            <label class="stats-filter-label">Du</label>
-                            <input type="date" id="stats-date-from" class="stats-filter-input" onchange="updateStats()">
+                        <div id="stats-date-range" class="stats-date-range" style="display:none;">
+                            <div class="stats-filter-group">
+                                <label class="stats-filter-label">Du</label>
+                                <input type="date" id="stats-date-from" class="stats-filter-select" onchange="updateStats()">
+                            </div>
+                            <div class="stats-filter-group">
+                                <label class="stats-filter-label">Au</label>
+                                <input type="date" id="stats-date-to" class="stats-filter-select" onchange="updateStats()">
+                            </div>
                         </div>
-                        <div class="stats-filter-group" id="stats-date-to-wrap" style="display:none;">
-                            <label class="stats-filter-label">Au</label>
-                            <input type="date" id="stats-date-to" class="stats-filter-input" onchange="updateStats()">
-                        </div>
-                        <div class="stats-filter-group">
-                            <label class="stats-filter-label">Soirée</label>
-                            <select id="stats-template" class="stats-filter-input" onchange="updateStats()">
-                                <option value="all">Toutes</option>
-                            </select>
+                        <div id="stats-soiree-badge" class="stats-soiree-badge" style="display:none;">
+                            <span id="stats-soiree-text"></span>
+                            <button type="button" onclick="clearSoireeFilter()">✕</button>
                         </div>
                     </div>
 
-                    <!-- Loading indicator -->
-                    <div id="stats-loading" class="stats-loading" style="display:none;">Chargement des stats...</div>
+                    <div id="stats-loading" class="stats-loading" style="display:none;">Chargement...</div>
 
-                    <!-- Stat cards grid -->
-                    <div class="stats-cards-grid">
-                        <!-- Occupancy -->
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                                <h4>Taux d'occupation moyen</h4>
-                            </div>
-                            <div class="stat-card-value" id="stat-occupancy">—</div>
-                            <div class="stat-card-sub" id="stat-occupancy-sub">Sur 0 soirée(s)</div>
+                    <!-- KPI strip -->
+                    <div class="stats-kpi-strip">
+                        <div class="stats-kpi">
+                            <span class="stats-kpi-label">Taux d'occupation</span>
+                            <span class="stats-kpi-value" id="stat-occupancy">—</span>
+                            <span class="stats-kpi-sub" id="stat-occupancy-sub">0 soirée(s)</span>
                         </div>
-
-                        <!-- Average age -->
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                <h4>Âge moyen</h4>
-                            </div>
-                            <div class="stat-card-value" id="stat-age">—</div>
-                            <div class="stat-card-sub" id="stat-age-sub">ans</div>
+                        <div class="stats-kpi-divider"></div>
+                        <div class="stats-kpi">
+                            <span class="stats-kpi-label">Âge moyen</span>
+                            <span class="stats-kpi-value" id="stat-age">—</span>
+                            <span class="stats-kpi-sub" id="stat-age-sub">ans</span>
                         </div>
-
-                        <!-- Average orders per night -->
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
-                                <h4>Commandes / soirée</h4>
-                            </div>
-                            <div class="stat-card-value" id="stat-orders">—</div>
-                            <div class="stat-card-sub" id="stat-orders-sub">moyenne par soirée</div>
+                        <div class="stats-kpi-divider"></div>
+                        <div class="stats-kpi">
+                            <span class="stats-kpi-label">Commandes / soirée</span>
+                            <span class="stats-kpi-value" id="stat-orders">—</span>
+                            <span class="stats-kpi-sub" id="stat-orders-sub">moyenne</span>
                         </div>
+                    </div>
 
-                        <!-- Gender breakdown -->
-                        <div class="stat-card stat-card-wide">
-                            <div class="stat-card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-3-3"/><path d="M19 14V2"/></svg>
-                                <h4>Répartition des genres (moyenne par soirée)</h4>
-                            </div>
+                    <!-- Two-column panels -->
+                    <div class="stats-two-col">
+                        <div class="stats-panel">
+                            <h4 class="stats-panel-title">Répartition des genres</h4>
+                            <p class="stats-panel-sub">Moyenne par soirée</p>
                             <div class="gender-bars">
                                 <div class="gender-bar-row">
                                     <span class="gender-label">Hommes</span>
@@ -652,42 +640,50 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Top city -->
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <h4>Top ville</h4>
+                        <div class="stats-panel">
+                            <h4 class="stats-panel-title">Provenance</h4>
+                            <p class="stats-panel-sub">Top localisation des clients</p>
+                            <div class="stats-location-grid">
+                                <div class="stats-location-item">
+                                    <span class="stats-location-label">Ville</span>
+                                    <span class="stats-location-value" id="stat-top-city">—</span>
+                                    <button type="button" class="stats-location-btn" onclick="openStatsDetails('city')">Classement</button>
+                                </div>
+                                <div class="stats-location-item">
+                                    <span class="stats-location-label">Pays</span>
+                                    <span class="stats-location-value" id="stat-top-country">—</span>
+                                    <button type="button" class="stats-location-btn" onclick="openStatsDetails('country')">Classement</button>
+                                </div>
                             </div>
-                            <div class="stat-card-value" id="stat-top-city">—</div>
-                            <button type="button" class="stat-details-btn" onclick="openStatsDetails('city')">Voir détails</button>
-                        </div>
-
-                        <!-- Top country -->
-                        <div class="stat-card">
-                            <div class="stat-card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                                <h4>Top pays</h4>
-                            </div>
-                            <div class="stat-card-value" id="stat-top-country">—</div>
-                            <button type="button" class="stat-details-btn" onclick="openStatsDetails('country')">Voir détails</button>
                         </div>
                     </div>
 
-                    <!-- Rewards usage table -->
-                    <div class="stats-card">
-                        <h3 class="card-title" style="margin-bottom: 16px;">Utilisation des rewards</h3>
+                    <!-- Rewards usage -->
+                    <div class="stats-panel stats-panel-full">
+                        <h4 class="stats-panel-title">Utilisation des rewards</h4>
                         <div id="stats-rewards-list" class="stats-rewards-list">
-                            <p class="text-dim" style="font-size: 13px;">Aucune donnée pour cette période.</p>
+                            <p class="text-dim" style="font-size:13px;">Aucune donnée pour cette période.</p>
+                        </div>
+                    </div>
+
+                    <!-- Soirée picker modal -->
+                    <div id="stats-soiree-modal" class="stats-modal-overlay" style="display:none;" onclick="closeSoireeModal(event)">
+                        <div class="stats-modal-box" onclick="event.stopPropagation()">
+                            <div class="stats-modal-header">
+                                <h3>Sélectionner une soirée</h3>
+                                <button type="button" class="stats-modal-close" onclick="closeSoireeModal()">✕</button>
+                            </div>
+                            <input type="text" id="stats-soiree-search" class="stats-soiree-search" placeholder="Rechercher par nom ou date..." oninput="filterSoireeList()">
+                            <div id="stats-soiree-list" class="stats-soiree-list"></div>
                         </div>
                     </div>
 
                     <!-- Details modal -->
-                    <div id="stats-details-modal" class="stats-details-modal" style="display:none;" onclick="closeStatsDetails(event)">
-                        <div class="stats-details-inner" onclick="event.stopPropagation()">
-                            <div class="stats-details-header">
+                    <div id="stats-details-modal" class="stats-modal-overlay" style="display:none;" onclick="closeStatsDetails(event)">
+                        <div class="stats-modal-box" onclick="event.stopPropagation()">
+                            <div class="stats-modal-header">
                                 <h3 id="stats-details-title">Détails</h3>
-                                <button type="button" class="stats-details-close" onclick="closeStatsDetails()">✕</button>
+                                <button type="button" class="stats-modal-close" onclick="closeStatsDetails()">✕</button>
                             </div>
                             <div id="stats-details-body" class="stats-details-body"></div>
                         </div>
@@ -743,7 +739,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=stats-v1"></script>
+    <script src="app.js?v=stats-v2"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">
