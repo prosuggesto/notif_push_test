@@ -1277,11 +1277,46 @@
     margin-bottom: 28px;
 }
 
+.stats-period-tabs {
+    display: flex;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 3px;
+    overflow: hidden;
+}
+
+.stats-period-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: rgba(99, 102, 241, 0.15);
+    touch-action: manipulation;
+}
+
+.stats-period-tab:hover {
+    color: #fff;
+}
+
+.stats-period-tab.active {
+    background: rgba(99, 102, 241, 0.2);
+    color: #fff;
+}
+
 .stats-filter-group {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    min-width: 160px;
+    min-width: 140px;
 }
 
 .stats-filter-label {
@@ -1292,7 +1327,7 @@
     letter-spacing: 0.05em;
 }
 
-.stats-filter-select {
+.stats-filter-input {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
@@ -1305,23 +1340,8 @@
     width: 100%;
 }
 
-.stats-filter-select:focus {
+.stats-filter-input:focus {
     border-color: var(--primary);
-}
-
-select.stats-filter-select {
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1L6 6L11 1' stroke='%23a5b4fc' stroke-width='2' stroke-linecap='round'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 36px;
-}
-
-select.stats-filter-select option {
-    background: #1e293b;
-    color: #f8fafc;
 }
 
 .stats-date-range {
@@ -1759,6 +1779,15 @@ select.stats-filter-select option {
     .stats-reward-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+    .stats-period-tabs {
+        width: 100%;
+    }
+    .stats-period-tab {
+        flex: 1;
+        text-align: center;
+        font-size: 12px;
+        padding: 9px 8px;
     }
     .stats-date-range {
         flex-direction: column;

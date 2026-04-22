@@ -1991,23 +1991,17 @@ async function validateCommande() {
         if (selectedCommandeRewards.length > 0) {
             const clientAge = parseInt(lastFoundClient?.age, 10) || null;
             const clientGenre = lastFoundClient?.sexe || null;
-            console.log('[reward_logs] client data:', { age: clientAge, genre: clientGenre, raw: lastFoundClient });
-            const logsBase = selectedCommandeRewards.map(r => ({
+            const logs = selectedCommandeRewards.map(r => ({
                 boite_name: currentBusiness.name,
                 boite_id: currentBusiness.uuid,
                 reward_name: r.nom_recompense || r.titre_reward,
-                reward_id: r.id
+                reward_id: r.id,
+                'âge': clientAge,
+                genre: clientGenre
             }));
-            try {
-                const logsExt = logsBase.map(l => ({ ...l, age: clientAge, genre: clientGenre }));
-                await supabase.insert('reward_logs', logsExt);
-                console.log('[reward_logs] inserted with age/genre');
-            } catch (err) {
-                console.warn('[reward_logs] insert with age/genre failed, retrying without:', err.message);
-                await supabase.insert('reward_logs', logsBase).catch(e => {
-                    console.warn('[reward_logs] base insert also failed:', e.message);
-                });
-            }
+            await supabase.insert('reward_logs', logs).catch(err => {
+                console.warn('reward_logs insert failed:', err.message);
+            });
         }
 
         const msg = totalPointsToDeduct > 0
@@ -2401,14 +2395,20 @@ function downloadBusinessQR(containerId, filename) {
 let statsCache = { calendrier: null, rewardLogs: null, loadedFor: null };
 let statsDetailsData = { city: [], country: [] };
 let selectedSoireeDate = null;
+let currentStatsPeriod = 'always';
 
-function onStatsPeriodChange() {
-    const period = document.getElementById('stats-period').value;
+function setStatsPeriod(period) {
+    currentStatsPeriod = period;
+    document.querySelectorAll('.stats-period-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.period === period);
+    });
     const dateRange = document.getElementById('stats-date-range');
     const badge = document.getElementById('stats-soiree-badge');
     if (dateRange) dateRange.style.display = period === 'range' ? 'flex' : 'none';
-    if (badge) badge.style.display = 'none';
-    selectedSoireeDate = null;
+    if (period !== 'soiree') {
+        if (badge) badge.style.display = 'none';
+        selectedSoireeDate = null;
+    }
     if (period === 'soiree') {
         openSoireeModal();
         return;
@@ -2431,9 +2431,7 @@ function closeSoireeModal(e) {
     const modal = document.getElementById('stats-soiree-modal');
     if (modal) modal.classList.remove('is-open');
     if (!selectedSoireeDate) {
-        const sel = document.getElementById('stats-period');
-        if (sel) sel.value = 'always';
-        onStatsPeriodChange();
+        setStatsPeriod('always');
     }
 }
 
@@ -2486,11 +2484,7 @@ function selectSoiree(date, name) {
 
 function clearSoireeFilter() {
     selectedSoireeDate = null;
-    const badge = document.getElementById('stats-soiree-badge');
-    if (badge) badge.style.display = 'none';
-    const sel = document.getElementById('stats-period');
-    if (sel) sel.value = 'always';
-    onStatsPeriodChange();
+    setStatsPeriod('always');
 }
 
 async function loadStatsData() {
@@ -2513,10 +2507,9 @@ async function loadStatsData() {
 }
 
 function getStatsFilters() {
-    const period = document.getElementById('stats-period')?.value || 'always';
     const from = document.getElementById('stats-date-from')?.value || '';
     const to = document.getElementById('stats-date-to')?.value || '';
-    return { period, from, to, soireeDate: selectedSoireeDate };
+    return { period: currentStatsPeriod, from, to, soireeDate: selectedSoireeDate };
 }
 
 function filterCalendrier() {
@@ -2669,7 +2662,7 @@ function renderRewardsUsage(logs) {
         const key = l.reward_name || 'Reward';
         if (!byReward[key]) byReward[key] = { count: 0, ages: [], genres: { homme: 0, femme: 0, 'non-binaire': 0 } };
         byReward[key].count += 1;
-        const age = parseInt(l.age, 10);
+        const age = parseInt(l['âge'] ?? l.age, 10);
         if (!isNaN(age) && age > 0) byReward[key].ages.push(age);
         const g = (l.genre || '').toLowerCase();
         if (g === 'homme' || g === 'femme' || g === 'non-binaire') byReward[key].genres[g] += 1;
