@@ -3072,19 +3072,56 @@ function closeCalendarPicker() {
 
 async function applyCalendarPickerTemplate() {
     if (!calPickerSelectedTemplate) return;
-    
+
+    const templateId = calPickerSelectedTemplate;
+    const template = announcementTemplates.find(t => t.id === templateId) || bizTemplates.find(t => t.id === templateId);
+    const templateName = template ? (template.title || template.name || 'Soirée') : 'Fermé';
+
     calPickerTargetDates.forEach(dateStr => {
-        bizSchedule[dateStr] = calPickerSelectedTemplate;
+        bizSchedule[dateStr] = templateId;
     });
-    
+
     currentBusiness.schedule = bizSchedule;
     selectedDates.clear();
-    
+
     closeCalendarPicker();
     renderCalendar();
     showSaveToast();
-    
+
     await saveBusinessData();
+
+    if (templateId === 'closed') return;
+
+    for (const dateStr of calPickerTargetDates) {
+        try {
+            const existing = await supabase.select(
+                'calendrier',
+                `boite_id=eq.${currentBusiness.uuid}&date_soiree=eq.${dateStr}`
+            );
+            if (existing && existing.length > 0) {
+                await supabase.update(
+                    'calendrier',
+                    `boite_id=eq.${currentBusiness.uuid}&date_soiree=eq.${dateStr}`,
+                    { nom_template: templateName }
+                );
+            } else {
+                await supabase.insert('calendrier', {
+                    nom_boite: currentBusiness.name,
+                    boite_id: currentBusiness.uuid,
+                    nom_template: templateName,
+                    date_soiree: dateStr,
+                    homme: 0,
+                    femme: 0,
+                    non_binaire: 0,
+                    affluence: 0,
+                    total_commande: 0
+                });
+            }
+        } catch (err) {
+            console.warn('calendrier upsert failed for', dateStr, err.message);
+        }
+    }
+    invalidateStatsCache();
 }
 
 function renderTemplateList() {
