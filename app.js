@@ -2825,7 +2825,7 @@ function renderCalendar() {
             } else {
                 // Look in both announcementTemplates and bizTemplates
                 const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
-                eventEl.textContent = template ? (template.partyName || template.name) : 'Soirée';
+                eventEl.textContent = template ? (template.title || template.name) : 'Soirée';
             }
             cell.appendChild(eventEl);
         }
@@ -3038,7 +3038,7 @@ function renderCalendarPickerList(query) {
     
     if (announcementTemplates && announcementTemplates.length > 0) {
         announcementTemplates.forEach(t => {
-            allTemplates.push({ id: t.id, name: t.partyName || t.name || 'Sans nom', theme: t.partyTheme || '' });
+            allTemplates.push({ id: t.id, name: t.title || 'Sans nom', theme: t.partyTheme || '' });
         });
     }
     
