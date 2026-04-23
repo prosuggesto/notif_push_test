@@ -811,6 +811,8 @@ function updateAnnoncesPreview() {
 
 // ----- Announcement Template Management -----
 let announcementTemplates = [];
+let calendrierAssignmentsLoaded = false;
+let bizRewardsLoaded = false;
 
 function initAnnouncementEditor() {
     // Load templates from current business profile
@@ -4512,10 +4514,38 @@ function switchBizSection(sectionId) {
         _bizSwitchTimer = setTimeout(() => {
             _bizSwitchTimer = null;
             if (sectionId === 'annonces') initAnnouncementEditor();
-            if (sectionId === 'calendrier') renderCalendar();
+            if (sectionId === 'calendrier') {
+                if (!calendrierAssignmentsLoaded) {
+                    loadCalendrierAssignments().then(() => {
+                        calendrierAssignmentsLoaded = true;
+                        renderCalendar();
+                    });
+                } else {
+                    renderCalendar();
+                }
+            }
+            if (sectionId === 'rewards') {
+                if (!bizRewardsLoaded) {
+                    loadBizRewards().then(() => {
+                        bizRewardsLoaded = true;
+                        renderRewardsList();
+                    });
+                } else {
+                    renderRewardsList();
+                }
+            }
             if (sectionId === 'stats') updateStats();
             if (sectionId === 'qrcodes') generateBusinessQRCodes();
-            if (sectionId === 'commandes') startClientScanner();
+            if (sectionId === 'commandes') {
+                if (!bizRewardsLoaded) {
+                    loadBizRewards().then(() => {
+                        bizRewardsLoaded = true;
+                        startClientScanner();
+                    });
+                } else {
+                    startClientScanner();
+                }
+            }
         }, 30);
     }
 }
@@ -4598,13 +4628,9 @@ async function showBusinessDashboard() {
         announcementTemplates = currentBusiness.announcementTemplates || [];
         bizSchedule = currentBusiness.schedule || {};
 
-        // Load rewards + announcement templates from Supabase (source of truth)
-        await loadBizRewards();
-        renderRewardsList();
+        // Load only what "Mes Annonces" needs (the default landing section)
         await loadAnnouncementTemplates();
         renderTemplatesGrid();
-        await loadCalendrierAssignments();
-        renderCalendar();
     }
 
     initStatsTabListeners();
