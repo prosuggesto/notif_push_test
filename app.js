@@ -1872,20 +1872,11 @@ function getTodayDateStr() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-async function getOrCreateTodayCalendrier() {
+async function getTodayCalendrier() {
     const today = getTodayDateStr();
     const boiteId = currentBusiness.uuid;
-    const nomBoite = currentBusiness.name;
-
     const rows = await supabase.select('calendrier', `boite_id=eq.${boiteId}&date_soiree=eq.${today}`);
-    if (rows && rows.length > 0) return rows[0];
-
-    return await supabase.insert('calendrier', {
-        nom_boite: nomBoite,
-        boite_id: boiteId,
-        nom_template: 'Soirée',
-        date_soiree: today
-    });
+    return (rows && rows.length > 0) ? rows[0] : null;
 }
 
 function getGenderField(sexe) {
@@ -1958,10 +1949,17 @@ async function validateCommande() {
     if (cBtn) cBtn.disabled = true;
 
     try {
+        // Check if a soirée exists in calendrier for today
+        const cal = await getTodayCalendrier();
+        if (!cal) {
+            showGlassToast('Aucune soirée prévue aujourd\'hui — entrée impossible', 'error');
+            return;
+        }
+
         // 1. +1 point for the entry, minus any rewards redeemed
         const newPoints = currentPoints + 1 - totalPointsToDeduct;
         await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: String(newPoints) // column is TEXT
+            points: String(newPoints)
         });
 
         // 2. Log to dynamicstats (entrée)
@@ -1974,20 +1972,17 @@ async function validateCommande() {
             statut: 'entrée'
         });
 
-        // 3. Get or create today's calendrier entry
-        const cal = await getOrCreateTodayCalendrier();
-
-        // 4. Update calendrier: +1 affluence, +1 gender
+        // 3. Update calendrier: +1 affluence, +1 gender
         const genderField = getGenderField(lastFoundClient.sexe);
         await supabase.update('calendrier', `id=eq.${cal.id}`, {
             affluence: (parseInt(cal.affluence) || 0) + 1,
             [genderField]: (parseInt(cal[genderField]) || 0) + 1
         });
 
-        // 5. Recalculate top_pays, top_ville, top_age (entrée only, today)
+        // 4. Recalculate top_pays, top_ville, top_age (entrée only, today)
         await recalculateCalendrierStats(cal.id);
 
-        // 6. Log rewards used (one row per reward)
+        // 5. Log rewards used (one row per reward)
         if (selectedCommandeRewards.length > 0) {
             const clientAge = parseInt(lastFoundClient?.age, 10) || null;
             const clientGenre = lastFoundClient?.sexe || null;
@@ -2223,6 +2218,16 @@ async function validateBarScan() {
     isProcessingBar = true;
 
     try {
+        const cal = await getTodayCalendrier();
+        if (!cal) {
+            showGlassToast('Aucune soirée prévue aujourd\'hui', 'error');
+            isProcessingBar = false;
+            lastFoundClient = null;
+            scannedClientId = null;
+            startClientScanner();
+            return;
+        }
+
         // +1 points and +1 total_commande for user
         await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
             points: lastFoundClient.points + 1,
@@ -2230,7 +2235,6 @@ async function validateBarScan() {
         });
 
         // +1 total_commande in today's calendrier
-        const cal = await getOrCreateTodayCalendrier();
         await supabase.update('calendrier', `id=eq.${cal.id}`, {
             total_commande: (parseInt(cal.total_commande) || 0) + 1
         });
@@ -2258,10 +2262,18 @@ async function validateSortie() {
     isProcessingSortie = true;
 
     try {
-        // 1. Update calendrier: -1 affluence, -1 gender
-        const cal = await getOrCreateTodayCalendrier();
-        const genderField = getGenderField(lastFoundClient.sexe);
+        const cal = await getTodayCalendrier();
+        if (!cal) {
+            showGlassToast('Aucune soirée prévue aujourd\'hui', 'error');
+            isProcessingSortie = false;
+            lastFoundClient = null;
+            scannedClientId = null;
+            startClientScanner();
+            return;
+        }
 
+        // 1. Update calendrier: -1 affluence, -1 gender
+        const genderField = getGenderField(lastFoundClient.sexe);
         await supabase.update('calendrier', `id=eq.${cal.id}`, {
             affluence: Math.max(0, (parseInt(cal.affluence) || 0) - 1),
             [genderField]: Math.max(0, (parseInt(cal[genderField]) || 0) - 1)
@@ -2270,7 +2282,7 @@ async function validateSortie() {
         // 2. +1 point on user profile (reward for scanning at exit)
         const currentPoints = parseInt(lastFoundClient.points) || 0;
         await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: String(currentPoints + 1) // column is TEXT
+            points: String(currentPoints + 1)
         });
 
         // 3. Log to dynamicstats with statut='sortie'
@@ -2319,10 +2331,16 @@ async function cancelCommande() {
     if (cBtn) cBtn.disabled = true;
 
     try {
+        const cal = await getTodayCalendrier();
+        if (!cal) {
+            showGlassToast('Aucune soirée prévue aujourd\'hui — entrée impossible', 'error');
+            return;
+        }
+
         // 1. +1 point for the entry
         const currentPoints = parseInt(lastFoundClient.points) || 0;
         await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: String(currentPoints + 1) // column is TEXT
+            points: String(currentPoints + 1)
         });
 
         // 2. Log to dynamicstats (entrée)
@@ -2335,17 +2353,14 @@ async function cancelCommande() {
             statut: 'entrée'
         });
 
-        // 3. Get or create today's calendrier entry
-        const cal = await getOrCreateTodayCalendrier();
-
-        // 4. Update calendrier: +1 affluence, +1 gender
+        // 3. Update calendrier: +1 affluence, +1 gender
         const genderField = getGenderField(lastFoundClient.sexe);
         await supabase.update('calendrier', `id=eq.${cal.id}`, {
             affluence: (parseInt(cal.affluence) || 0) + 1,
             [genderField]: (parseInt(cal[genderField]) || 0) + 1
         });
 
-        // 5. Recalculate stats (entrée only, today)
+        // 4. Recalculate stats (entrée only, today)
         await recalculateCalendrierStats(cal.id);
 
         showGlassToast('Entrée validée (+1 pt)', 'success');
