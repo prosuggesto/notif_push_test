@@ -1425,6 +1425,33 @@ async function loadAnnouncementTemplates() {
     }
 }
 
+async function loadCalendrierAssignments() {
+    if (!currentBusiness || !currentBusiness.uuid) {
+        bizSchedule = {};
+        return;
+    }
+    try {
+        const rows = await supabase.select(
+            'calendrier',
+            `boite_id=eq.${currentBusiness.uuid}&select=date_soiree,nom_template`
+        );
+        const schedule = {};
+        (Array.isArray(rows) ? rows : []).forEach(r => {
+            if (!r.date_soiree || !r.nom_template) return;
+            // Match by titre_template (stored as title in local announcementTemplates)
+            const matched = announcementTemplates.find(t => (t.title || '') === r.nom_template);
+            schedule[r.date_soiree] = matched ? matched.id : r.nom_template;
+        });
+        bizSchedule = schedule;
+        if (currentBusiness) {
+            currentBusiness.schedule = bizSchedule;
+            localStorage.setItem('businessUser', JSON.stringify(currentBusiness));
+        }
+    } catch (err) {
+        console.error('loadCalendrierAssignments error:', err);
+    }
+}
+
 async function handleCreateReward(e) {
     e.preventDefault();
     if (!currentBusiness || !currentBusiness.uuid) {
@@ -2808,9 +2835,11 @@ function renderCalendar() {
                 eventEl.classList.add('closed');
                 eventEl.textContent = 'Fermé';
             } else {
-                // Look in both announcementTemplates and bizTemplates
-                const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
-                eventEl.textContent = template ? (template.title || template.name) : 'Soirée';
+                // scheduleItem is a template id (or a template name as fallback)
+                const template = announcementTemplates.find(t => t.id === scheduleItem)
+                    || announcementTemplates.find(t => (t.title || '') === scheduleItem)
+                    || bizTemplates.find(t => t.id === scheduleItem);
+                eventEl.textContent = template ? (template.title || template.name) : scheduleItem;
             }
             cell.appendChild(eventEl);
         }
@@ -2887,7 +2916,9 @@ function openCalPreview(dateStr) {
     if (!scheduleItem) return;
 
     calPreviewDate = dateStr;
-    const template = announcementTemplates.find(t => t.id === scheduleItem) || bizTemplates.find(t => t.id === scheduleItem);
+    const template = announcementTemplates.find(t => t.id === scheduleItem)
+        || announcementTemplates.find(t => (t.title || '') === scheduleItem)
+        || bizTemplates.find(t => t.id === scheduleItem);
     if (!template) return;
 
     const clubName = template.name || (currentBusiness ? currentBusiness.name : 'Mon Club');
@@ -4572,6 +4603,8 @@ async function showBusinessDashboard() {
         renderRewardsList();
         await loadAnnouncementTemplates();
         renderTemplatesGrid();
+        await loadCalendrierAssignments();
+        renderCalendar();
     }
 
     initStatsTabListeners();
