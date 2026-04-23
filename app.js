@@ -2398,6 +2398,7 @@ let selectedSoireeDate = null;
 let currentStatsPeriod = 'always';
 
 function setStatsPeriod(period) {
+    console.log('[Stats] setStatsPeriod called:', period);
     currentStatsPeriod = period;
     document.querySelectorAll('.stats-period-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.period === period);
@@ -2414,6 +2415,23 @@ function setStatsPeriod(period) {
         return;
     }
     updateStats();
+}
+
+function initStatsTabListeners() {
+    document.querySelectorAll('.stats-period-tab').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const period = this.dataset.period;
+            if (period) setStatsPeriod(period);
+        });
+        btn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            const period = this.dataset.period;
+            if (period) setStatsPeriod(period);
+        });
+    });
+    console.log('[Stats] Tab listeners bound:', document.querySelectorAll('.stats-period-tab').length, 'buttons');
 }
 
 async function openSoireeModal() {
@@ -4506,6 +4524,8 @@ async function showBusinessDashboard() {
         await loadAnnouncementTemplates();
         renderTemplatesGrid();
     }
+
+    initStatsTabListeners();
 
     // Default view
     switchBizSection('annonces');
