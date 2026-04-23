@@ -2197,7 +2197,7 @@ async function onClientQRScanned(decodedText) {
         };
 
         if (currentScanMode === 'entree') {
-            showEntryResult(lastFoundClient);
+            await showEntryResult(lastFoundClient);
         } else if (currentScanMode === 'bar') {
             // Auto-validate immediately on scan (no confirmation screen)
             await validateBarScan();
@@ -2212,7 +2212,7 @@ async function onClientQRScanned(decodedText) {
     }
 }
 
-function showEntryResult(client) {
+async function showEntryResult(client) {
     const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
     document.getElementById('entry-client-initials').textContent = initials;
     document.getElementById('entry-client-name').textContent = client.name;
@@ -2220,6 +2220,14 @@ function showEntryResult(client) {
     document.getElementById('scan-entry-result').style.display = 'block';
 
     selectedCommandeRewards = [];
+
+    // Fetch only rewards the client can afford (points_necessaires is stored as TEXT,
+    // so we fetch all then filter client-side on first scan, then reuse cache)
+    if (!bizRewardsLoaded) {
+        await loadBizRewards();
+        bizRewardsLoaded = true;
+    }
+
     renderCommandeRewards(client.points);
     updateCommandeRecap();
 }
@@ -4536,16 +4544,7 @@ function switchBizSection(sectionId) {
             }
             if (sectionId === 'stats') updateStats();
             if (sectionId === 'qrcodes') generateBusinessQRCodes();
-            if (sectionId === 'commandes') {
-                if (!bizRewardsLoaded) {
-                    loadBizRewards().then(() => {
-                        bizRewardsLoaded = true;
-                        startClientScanner();
-                    });
-                } else {
-                    startClientScanner();
-                }
-            }
+            if (sectionId === 'commandes') startClientScanner();
         }, 30);
     }
 }
