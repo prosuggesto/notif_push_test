@@ -653,6 +653,7 @@ let lastFoundClient = null;
 let selectedCommandeRewards = [];
 let selectedCommandeProducts = [];
 let bizRewards = [];
+let commandeRewards = [];
 let pendingRewardImageFile = null;
 let pendingAnnonceImageFile = null;
 
@@ -1800,21 +1801,14 @@ function renderCommandeRewards(points) {
     list.innerHTML = '';
     list.dataset.clientPoints = String(points);
 
-    // Only show rewards the client can afford (points_necessaires is TEXT in DB)
-    // Sort ascending: cheapest first
-    const affordableRewards = bizRewards
-        .filter(r => points >= (parseInt(r.points_necessaires) || 0))
-        .slice()
-        .sort((a, b) => (parseInt(a.points_necessaires) || 0) - (parseInt(b.points_necessaires) || 0));
-
-    if (affordableRewards.length === 0) {
+    // commandeRewards is pre-filtered server-side (points_necessaires <= client.points)
+    if (commandeRewards.length === 0) {
         list.innerHTML = '<p style="text-align:center; padding:24px 12px; font-size:13px; color:var(--text-dim);">Pas assez de points pour un reward.</p>';
         return;
     }
 
     let html = '';
-    affordableRewards.forEach(r => {
-        const bizIdx = bizRewards.indexOf(r);
+    commandeRewards.forEach((r, bizIdx) => {
         const isSelected = selectedCommandeRewards.indexOf(r) > -1;
         const img = r.link || '';
         const nom = (r.nom_recompense || '').replace(/"/g, '&quot;');
@@ -1848,7 +1842,7 @@ function renderCommandeRewards(points) {
 // Global so inline onclick="toggleBizReward(..)" works
 function toggleBizReward(bizIdx) {
     try {
-        const target = bizRewards[bizIdx];
+        const target = commandeRewards[bizIdx];
         if (!target) {
             showGlassToast('Reward introuvable (idx=' + bizIdx + ')', 'error');
             return;
@@ -2221,11 +2215,17 @@ async function showEntryResult(client) {
 
     selectedCommandeRewards = [];
 
-    // Fetch only rewards the client can afford (points_necessaires is stored as TEXT,
-    // so we fetch all then filter client-side on first scan, then reuse cache)
-    if (!bizRewardsLoaded) {
-        await loadBizRewards();
-        bizRewardsLoaded = true;
+    // Fetch only affordable rewards for this client (server-side filter)
+    const clientPoints = parseInt(client.points) || 0;
+    try {
+        const rows = await supabase.select(
+            'rewards',
+            `boite_id=eq.${currentBusiness.uuid}&points_necessaires=lte.${clientPoints}&order=points_necessaires.asc`
+        );
+        commandeRewards = Array.isArray(rows) ? rows : [];
+    } catch (err) {
+        console.error('loadCommandeRewards error:', err);
+        commandeRewards = [];
     }
 
     renderCommandeRewards(client.points);
@@ -2559,7 +2559,7 @@ function clearSoireeFilter() {
 
 async function loadStatsData() {
     if (!currentBusiness?.uuid) return;
-    if (statsCache.loadedFor === currentBusiness.uuid) return;
+    // Always refetch — scans/commands can change stats at any time
     const boiteId = currentBusiness.uuid;
     try {
         const [calendrier, rewardLogs] = await Promise.all([
