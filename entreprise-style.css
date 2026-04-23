@@ -1275,6 +1275,9 @@
     gap: 12px;
     align-items: flex-end;
     margin-bottom: 28px;
+    position: relative;
+    z-index: 50;
+    isolation: isolate;
 }
 
 .stats-period-tabs {
@@ -1285,6 +1288,9 @@
     border-radius: 12px;
     padding: 3px;
     overflow: hidden;
+    position: relative;
+    z-index: 51;
+    pointer-events: auto !important;
 }
 
 .stats-period-tab {
@@ -1301,6 +1307,14 @@
     white-space: nowrap;
     -webkit-tap-highlight-color: rgba(99, 102, 241, 0.15);
     touch-action: manipulation;
+    position: relative;
+    z-index: 52;
+    pointer-events: auto !important;
+    user-select: none;
+}
+
+.stats-period-tab * {
+    pointer-events: none;
 }
 
 .stats-period-tab:hover {

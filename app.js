@@ -2418,19 +2418,49 @@ function setStatsPeriod(period) {
 }
 
 function initStatsTabListeners() {
+    const tabsContainer = document.querySelector('.stats-period-tabs');
+    if (!tabsContainer) {
+        console.warn('[Stats] .stats-period-tabs container not found');
+        return;
+    }
+
+    // Event delegation on the container (works even if inner buttons are masked)
+    const handleTabEvent = (e) => {
+        const target = e.target.closest('.stats-period-tab');
+        console.log('[Stats] Container event:', e.type, 'target:', e.target.tagName, 'matched button:', target?.dataset.period);
+        if (!target) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const period = target.dataset.period;
+        if (period) setStatsPeriod(period);
+    };
+    tabsContainer.addEventListener('click', handleTabEvent, true);
+    tabsContainer.addEventListener('pointerup', handleTabEvent, true);
+    tabsContainer.addEventListener('touchend', handleTabEvent, true);
+
+    // Direct listeners on each button as backup
     document.querySelectorAll('.stats-period-tab').forEach(btn => {
         btn.addEventListener('click', function(e) {
+            console.log('[Stats] Button click:', this.dataset.period);
             e.preventDefault();
             e.stopPropagation();
             const period = this.dataset.period;
             if (period) setStatsPeriod(period);
         });
-        btn.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            const period = this.dataset.period;
-            if (period) setStatsPeriod(period);
-        });
     });
+
+    // Global diagnostic: trace what element receives clicks in the filter bar area
+    document.addEventListener('click', (e) => {
+        const filterBar = document.querySelector('.stats-filter-bar');
+        if (!filterBar) return;
+        const rect = filterBar.getBoundingClientRect();
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom && e.clientX >= rect.left && e.clientX <= rect.right) {
+            console.log('[Stats] Click in filter area → target:', e.target.tagName + '.' + e.target.className, 'id:', e.target.id);
+            const topEl = document.elementFromPoint(e.clientX, e.clientY);
+            console.log('[Stats] elementFromPoint:', topEl?.tagName + '.' + topEl?.className, 'id:', topEl?.id);
+        }
+    }, true);
+
     console.log('[Stats] Tab listeners bound:', document.querySelectorAll('.stats-period-tab').length, 'buttons');
 }
 
