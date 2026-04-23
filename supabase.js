@@ -195,6 +195,23 @@ const supabase = {
         return Array.isArray(data) ? data[0] : data;
     },
 
+    async upsert(table, row, onConflict = 'id') {
+        const token = await this.auth.getValidToken();
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`,
+                'Prefer': 'return=representation,resolution=merge-duplicates'
+            },
+            body: JSON.stringify(row)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erreur upsert');
+        return Array.isArray(data) ? data[0] : data;
+    },
+
     async select(table, filters = '') {
         const token = await this.auth.getValidToken();
         const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
