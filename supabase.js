@@ -197,7 +197,7 @@ const supabase = {
 
     async upsert(table, row, onConflict = 'id') {
         const token = await this.auth.getValidToken();
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

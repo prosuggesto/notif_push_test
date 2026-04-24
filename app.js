@@ -1981,9 +1981,12 @@ async function validateCommande() {
 
         // 1. +1 point for the entry, minus any rewards redeemed
         const newPoints = currentPoints + 1 - totalPointsToDeduct;
-        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: String(newPoints)
-        });
+        await supabase.upsert('point_user_boite', {
+            boite_id: currentBusiness.uuid,
+            boite_name: currentBusiness.name,
+            user_id: lastFoundClient.uuid,
+            total_point: newPoints
+        }, 'boite_id,user_id');
 
         // 2. Log to dynamicstats (entrée)
         await supabase.insert('dynamicstats', {
@@ -2179,10 +2182,25 @@ async function onClientQRScanned(decodedText) {
         }
 
         const client = profiles[0];
+
+        // Fetch points for this specific business from point_user_boite
+        let boitePoints = 0;
+        try {
+            const pubRows = await supabase.select(
+                'point_user_boite',
+                `user_id=eq.${clientId}&boite_id=eq.${currentBusiness.uuid}`
+            );
+            if (pubRows && pubRows.length > 0) {
+                boitePoints = parseInt(pubRows[0].total_point) || 0;
+            }
+        } catch (e) {
+            console.error('Fetch point_user_boite error:', e);
+        }
+
         lastFoundClient = {
             uuid: client.id,
             name: client.nom,
-            points: parseInt(client.points) || 0,
+            points: boitePoints,
             total_commande: parseInt(client.total_commande) || 0,
             age: parseInt(client.age) || null,
             sexe: client.sexe || null,
@@ -2265,9 +2283,16 @@ async function validateBarScan() {
             return;
         }
 
-        // +1 points and +1 total_commande for user
+        // +1 points for user (per-boite)
+        await supabase.upsert('point_user_boite', {
+            boite_id: currentBusiness.uuid,
+            boite_name: currentBusiness.name,
+            user_id: lastFoundClient.uuid,
+            total_point: lastFoundClient.points + 1
+        }, 'boite_id,user_id');
+
+        // +1 total_commande on user profile
         await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: lastFoundClient.points + 1,
             total_commande: lastFoundClient.total_commande + 1
         });
 
@@ -2316,11 +2341,14 @@ async function validateSortie() {
             [genderField]: Math.max(0, (parseInt(cal[genderField]) || 0) - 1)
         });
 
-        // 2. +1 point on user profile (reward for scanning at exit)
+        // 2. +1 point per-boite (reward for scanning at exit)
         const currentPoints = parseInt(lastFoundClient.points) || 0;
-        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: String(currentPoints + 1)
-        });
+        await supabase.upsert('point_user_boite', {
+            boite_id: currentBusiness.uuid,
+            boite_name: currentBusiness.name,
+            user_id: lastFoundClient.uuid,
+            total_point: currentPoints + 1
+        }, 'boite_id,user_id');
 
         // 3. Log to dynamicstats with statut='sortie'
         await supabase.insert('dynamicstats', {
@@ -2374,11 +2402,14 @@ async function cancelCommande() {
             return;
         }
 
-        // 1. +1 point for the entry
+        // 1. +1 point for the entry (per-boite)
         const currentPoints = parseInt(lastFoundClient.points) || 0;
-        await supabase.update('profiles_users', `id=eq.${lastFoundClient.uuid}`, {
-            points: String(currentPoints + 1)
-        });
+        await supabase.upsert('point_user_boite', {
+            boite_id: currentBusiness.uuid,
+            boite_name: currentBusiness.name,
+            user_id: lastFoundClient.uuid,
+            total_point: currentPoints + 1
+        }, 'boite_id,user_id');
 
         // 2. Log to dynamicstats (entrée)
         await supabase.insert('dynamicstats', {
