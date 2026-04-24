@@ -261,6 +261,10 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         Stats
                     </button>
+                    <button class="menu-link" onclick="switchBizSection('notifications')" id="biz-link-notifications">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                        Notifications
+                    </button>
                     <button class="menu-link" onclick="switchBizSection('qrcodes')" id="biz-link-qrcodes" data-i18n="nav.my_qr">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                         Mes QR Codes
@@ -687,6 +691,174 @@
                     </div>
                 </section>
 
+                <!-- Section: Notifications -->
+                <section id="biz-section-notifications" class="biz-section">
+                    <div class="notif-header">
+                        <h2 class="notif-title">Campagnes</h2>
+                        <button class="btn-primary btn-new-campaign" onclick="openCampaignModal()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Nouvelle campagne
+                        </button>
+                    </div>
+                    <div id="campaigns-list" class="campaigns-list">
+                        <p class="text-dim" style="text-align:center; padding:40px 12px; font-size:13px;">Aucune campagne pour le moment.</p>
+                    </div>
+                </section>
+
+                <!-- Campaign Creation Modal -->
+                <div id="campaign-modal" class="campaign-modal-overlay" style="display:none;">
+                    <div class="campaign-modal-box">
+                        <!-- Step 1: Choose type -->
+                        <div id="campaign-step-type" class="campaign-step">
+                            <div class="campaign-modal-header">
+                                <h3>Nouvelle campagne</h3>
+                                <button type="button" class="campaign-modal-close" onclick="closeCampaignModal()">✕</button>
+                            </div>
+                            <p class="campaign-step-desc">Quel type de campagne ?</p>
+                            <div class="campaign-type-choices">
+                                <button class="campaign-type-btn" onclick="selectCampaignType('classique')">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                                    <span>Classique</span>
+                                    <small>Envoyer à tous vos fidèles</small>
+                                </button>
+                                <button class="campaign-type-btn" onclick="selectCampaignType('segmentee')">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                                    <span>Segmentée</span>
+                                    <small>Cibler par critères</small>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Message -->
+                        <div id="campaign-step-message" class="campaign-step" style="display:none;">
+                            <div class="campaign-modal-header">
+                                <h3>Votre message</h3>
+                                <button type="button" class="campaign-modal-close" onclick="closeCampaignModal()">✕</button>
+                            </div>
+                            <div class="campaign-form">
+                                <label class="campaign-label">Titre de la notification</label>
+                                <input type="text" id="campaign-titre" class="campaign-input" placeholder="Ex: Soirée spéciale ce soir !" maxlength="60">
+                                <label class="campaign-label">Description</label>
+                                <textarea id="campaign-description" class="campaign-textarea" placeholder="Ex: -50% sur les cocktails avant minuit" maxlength="200" rows="3"></textarea>
+                                <div class="campaign-form-actions">
+                                    <button class="btn-secondary" onclick="campaignBack('type')">Retour</button>
+                                    <button class="btn-primary" onclick="campaignNextFromMessage()">Valider</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Segmentation (only for segmentee) -->
+                        <div id="campaign-step-segment" class="campaign-step" style="display:none;">
+                            <div class="campaign-modal-header">
+                                <h3>Segmentation</h3>
+                                <button type="button" class="campaign-modal-close" onclick="closeCampaignModal()">✕</button>
+                            </div>
+                            <div class="campaign-filters">
+                                <div class="campaign-filter-group">
+                                    <label class="campaign-label">Genre</label>
+                                    <div class="campaign-tabs" id="campaign-genre-tabs">
+                                        <button type="button" class="campaign-tab" data-value="homme" onclick="toggleCampaignTab(this)">Homme</button>
+                                        <button type="button" class="campaign-tab" data-value="femme" onclick="toggleCampaignTab(this)">Femme</button>
+                                        <button type="button" class="campaign-tab" data-value="non-binaire" onclick="toggleCampaignTab(this)">Non-binaire</button>
+                                    </div>
+                                </div>
+                                <div class="campaign-filter-group">
+                                    <label class="campaign-label">Tranche d'âge</label>
+                                    <div class="campaign-range-row">
+                                        <input type="number" id="campaign-age-min" class="campaign-input-sm" placeholder="Min">
+                                        <span class="campaign-range-sep">à</span>
+                                        <input type="number" id="campaign-age-max" class="campaign-input-sm" placeholder="Max">
+                                    </div>
+                                </div>
+                                <div class="campaign-filter-group">
+                                    <label class="campaign-label">Points minimum</label>
+                                    <input type="number" id="campaign-points-min" class="campaign-input" placeholder="Ex: 10">
+                                </div>
+                                <div class="campaign-filter-group">
+                                    <label class="campaign-label">Client régulier</label>
+                                    <p class="campaign-filter-hint">Venu au moins X fois dans un mois donné</p>
+                                    <div class="campaign-regulier-row">
+                                        <input type="number" id="campaign-visits-min" class="campaign-input-sm" placeholder="Visites">
+                                        <span class="campaign-range-sep">fois en</span>
+                                        <select id="campaign-regulier-mois" class="campaign-select">
+                                            <option value="">Mois</option>
+                                            <option value="1">Janvier</option>
+                                            <option value="2">Février</option>
+                                            <option value="3">Mars</option>
+                                            <option value="4">Avril</option>
+                                            <option value="5">Mai</option>
+                                            <option value="6">Juin</option>
+                                            <option value="7">Juillet</option>
+                                            <option value="8">Août</option>
+                                            <option value="9">Septembre</option>
+                                            <option value="10">Octobre</option>
+                                            <option value="11">Novembre</option>
+                                            <option value="12">Décembre</option>
+                                        </select>
+                                        <select id="campaign-regulier-annee" class="campaign-select">
+                                            <option value="">Année</option>
+                                            <option value="2025">2025</option>
+                                            <option value="2026">2026</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="campaign-filter-group">
+                                    <label class="campaign-label">Commandes minimum (ce mois)</label>
+                                    <input type="number" id="campaign-commandes-min" class="campaign-input" placeholder="Ex: 3">
+                                </div>
+                                <div class="campaign-form-actions">
+                                    <button class="btn-secondary" onclick="campaignBack('message')">Retour</button>
+                                    <button class="btn-primary" onclick="campaignValidateSegment()">Valider les filtres</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Confirmation (eligible count + send) -->
+                        <div id="campaign-step-confirm" class="campaign-step" style="display:none;">
+                            <div class="campaign-modal-header">
+                                <h3>Confirmation</h3>
+                                <button type="button" class="campaign-modal-close" onclick="closeCampaignModal()">✕</button>
+                            </div>
+                            <div class="campaign-confirm-content">
+                                <div class="campaign-counter-wrap">
+                                    <span id="campaign-eligible-count" class="campaign-eligible-count">0</span>
+                                    <span class="campaign-eligible-label">utilisateurs éligibles</span>
+                                </div>
+                                <div id="campaign-confirm-actions" class="campaign-confirm-actions">
+                                    <button class="btn-primary btn-full" onclick="sendCampaign('all')">Envoyer à tous</button>
+                                    <div class="campaign-limit-row">
+                                        <button class="btn-secondary" onclick="sendCampaign('limit')">Limiter à</button>
+                                        <input type="number" id="campaign-limit-count" class="campaign-input-sm" placeholder="Max" min="1">
+                                    </div>
+                                    <button class="btn-ghost" onclick="campaignBack('segment')">Modifier les filtres</button>
+                                </div>
+                                <div id="campaign-no-eligible" class="campaign-no-eligible" style="display:none;">
+                                    <p>Aucun utilisateur ne correspond à ces critères.</p>
+                                    <button class="btn-secondary" onclick="campaignBack('segment')">Modifier les filtres</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Sending animation -->
+                        <div id="campaign-step-sending" class="campaign-step" style="display:none;">
+                            <div class="campaign-sending-content">
+                                <div class="campaign-spinner"></div>
+                                <p>Envoi en cours...</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 6: Done -->
+                        <div id="campaign-step-done" class="campaign-step" style="display:none;">
+                            <div class="campaign-done-content">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                <h3>Campagne envoyée !</h3>
+                                <p id="campaign-done-count">0 notifications envoyées</p>
+                                <button class="btn-primary" onclick="closeCampaignModal()">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Section: Mes QR Codes -->
                 <section id="biz-section-qrcodes" class="biz-section">
                     <div class="qr-cards-grid">
@@ -736,7 +908,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=stats-v15"></script>
+    <script src="app.js?v=notif-v1"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">

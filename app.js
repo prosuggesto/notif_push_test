@@ -2025,6 +2025,10 @@ async function validateCommande() {
             });
         }
 
+        // 6. Monthly stats + campaign conversion (fire-and-forget)
+        upsertMonthlyStats(lastFoundClient.uuid, currentBusiness.uuid, currentBusiness.name, 'entree');
+        checkCampaignConversion(lastFoundClient.uuid, currentBusiness.uuid);
+
         const msg = totalPointsToDeduct > 0
             ? `Entrée validée — ${totalPointsToDeduct} pts déduits, +1 pt entrée`
             : 'Entrée validée (+1 pt)';
@@ -2311,6 +2315,8 @@ async function validateBarScan() {
             total_commande: (parseInt(cal.total_commande) || 0) + 1
         });
 
+        upsertMonthlyStats(lastFoundClient.uuid, currentBusiness.uuid, currentBusiness.name, 'bar');
+
         showGlassToast('Scan validé ! +1 point', 'success');
         document.getElementById('scan-bar-result').style.display = 'none';
         lastFoundClient = null;
@@ -2440,6 +2446,10 @@ async function cancelCommande() {
 
         // 4. Recalculate stats (entrée only, today)
         await recalculateCalendrierStats(cal.id);
+
+        // 5. Monthly stats + campaign conversion
+        upsertMonthlyStats(lastFoundClient.uuid, currentBusiness.uuid, currentBusiness.name, 'entree');
+        checkCampaignConversion(lastFoundClient.uuid, currentBusiness.uuid);
 
         showGlassToast('Entrée validée (+1 pt)', 'success');
     } catch (error) {
@@ -4554,6 +4564,7 @@ function switchBizSection(sectionId) {
             rewards: t('nav.rewards'),
             commandes: 'Scan',
             stats: t('nav.stats'),
+            notifications: 'Notifications',
             qrcodes: t('nav.my_qr')
         };
         const headerTitle = document.getElementById('biz-header-title');
@@ -4584,6 +4595,7 @@ function switchBizSection(sectionId) {
                 }
             }
             if (sectionId === 'stats') updateStats();
+            if (sectionId === 'notifications') loadCampaigns();
             if (sectionId === 'qrcodes') generateBusinessQRCodes();
             if (sectionId === 'commandes') startClientScanner();
         }, 30);
@@ -4677,5 +4689,395 @@ async function showBusinessDashboard() {
 
     // Default view
     switchBizSection('annonces');
+}
+
+// ===== NOTIFICATIONS / CAMPAGNES =====
+let campaignType = 'classique';
+let campaignEligibleUsers = [];
+
+async function loadCampaigns() {
+    if (!currentBusiness?.uuid) return;
+    const list = document.getElementById('campaigns-list');
+    if (!list) return;
+    list.innerHTML = '<p class="text-dim" style="text-align:center; padding:40px 12px; font-size:13px;">Chargement...</p>';
+
+    try {
+        const campaigns = await supabase.select(
+            'campagnes',
+            `boite_id=eq.${currentBusiness.uuid}&order=created_at.desc`
+        );
+        if (!campaigns || campaigns.length === 0) {
+            list.innerHTML = '<p class="text-dim" style="text-align:center; padding:40px 12px; font-size:13px;">Aucune campagne pour le moment.</p>';
+            return;
+        }
+
+        const allLogs = await supabase.select(
+            'logs_campagnes',
+            `boite_id=eq.${currentBusiness.uuid}`
+        );
+        const logsByCampaign = {};
+        (allLogs || []).forEach(log => {
+            if (!logsByCampaign[log.campagne_id]) logsByCampaign[log.campagne_id] = [];
+            logsByCampaign[log.campagne_id].push(log);
+        });
+
+        list.innerHTML = campaigns.map(c => {
+            const logs = logsByCampaign[c.id] || [];
+            const convRate = c.nb_notifies > 0 ? Math.round(((c.nb_converti || 0) / c.nb_notifies) * 100) : 0;
+
+            let topGenre = '—', topAge = '—', topVille = '—';
+            if (logs.length > 0) {
+                const genres = {};
+                const ages = {};
+                const villes = {};
+                logs.forEach(l => {
+                    if (l.genre) genres[l.genre] = (genres[l.genre] || 0) + 1;
+                    if (l.age) ages[l.age] = (ages[l.age] || 0) + 1;
+                    if (l.ville) villes[l.ville] = (villes[l.ville] || 0) + 1;
+                });
+                const sortObj = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
+                const genreSorted = sortObj(genres);
+                const ageSorted = sortObj(ages);
+                const villeSorted = sortObj(villes);
+                if (genreSorted.length > 0) {
+                    const total = genreSorted.reduce((s, e) => s + e[1], 0);
+                    topGenre = `${Math.round((genreSorted[0][1] / total) * 100)}% ${genreSorted[0][0]}`;
+                }
+                if (ageSorted.length > 0) topAge = `${ageSorted[0][0]} ans`;
+                if (villeSorted.length > 0) topVille = villeSorted[0][0];
+            }
+
+            return `<div class="campaign-card">
+                <div class="campaign-card-top">
+                    <div>
+                        <div class="campaign-card-title">${c.titre}</div>
+                        <div class="campaign-card-date">${new Date(c.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <span class="campaign-card-type ${c.type}">${c.type === 'classique' ? 'Classique' : 'Segmentée'}</span>
+                </div>
+                <div class="campaign-card-stats">
+                    <div class="campaign-stat"><span class="campaign-stat-value">${c.nb_notifies}</span><span class="campaign-stat-label">Notifiés</span></div>
+                    <div class="campaign-stat"><span class="campaign-stat-value">${c.nb_converti || 0}</span><span class="campaign-stat-label">Convertis</span></div>
+                    <div class="campaign-stat"><span class="campaign-stat-value">${convRate}%</span><span class="campaign-stat-label">Conversion</span></div>
+                    <div class="campaign-stat"><span class="campaign-stat-value">${topGenre}</span><span class="campaign-stat-label">Genre</span></div>
+                    <div class="campaign-stat"><span class="campaign-stat-value">${topAge}</span><span class="campaign-stat-label">Âge top</span></div>
+                    <div class="campaign-stat"><span class="campaign-stat-value">${topVille}</span><span class="campaign-stat-label">Ville top</span></div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('loadCampaigns error:', err);
+        list.innerHTML = '<p class="text-dim" style="text-align:center; padding:40px 12px; font-size:13px;">Erreur de chargement.</p>';
+    }
+}
+
+function openCampaignModal() {
+    campaignType = 'classique';
+    campaignEligibleUsers = [];
+    document.getElementById('campaign-titre').value = '';
+    document.getElementById('campaign-description').value = '';
+    document.querySelectorAll('.campaign-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('campaign-age-min').value = '';
+    document.getElementById('campaign-age-max').value = '';
+    document.getElementById('campaign-points-min').value = '';
+    document.getElementById('campaign-visits-min').value = '';
+    document.getElementById('campaign-regulier-mois').value = '';
+    document.getElementById('campaign-regulier-annee').value = '';
+    document.getElementById('campaign-commandes-min').value = '';
+    document.getElementById('campaign-limit-count').value = '';
+    showCampaignStep('type');
+    document.getElementById('campaign-modal').style.display = 'flex';
+}
+
+function closeCampaignModal() {
+    document.getElementById('campaign-modal').style.display = 'none';
+}
+
+function showCampaignStep(step) {
+    document.querySelectorAll('.campaign-step').forEach(s => s.style.display = 'none');
+    document.getElementById(`campaign-step-${step}`).style.display = 'block';
+}
+
+function selectCampaignType(type) {
+    campaignType = type;
+    showCampaignStep('message');
+}
+
+function campaignBack(step) {
+    if (step === 'segment' && campaignType === 'classique') step = 'message';
+    showCampaignStep(step);
+}
+
+function toggleCampaignTab(btn) {
+    btn.classList.toggle('active');
+}
+
+function campaignNextFromMessage() {
+    const titre = document.getElementById('campaign-titre').value.trim();
+    const desc = document.getElementById('campaign-description').value.trim();
+    if (!titre) { showGlassToast('Le titre est requis', 'error'); return; }
+    if (!desc) { showGlassToast('La description est requise', 'error'); return; }
+    if (campaignType === 'classique') {
+        campaignValidateSegment();
+    } else {
+        showCampaignStep('segment');
+    }
+}
+
+function getCampaignFilters() {
+    const filters = {};
+    const activeGenres = Array.from(document.querySelectorAll('#campaign-genre-tabs .campaign-tab.active')).map(b => b.dataset.value);
+    if (activeGenres.length > 0) filters.genres = activeGenres;
+    const ageMin = parseInt(document.getElementById('campaign-age-min').value);
+    const ageMax = parseInt(document.getElementById('campaign-age-max').value);
+    if (!isNaN(ageMin)) filters.age_min = ageMin;
+    if (!isNaN(ageMax)) filters.age_max = ageMax;
+    const pointsMin = parseInt(document.getElementById('campaign-points-min').value);
+    if (!isNaN(pointsMin)) filters.points_min = pointsMin;
+    const visitsMin = parseInt(document.getElementById('campaign-visits-min').value);
+    const regMois = document.getElementById('campaign-regulier-mois').value;
+    const regAnnee = document.getElementById('campaign-regulier-annee').value;
+    if (!isNaN(visitsMin) && visitsMin > 0 && regMois && regAnnee) {
+        filters.regulier = { visits_min: visitsMin, mois: parseInt(regMois), annee: parseInt(regAnnee) };
+    }
+    const commandesMin = parseInt(document.getElementById('campaign-commandes-min').value);
+    if (!isNaN(commandesMin)) filters.commandes_min = commandesMin;
+    return filters;
+}
+
+async function campaignValidateSegment() {
+    showCampaignStep('confirm');
+    document.getElementById('campaign-eligible-count').textContent = '...';
+    document.getElementById('campaign-confirm-actions').style.display = 'none';
+    document.getElementById('campaign-no-eligible').style.display = 'none';
+
+    try {
+        const filters = campaignType === 'segmentee' ? getCampaignFilters() : {};
+        campaignEligibleUsers = await fetchEligibleUsers(filters);
+
+        animateCounter('campaign-eligible-count', campaignEligibleUsers.length, 600);
+
+        setTimeout(() => {
+            if (campaignEligibleUsers.length > 0) {
+                document.getElementById('campaign-confirm-actions').style.display = 'flex';
+                document.getElementById('campaign-no-eligible').style.display = 'none';
+            } else {
+                document.getElementById('campaign-confirm-actions').style.display = 'none';
+                document.getElementById('campaign-no-eligible').style.display = 'block';
+            }
+        }, 650);
+    } catch (err) {
+        console.error('fetchEligibleUsers error:', err);
+        showGlassToast('Erreur lors du calcul des éligibles', 'error');
+        document.getElementById('campaign-eligible-count').textContent = '0';
+        document.getElementById('campaign-no-eligible').style.display = 'block';
+    }
+}
+
+function animateCounter(elId, target, duration) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (target === 0) { el.textContent = '0'; return; }
+    const start = performance.now();
+    function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+async function fetchEligibleUsers(filters) {
+    const boiteId = currentBusiness.uuid;
+
+    let pointsFilter = `boite_id=eq.${boiteId}`;
+    if (filters.points_min) pointsFilter += `&total_point=gte.${filters.points_min}`;
+    const pubRows = await supabase.select('point_user_boite', pointsFilter);
+    if (!pubRows || pubRows.length === 0) return [];
+
+    let userIds = pubRows.map(r => r.user_id);
+    const pointsByUser = {};
+    pubRows.forEach(r => { pointsByUser[r.user_id] = parseInt(r.total_point) || 0; });
+
+    const needProfiles = filters.genres || filters.age_min || filters.age_max;
+    let profilesByUser = {};
+    if (needProfiles) {
+        const profiles = await supabase.select('profiles_users', `id=in.(${userIds.join(',')})`);
+        (profiles || []).forEach(p => { profilesByUser[p.id] = p; });
+
+        userIds = userIds.filter(uid => {
+            const prof = profilesByUser[uid];
+            if (!prof) return false;
+            if (filters.genres && !filters.genres.includes(prof.sexe)) return false;
+            const age = parseInt(prof.age) || 0;
+            if (filters.age_min && age < filters.age_min) return false;
+            if (filters.age_max && age > filters.age_max) return false;
+            return true;
+        });
+    } else {
+        const profiles = await supabase.select('profiles_users', `id=in.(${userIds.join(',')})`);
+        (profiles || []).forEach(p => { profilesByUser[p.id] = p; });
+    }
+
+    if (filters.regulier || filters.commandes_min) {
+        let msFilter = `boite_id=eq.${boiteId}&user_id=in.(${userIds.join(',')})`;
+        if (filters.regulier) {
+            msFilter += `&mois=eq.${filters.regulier.mois}&annee=eq.${filters.regulier.annee}`;
+        }
+        const msRows = await supabase.select('user_boite_monthly_stats', msFilter);
+        const msByUser = {};
+        (msRows || []).forEach(r => { msByUser[r.user_id] = r; });
+
+        userIds = userIds.filter(uid => {
+            const ms = msByUser[uid];
+            if (!ms) return false;
+            if (filters.regulier && (parseInt(ms.visits) || 0) < filters.regulier.visits_min) return false;
+            if (filters.commandes_min && (parseInt(ms.total_commande) || 0) < filters.commandes_min) return false;
+            return true;
+        });
+    }
+
+    return userIds.map(uid => ({
+        user_id: uid,
+        points: pointsByUser[uid] || 0,
+        age: parseInt(profilesByUser[uid]?.age) || null,
+        genre: profilesByUser[uid]?.sexe || null,
+        ville: profilesByUser[uid]?.ville || null
+    }));
+}
+
+async function sendCampaign(mode) {
+    const titre = document.getElementById('campaign-titre').value.trim();
+    const description = document.getElementById('campaign-description').value.trim();
+    let usersToSend = [...campaignEligibleUsers];
+
+    if (mode === 'limit') {
+        const limit = parseInt(document.getElementById('campaign-limit-count').value);
+        if (isNaN(limit) || limit < 1) {
+            showGlassToast('Indique un nombre valide', 'error');
+            return;
+        }
+        usersToSend = usersToSend.slice(0, limit);
+    }
+
+    showCampaignStep('sending');
+
+    try {
+        const filters = campaignType === 'segmentee' ? getCampaignFilters() : {};
+        const campaign = await supabase.insert('campagnes', {
+            boite_id: currentBusiness.uuid,
+            boite_name: currentBusiness.name,
+            titre: titre,
+            description: description,
+            type: campaignType,
+            segmentation: filters,
+            nb_notifies: usersToSend.length,
+            nb_converti: 0,
+            taux_conversion: 0
+        });
+        const campagneId = campaign?.id || campaign?.[0]?.id;
+
+        for (const user of usersToSend) {
+            await supabase.insert('logs_campagnes', {
+                boite_id: currentBusiness.uuid,
+                boite_name: currentBusiness.name,
+                campagne_id: campagneId,
+                user_id: user.user_id,
+                age: user.age,
+                genre: user.genre,
+                ville: user.ville,
+                statut: 'notifie'
+            });
+        }
+
+        const externalIds = usersToSend.map(u => u.user_id);
+        await sendOneSignalNotification(titre, description, externalIds);
+
+        showCampaignStep('done');
+        document.getElementById('campaign-done-count').textContent = `${usersToSend.length} notifications envoyées`;
+        loadCampaigns();
+    } catch (err) {
+        console.error('sendCampaign error:', err);
+        showGlassToast('Erreur lors de l\'envoi', 'error');
+        showCampaignStep('confirm');
+    }
+}
+
+async function sendOneSignalNotification(title, message, externalIds) {
+    if (!externalIds || externalIds.length === 0) return;
+    try {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            console.log('[Campaign] OneSignal send to', externalIds.length, 'users');
+        });
+    } catch (err) {
+        console.error('OneSignal send error:', err);
+    }
+}
+
+async function checkCampaignConversion(userId, boiteId) {
+    try {
+        const today = getTodayDateStr();
+        const logs = await supabase.select(
+            'logs_campagnes',
+            `user_id=eq.${userId}&boite_id=eq.${boiteId}&statut=eq.notifie&created_at=gte.${today}T00:00:00`
+        );
+        if (!logs || logs.length === 0) return;
+
+        const campagneIds = new Set();
+        for (const log of logs) {
+            await supabase.update('logs_campagnes', `id=eq.${log.id}`, { statut: 'converti' });
+            campagneIds.add(log.campagne_id);
+        }
+
+        for (const cId of campagneIds) {
+            const campagnes = await supabase.select('campagnes', `id=eq.${cId}`);
+            if (campagnes && campagnes.length > 0) {
+                const c = campagnes[0];
+                const newConverti = (parseInt(c.nb_converti) || 0) + logs.filter(l => l.campagne_id === cId).length;
+                const newTaux = c.nb_notifies > 0 ? Math.round((newConverti / c.nb_notifies) * 100) : 0;
+                await supabase.update('campagnes', `id=eq.${cId}`, {
+                    nb_converti: newConverti,
+                    taux_conversion: newTaux
+                });
+            }
+        }
+    } catch (err) {
+        console.error('checkCampaignConversion error:', err);
+    }
+}
+
+async function upsertMonthlyStats(userId, boiteId, boiteName, type) {
+    const now = new Date();
+    const mois = now.getMonth() + 1;
+    const annee = now.getFullYear();
+
+    try {
+        const existing = await supabase.select(
+            'user_boite_monthly_stats',
+            `user_id=eq.${userId}&boite_id=eq.${boiteId}&mois=eq.${mois}&annee=eq.${annee}`
+        );
+
+        if (existing && existing.length > 0) {
+            const row = existing[0];
+            const updates = {};
+            if (type === 'entree') updates.visits = (parseInt(row.visits) || 0) + 1;
+            if (type === 'bar') updates.total_commande = (parseFloat(row.total_commande) || 0) + 1;
+            await supabase.update('user_boite_monthly_stats', `id=eq.${row.id}`, updates);
+        } else {
+            await supabase.insert('user_boite_monthly_stats', {
+                user_id: userId,
+                boite_id: boiteId,
+                boite_name: boiteName,
+                mois: mois,
+                annee: annee,
+                visits: type === 'entree' ? 1 : 0,
+                total_commande: type === 'bar' ? 1 : 0
+            });
+        }
+    } catch (err) {
+        console.error('upsertMonthlyStats error:', err);
+    }
 }
 
