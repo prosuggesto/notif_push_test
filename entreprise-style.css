@@ -1818,14 +1818,16 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    gap: 16px;
 }
 .notif-title {
     font-size: 20px;
     font-weight: 700;
     color: var(--text);
+    flex: 1;
 }
 .btn-new-campaign {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     font-size: 13px;
@@ -1837,6 +1839,8 @@
     cursor: pointer;
     font-weight: 600;
     transition: background 0.2s;
+    width: auto;
+    flex-shrink: 0;
 }
 .btn-new-campaign:hover { background: var(--primary-light); }
 
@@ -2016,16 +2020,27 @@
 }
 .campaign-input-sm:focus { border-color: var(--primary); }
 .campaign-select {
-    padding: 8px 10px;
+    padding: 8px 12px;
     border-radius: 8px;
     border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.05);
+    background: #1e293b;
     color: var(--text);
     font-size: 13px;
     font-family: inherit;
     outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+    cursor: pointer;
 }
 .campaign-select:focus { border-color: var(--primary); }
+.campaign-select option {
+    background: #1e293b;
+    color: var(--text);
+}
 
 .campaign-form-actions {
     display: flex;
