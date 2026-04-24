@@ -2117,9 +2117,18 @@ function switchScanTab(tab) {
     }
 }
 
+let scanCooldownUntil = 0;
+
 async function startClientScanner() {
     const readerEl = document.getElementById('biz-qr-reader');
     if (!readerEl) return;
+
+    // Cooldown: wait before restarting scanner to avoid duplicate scans
+    const now = Date.now();
+    if (now < scanCooldownUntil) {
+        const wait = scanCooldownUntil - now;
+        await new Promise(r => setTimeout(r, wait));
+    }
 
     // Stop previous scanner and wait for it to fully stop
     if (html5QrScanner) {
@@ -2160,6 +2169,7 @@ async function stopClientScanner() {
 
 async function onClientQRScanned(decodedText) {
     await stopClientScanner();
+    scanCooldownUntil = Date.now() + 1200;
     document.getElementById('scan-camera-zone').style.display = 'none';
 
     let clientId = null;
