@@ -1848,6 +1848,13 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-height: 55vh;
+}
+.campaigns-list > .text-dim {
+    margin: auto 0;
+}
+.campaigns-list > .campaign-card:first-child {
+    margin-top: 0;
 }
 .campaign-card {
     background: var(--surface);
