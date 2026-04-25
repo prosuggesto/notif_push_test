@@ -3452,9 +3452,19 @@ function showDashboard(username) {
         const userDisp = document.getElementById('user-display');
         if (userDisp) userDisp.textContent = username;
 
-        // Render local clubs for home view
-        console.log('Calling renderLocalClubs...');
-        renderLocalClubs();
+        // Load favorites from Supabase then load clubs
+        const userStr2 = localStorage.getItem('user');
+        const u2 = userStr2 ? JSON.parse(userStr2) : null;
+        if (u2?.uuid) {
+            supabase.select('favoris', `user_id=eq.${u2.uuid}`).then(rows => {
+                favorites = (rows || []).map(r => r.boite_id);
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+            }).catch(() => {});
+        }
+
+        loadNightclubs().then(() => {
+            renderLocalClubs();
+        });
         
         // Ensure the new view is translated
         if (typeof translateDOM === 'function') {
@@ -3531,105 +3541,101 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== NIGHTCLUB LOGIC =====
-const nightclubs = [
-    {
-        id: 'club-1',
-        name: 'Le Macumba',
-        image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80',
-        status: 'open',
-        count: 450,
-        vibe: '\uD83D\uDD25 Incroyable',
-        menRatio: 45,
-        womenRatio: 50,
-        nbRatio: 5,
-        price: '25\u20AC (avec conso)',
-        theme: 'Ann\u00e9es 80 Full Red',
-        nightDesc: 'Soir\u00e9e sp\u00e9ciale revival avec DJ Guest de Londres. Spectacle pyrotechnique \u00e0 minuit.',
-        generalDesc: 'La plus grande bo\u00eete de nuit de la r\u00e9gion avec 3 salles, 5 bars et un carr\u00e9 VIP exclusif.',
-        instagram: '@macumba_officiel',
-        city: 'Gen\u00e8ve',
-        region: 'Grand Gen\u00e8ve',
-        country: 'Suisse',
-        rewards: [
-            { id: 'r1', name: 'Shot Offert', points: 10, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' },
-            { id: 'r2', name: 'Coupe Champagne', points: 30, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
-            { id: 'r5', name: 'Cocktail Maison Offert', points: 20, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
-            { id: 'r6', name: 'Acc\u00e8s Carr\u00e9 VIP 1h', points: 50, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' }
-        ],
-        products: [
-            { id: 'p1', name: 'Vodka Redbull', price: '15\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
-            { id: 'p2', name: 'Bi\u00e8re Pression', price: '8\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=200' },
-            { id: 'p5', name: 'Mojito', price: '14\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
-            { id: 'p6', name: 'Gin Tonic', price: '13\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' },
-            { id: 'p7', name: 'Whisky Coca', price: '12\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=200' },
-            { id: 'p8', name: 'Coca-Cola', price: '5\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=200' },
-            { id: 'p9', name: 'Red Bull', price: '6\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1613225755222-3552bcd2cece?w=200' },
-            { id: 'p10', name: 'Eau Min\u00e9rale', price: '3\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1564419320461-6262a0d4ceec?w=200' },
-            { id: 'p11', name: 'Nachos & Salsa', price: '9\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=200' },
-            { id: 'p12', name: 'Planche Mixte', price: '16\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=200' }
-        ]
-    },
-    {
-        id: 'club-2',
-        name: 'L\'Atrium',
-        image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80',
-        status: 'closed',
-        count: 0,
-        vibe: '\uD83D\uDCA4 Calme',
-        menRatio: 55,
-        womenRatio: 40,
-        nbRatio: 5,
-        price: '15\u20AC',
-        theme: 'Deep Into Detroit',
-        nightDesc: 'Pas d\'\u00e9v\u00e9nements pr\u00e9vus ce soir. Ouverture demain 23h.',
-        generalDesc: 'Club intimiste sp\u00e9cialis\u00e9 dans la musique \u00e9lectronique underground et techno m\u00e9lodique.',
-        instagram: '@atrium_club',
-        city: 'Lyon',
-        region: 'Rh\u00f4ne-Alpes',
-        country: 'France',
-        rewards: [
-            { id: 'r3', name: 'Entr\u00e9e Gratuite', points: 50, image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=200' },
-            { id: 'r7', name: 'Shot Tequila', points: 15, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=200' }
-        ],
-        products: [
-            { id: 'p3', name: 'Gin Tonic', price: '12\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1547595628-c61a29f496f0?w=200' },
-            { id: 'p13', name: 'Margarita', price: '14\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
-            { id: 'p14', name: 'Jus d\'Orange', price: '5\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=200' }
-        ]
-    },
-    {
-        id: 'club-3',
-        name: 'Le Palace',
-        image: 'https://images.unsplash.com/photo-1545128485-c400e7702796?w=500&q=80',
-        status: 'open',
-        count: 850,
-        vibe: '\uD83C\uDF89 Plein \u00e0 craquer',
-        menRatio: 48,
-        womenRatio: 48,
-        nbRatio: 4,
-        price: '30\u20AC',
-        theme: 'Gala de Printemps',
-        nightDesc: 'Dress code \u00e9l\u00e9gant exig\u00e9. Champagne offert aux groupes de 5 femmes avant minuit.',
-        generalDesc: 'Lieu historique de la nuit parisienne, r\u00e9put\u00e9 pour son acoustique et ses soir\u00e9es mondaines.',
-        instagram: '@palace_paris',
-        city: 'Paris',
-        region: '\u00cele-de-France',
-        country: 'France',
-        rewards: [
-            { id: 'r4', name: 'Acc\u00e8s VIP', points: 100, image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=200' },
-            { id: 'r8', name: 'Bouteille Champagne', points: 80, image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
-            { id: 'r9', name: 'Cocktail Signature', points: 25, image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' }
-        ],
-        products: [
-            { id: 'p4', name: 'Cocktail Signature', price: '18\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200' },
-            { id: 'p15', name: 'Champagne Coupe', price: '22\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=200' },
-            { id: 'p16', name: 'Espresso Martini', price: '16\u20AC', category: 'Alcool', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=200' },
-            { id: 'p17', name: 'Perrier', price: '4\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1564419320461-6262a0d4ceec?w=200' },
-            { id: 'p18', name: 'Virgin Mojito', price: '10\u20AC', category: 'Soft', image: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200' },
-            { id: 'p19', name: 'Bruschetta', price: '11\u20AC', category: 'Snacks', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=200' }
-        ]
+let nightclubs = [];
+
+async function loadNightclubs() {
+    try {
+        const businesses = await supabase.select('profiles_business', 'order=nom_boite.asc');
+        if (!businesses || businesses.length === 0) { nightclubs = []; return; }
+
+        const today = getTodayDateStr();
+        const boiteIds = businesses.map(b => b.id);
+
+        // Fetch today's calendrier for all clubs
+        let todayCals = [];
+        try {
+            todayCals = await supabase.select('calendrier', `boite_id=in.(${boiteIds.join(',')})&date_soiree=eq.${today}`);
+        } catch (e) { console.error('loadNightclubs calendrier today error:', e); }
+        const todayCalByBoite = {};
+        (todayCals || []).forEach(c => { todayCalByBoite[c.boite_id] = c; });
+
+        // Fetch latest calendrier for clubs with no event today (last soirée)
+        const noTodayIds = boiteIds.filter(id => !todayCalByBoite[id]);
+        let lastCals = [];
+        if (noTodayIds.length > 0) {
+            try {
+                lastCals = await supabase.select(
+                    'calendrier',
+                    `boite_id=in.(${noTodayIds.join(',')})&order=date_soiree.desc&limit=100`
+                );
+            } catch (e) { console.error('loadNightclubs last cal error:', e); }
+        }
+        const lastCalByBoite = {};
+        (lastCals || []).forEach(c => {
+            if (!lastCalByBoite[c.boite_id]) lastCalByBoite[c.boite_id] = c;
+        });
+
+        // Fetch templates for today's events
+        const templateNames = new Set();
+        Object.values(todayCalByBoite).forEach(c => { if (c.nom_template) templateNames.add(c.nom_template); });
+        Object.values(lastCalByBoite).forEach(c => { if (c.nom_template) templateNames.add(c.nom_template); });
+
+        let templates = [];
+        if (templateNames.size > 0) {
+            try {
+                templates = await supabase.select('annonces_templates', `boite_id=in.(${boiteIds.join(',')})`);
+            } catch (e) { console.error('loadNightclubs templates error:', e); }
+        }
+        const templateByBoiteAndName = {};
+        (templates || []).forEach(t => {
+            const key = `${t.boite_id}__${t.titre_template}`;
+            templateByBoiteAndName[key] = t;
+        });
+
+        nightclubs = businesses.map(b => {
+            const todayCal = todayCalByBoite[b.id];
+            const lastCal = lastCalByBoite[b.id];
+            const cal = todayCal || lastCal;
+            const isOpen = !!todayCal;
+
+            let image = 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80';
+            let theme = '';
+            if (cal && cal.nom_template) {
+                const tpl = templateByBoiteAndName[`${b.id}__${cal.nom_template}`];
+                if (tpl) {
+                    if (tpl.image_url) image = tpl.image_url;
+                    theme = tpl.titre_template || cal.nom_template;
+                } else {
+                    theme = cal.nom_template;
+                }
+            }
+
+            const count = isOpen ? (parseInt(cal?.affluence) || 0) : 0;
+            let vibe = '';
+            if (!isOpen) vibe = 'Fermé';
+            else if (count === 0) vibe = 'Calme';
+            else if (b.capacity_max && count / b.capacity_max > 0.8) vibe = 'Plein à craquer';
+            else if (b.capacity_max && count / b.capacity_max > 0.5) vibe = 'Incroyable';
+            else vibe = 'Ambiance cool';
+
+            return {
+                id: b.id,
+                name: b.nom_boite,
+                image: image,
+                status: isOpen ? 'open' : 'closed',
+                count: count,
+                vibe: vibe,
+                city: b.ville || '',
+                country: b.pays || '',
+                capacity_max: parseInt(b.capacity_max) || 0,
+                theme: theme
+            };
+        });
+    } catch (err) {
+        console.error('loadNightclubs error:', err);
+        nightclubs = [];
     }
-];
+}
 
 let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
 
@@ -3651,6 +3657,7 @@ function switchMainView(viewId) {
     let title = t('nav.home');
     if (viewId === 'search') title = t('nav.search');
     if (viewId === 'favorites') title = t('nav.favorites');
+    if (viewId === 'offres') title = 'Mes offres';
     if (viewId === 'qr') title = t('nav.qr');
     if (viewId === 'code') title = t('nav.code');
     if (viewId === 'verify') title = t('verify.entry_validation');
@@ -3660,8 +3667,9 @@ function switchMainView(viewId) {
 
     if (viewId === 'code') renderProfile();
     if (viewId === 'home') renderLocalClubs();
-    if (viewId === 'search') { renderClubs(); initFilters(); }
+    if (viewId === 'search') renderClubs();
     if (viewId === 'favorites') renderFavoritesView();
+    if (viewId === 'offres') loadUserOffres();
     
     // Fermer le menu si ouvert
     const menu = document.getElementById('side-menu');
@@ -3693,26 +3701,26 @@ function renderProfile() {
         });
     }
 
-    // Mock points per club for demonstration
     const clubPointsContainer = document.getElementById('per-club-points');
-    clubPointsContainer.innerHTML = '';
-    
-    // In a real app, this would come from the user's data in the backend
-    const mockPoints = [
-        { name: 'Le Macumba', points: 150 },
-        { name: 'Le Palace', points: 45 }
-    ];
+    clubPointsContainer.innerHTML = '<p class="text-dim">Chargement...</p>';
 
-    if (mockPoints.length === 0) {
-        clubPointsContainer.innerHTML = '<p class="text-dim">Aucun point cumulé pour le moment.</p>';
-    } else {
-        mockPoints.forEach(cp => {
-            clubPointsContainer.innerHTML += `
-                <div class="club-point-item">
-                    <span>${cp.name}</span>
-                    <strong>${cp.points} pts</strong>
-                </div>
-            `;
+    if (user.uuid) {
+        supabase.select('point_user_boite', `user_id=eq.${user.uuid}&order=total_point.desc`).then(rows => {
+            clubPointsContainer.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                clubPointsContainer.innerHTML = '<p class="text-dim">Aucun point cumulé pour le moment.</p>';
+                return;
+            }
+            rows.forEach(cp => {
+                clubPointsContainer.innerHTML += `
+                    <div class="club-point-item">
+                        <span>${cp.boite_name}</span>
+                        <strong>${parseInt(cp.total_point) || 0} pts</strong>
+                    </div>
+                `;
+            });
+        }).catch(() => {
+            clubPointsContainer.innerHTML = '<p class="text-dim">Erreur de chargement.</p>';
         });
     }
 }
@@ -3721,8 +3729,18 @@ function renderClubs(filteredList = null) {
     const list = filteredList || nightclubs;
     const container = document.getElementById('clubs-container');
     if (!container) return;
+
+    const userStr = localStorage.getItem('user');
+    const userCity = userStr ? (JSON.parse(userStr).city || '').toLowerCase() : '';
+
+    const sorted = [...list].sort((a, b) => {
+        const aLocal = a.city.toLowerCase() === userCity ? 0 : 1;
+        const bLocal = b.city.toLowerCase() === userCity ? 0 : 1;
+        return aLocal - bLocal;
+    });
+
     container.innerHTML = '';
-    list.forEach(club => {
+    sorted.forEach(club => {
         container.innerHTML += buildClubCard(club);
     });
 }
@@ -3731,11 +3749,25 @@ function renderFavorites() {
     // No longer shows in home view - favorites have their own view now
 }
 
-function toggleFavorite(clubId) {
+async function toggleFavorite(clubId) {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+
     if (favorites.includes(clubId)) {
         favorites = favorites.filter(id => id !== clubId);
+        if (user?.uuid) {
+            supabase.delete('favoris', `user_id=eq.${user.uuid}&boite_id=eq.${clubId}`).catch(err => console.error('favoris delete error:', err));
+        }
     } else {
         favorites.push(clubId);
+        if (user?.uuid) {
+            const club = nightclubs.find(c => c.id === clubId);
+            supabase.upsert('favoris', {
+                user_id: user.uuid,
+                boite_id: clubId,
+                boite_name: club?.name || ''
+            }, 'user_id,boite_id').catch(err => console.error('favoris upsert error:', err));
+        }
     }
     localStorage.setItem('favorites', JSON.stringify(favorites));
 
@@ -3756,10 +3788,12 @@ function toggleFavorite(clubId) {
 
 function filterClubs() {
     const searchEl = document.getElementById('club-search');
-    const search = searchEl ? searchEl.value.toLowerCase() : '';
+    const search = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+    if (!search) { renderClubs(); return; }
 
     const filtered = nightclubs.filter(c => {
-        const text = (c.name + ' ' + c.city + ' ' + c.country + ' ' + c.region).toLowerCase();
+        const text = (c.name + ' ' + c.city + ' ' + c.country).toLowerCase();
         return text.includes(search);
     });
 
@@ -4691,6 +4725,56 @@ async function showBusinessDashboard() {
     switchBizSection('annonces');
 }
 
+// ===== MES OFFRES (fêtard) =====
+async function loadUserOffres() {
+    const list = document.getElementById('offres-list');
+    if (!list) return;
+    list.innerHTML = '<p class="text-dim" style="text-align:center; padding:60px 20px; font-size:14px;">Chargement...</p>';
+
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (!user?.uuid) {
+        list.innerHTML = '<p class="text-dim" style="text-align:center; padding:60px 20px; font-size:14px;">Connecte-toi pour voir tes offres.</p>';
+        return;
+    }
+
+    try {
+        const logs = await supabase.select(
+            'logs_campagnes',
+            `user_id=eq.${user.uuid}&type_offre=eq.offre unique&order=created_at.desc`
+        );
+
+        if (!logs || logs.length === 0) {
+            list.innerHTML = '<p class="text-dim" style="text-align:center; padding:60px 20px; font-size:14px;">Aucune offre pour le moment.</p>';
+            return;
+        }
+
+        const campagneIds = [...new Set(logs.map(l => l.campagne_id))];
+        const campagnes = await supabase.select('campagnes', `id=in.(${campagneIds.join(',')})`);
+        const campagneMap = {};
+        (campagnes || []).forEach(c => { campagneMap[c.id] = c; });
+
+        list.innerHTML = logs.map(log => {
+            const c = campagneMap[log.campagne_id];
+            if (!c) return '';
+            const date = new Date(log.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+            const isConverti = log.statut === 'converti';
+            return `<div class="offre-card ${isConverti ? 'used' : ''}">
+                <div class="offre-card-header">
+                    <span class="offre-boite">${log.boite_name}</span>
+                    <span class="offre-date">${date}</span>
+                </div>
+                <h3 class="offre-titre">${c.titre}</h3>
+                <p class="offre-desc">${c.description || ''}</p>
+                <span class="offre-badge ${isConverti ? 'converti' : 'actif'}">${isConverti ? 'Utilisée' : 'Active'}</span>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('loadUserOffres error:', err);
+        list.innerHTML = '<p class="text-dim" style="text-align:center; padding:60px 20px; font-size:14px;">Erreur de chargement.</p>';
+    }
+}
+
 // ===== NOTIFICATIONS / CAMPAGNES =====
 let campaignType = 'classique';
 let campaignEligibleUsers = [];
@@ -4777,6 +4861,7 @@ function openCampaignModal() {
     document.getElementById('campaign-titre').value = '';
     document.getElementById('campaign-description').value = '';
     document.querySelectorAll('.campaign-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('campaign-offre-unique').checked = false;
     document.getElementById('campaign-age-min').value = '';
     document.getElementById('campaign-age-max').value = '';
     document.getElementById('campaign-points-min').value = '';
@@ -4973,6 +5058,8 @@ async function sendCampaign(mode) {
     showCampaignStep('sending');
 
     try {
+        const isOffreUnique = document.getElementById('campaign-offre-unique').checked;
+        const typeOffre = isOffreUnique ? 'offre unique' : 'offre classique';
         const filters = campaignType === 'segmentee' ? getCampaignFilters() : {};
         const campaign = await supabase.insert('campagnes', {
             boite_id: currentBusiness.uuid,
@@ -4996,7 +5083,8 @@ async function sendCampaign(mode) {
                 age: user.age,
                 genre: user.genre,
                 ville: user.ville,
-                statut: 'notifie'
+                statut: 'notifie',
+                type_offre: typeOffre
             });
         }
 

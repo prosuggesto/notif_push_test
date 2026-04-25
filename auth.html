@@ -316,6 +316,10 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                 Mes Favoris
             </button>
+            <button class="menu-link" onclick="switchMainView('offres')" id="link-offres">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                Mes offres
+            </button>
             <button class="menu-link" onclick="switchMainView('code')" id="link-code" data-i18n="nav.code">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                 Mon QR
@@ -397,6 +401,13 @@
                 <p style="font-size: 48px; margin-bottom: 16px;">&#x2764;&#xFE0F;</p>
                 <p style="color: var(--text-dim); font-size: 15px; margin-bottom: 24px;" data-i18n="dashboard.no_favorites">Tu n'as pas encore de boîte favorite.</p>
                 <button class="btn-discover" id="btn-discover-clubs" onclick="switchMainView('search')" data-i18n="dashboard.discover_clubs">Découvrir des boîtes</button>
+            </div>
+        </main>
+
+        <!-- Mes Offres View -->
+        <main id="offres-view" class="main-view">
+            <div id="offres-list" class="offres-list">
+                <p class="text-dim" style="text-align:center; padding:60px 20px; font-size:14px;">Aucune offre pour le moment.</p>
             </div>
         </main>
 
@@ -798,7 +809,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=notif-v1"></script>
+    <script src="app.js?v=notif-v2"></script>
     <script src="i18n.js"></script>
 </body>
 </html>
