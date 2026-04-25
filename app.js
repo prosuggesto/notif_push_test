@@ -4891,35 +4891,44 @@ function animateCounter(elId, target, duration) {
 async function fetchEligibleUsers(filters) {
     const boiteId = currentBusiness.uuid;
 
-    let pointsFilter = `boite_id=eq.${boiteId}`;
-    if (filters.points_min) pointsFilter += `&total_point=gte.${filters.points_min}`;
-    const pubRows = await supabase.select('point_user_boite', pointsFilter);
-    if (!pubRows || pubRows.length === 0) return [];
+    // Base obligatoire : uniquement les users qui ont cette boîte en favori
+    const favRows = await supabase.select('favoris', `boite_id=eq.${boiteId}`);
+    if (!favRows || favRows.length === 0) return [];
+    let userIds = favRows.map(r => r.user_id);
 
-    let userIds = pubRows.map(r => r.user_id);
+    // Points filter (only if needed)
     const pointsByUser = {};
-    pubRows.forEach(r => { pointsByUser[r.user_id] = parseInt(r.total_point) || 0; });
-
-    const needProfiles = filters.genres || filters.age_min || filters.age_max;
-    let profilesByUser = {};
-    if (needProfiles) {
-        const profiles = await supabase.select('profiles_users', `id=in.(${userIds.join(',')})`);
-        (profiles || []).forEach(p => { profilesByUser[p.id] = p; });
-
-        userIds = userIds.filter(uid => {
-            const prof = profilesByUser[uid];
-            if (!prof) return false;
-            if (filters.genres && !filters.genres.includes(prof.sexe)) return false;
-            const age = parseInt(prof.age) || 0;
-            if (filters.age_min && age < filters.age_min) return false;
-            if (filters.age_max && age > filters.age_max) return false;
-            return true;
-        });
-    } else {
-        const profiles = await supabase.select('profiles_users', `id=in.(${userIds.join(',')})`);
-        (profiles || []).forEach(p => { profilesByUser[p.id] = p; });
+    if (filters.points_min) {
+        const pubRows = await supabase.select(
+            'point_user_boite',
+            `boite_id=eq.${boiteId}&user_id=in.(${userIds.join(',')})&total_point=gte.${filters.points_min}`
+        );
+        if (!pubRows || pubRows.length === 0) return [];
+        pubRows.forEach(r => { pointsByUser[r.user_id] = parseInt(r.total_point) || 0; });
+        userIds = userIds.filter(uid => pointsByUser[uid] !== undefined);
     }
 
+    // Profiles filter (only if genre/age filters active, or always to get user info for logs)
+    const needProfiles = filters.genres || filters.age_min || filters.age_max;
+    let profilesByUser = {};
+    if (needProfiles || userIds.length > 0) {
+        const profiles = await supabase.select('profiles_users', `id=in.(${userIds.join(',')})`);
+        (profiles || []).forEach(p => { profilesByUser[p.id] = p; });
+
+        if (needProfiles) {
+            userIds = userIds.filter(uid => {
+                const prof = profilesByUser[uid];
+                if (!prof) return false;
+                if (filters.genres && !filters.genres.includes(prof.sexe)) return false;
+                const age = parseInt(prof.age) || 0;
+                if (filters.age_min && age < filters.age_min) return false;
+                if (filters.age_max && age > filters.age_max) return false;
+                return true;
+            });
+        }
+    }
+
+    // Monthly stats filter (only if regulier or commandes filter active)
     if (filters.regulier || filters.commandes_min) {
         let msFilter = `boite_id=eq.${boiteId}&user_id=in.(${userIds.join(',')})`;
         if (filters.regulier) {
