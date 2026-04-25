@@ -242,6 +242,21 @@ const supabase = {
         return Array.isArray(data) ? data[0] : data;
     },
 
+    async delete(table, filters) {
+        const token = await this.auth.getValidToken();
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filters}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`
+            }
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Erreur suppression');
+        }
+    },
+
     // --- RPC (Postgres functions) ---
     async rpc(fn, params = {}) {
         const token = await this.auth.getValidToken();

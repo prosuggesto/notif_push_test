@@ -740,6 +740,11 @@
                                 <input type="text" id="campaign-titre" class="campaign-input" placeholder="Ex: Soirée spéciale ce soir !" maxlength="60">
                                 <label class="campaign-label">Description</label>
                                 <textarea id="campaign-description" class="campaign-textarea" placeholder="Ex: -50% sur les cocktails avant minuit" maxlength="200" rows="3"></textarea>
+                                <label class="campaign-checkbox-label">
+                                    <input type="checkbox" id="campaign-offre-unique">
+                                    <span>Offre unique</span>
+                                    <small class="campaign-filter-hint" style="display:block; margin-top:2px;">Le client pourra retrouver cette offre dans sa rubrique "Mes offres"</small>
+                                </label>
                                 <div class="campaign-form-actions">
                                     <button class="btn-secondary" onclick="campaignBack('type')">Retour</button>
                                     <button class="btn-primary" onclick="campaignNextFromMessage()">Valider</button>
@@ -908,7 +913,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=notif-v1"></script>
+    <script src="app.js?v=notif-v2"></script>
     <!-- ==================== REDEEM RESULT MODAL ==================== -->
     <div id="biz-redeem-modal" class="modal-overlay" onclick="closeModal(event, 'biz-redeem-modal')">
         <div class="modal-content">
