@@ -742,8 +742,11 @@
                                 <textarea id="campaign-description" class="campaign-textarea" placeholder="Ex: -50% sur les cocktails avant minuit" maxlength="200" rows="3"></textarea>
                                 <label class="campaign-checkbox-label">
                                     <input type="checkbox" id="campaign-offre-unique">
-                                    <span>Offre unique</span>
-                                    <small class="campaign-filter-hint" style="display:block; margin-top:2px;">Le client pourra retrouver cette offre dans sa rubrique "Mes offres"</small>
+                                    <div class="campaign-toggle"></div>
+                                    <div class="campaign-checkbox-text">
+                                        <span>Offre unique</span>
+                                        <small>Le client pourra retrouver cette offre dans "Mes offres"</small>
+                                    </div>
                                 </label>
                                 <div class="campaign-form-actions">
                                     <button class="btn-secondary" onclick="campaignBack('type')">Retour</button>
